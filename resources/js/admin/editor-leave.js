@@ -26,7 +26,8 @@ window.addEventListener('beforeunload', (event) => {
 document.addEventListener('click', (event) => {
     const link = event.target.closest('a[href]')
 
-    if (! link || ! editor() || ! hasUnsavedChanges()) {
+    // Links on the canvas go nowhere (canvas-links.js): clicking one edits it.
+    if (! link || ! editor() || ! hasUnsavedChanges() || link.closest('.fpb-canvas')) {
         return
     }
 
