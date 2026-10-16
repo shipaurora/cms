@@ -2,8 +2,10 @@
 
 namespace Aurora\Blocks;
 
+use Aurora\Models\Setting;
 use CarlJanzell\FilamentPageBuilder\BlockRegistries;
 use CarlJanzell\FilamentPageBuilder\PageBuilder;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
@@ -21,6 +23,12 @@ use Symfony\Component\Finder\Finder;
  */
 class Blocks
 {
+    /**
+     * Screenshots uploaded in Settings › Blocks, by block type: files on the public disk
+     * (like people's avatars), not in the media library.
+     */
+    public const PREVIEWS_SETTING = 'block_previews';
+
     /**
      * The panel Aurora's editor runs in.
      */
@@ -109,6 +117,23 @@ class Blocks
     public static function all(): array
     {
         return static::$blocks;
+    }
+
+    /**
+     * A block's picture for the visual editor's block list: the screenshot uploaded for it in
+     * Settings › Blocks, else the block's own (Block::preview()), else none.
+     */
+    public static function preview(string $type): ?string
+    {
+        $uploaded = (Setting::get(self::PREVIEWS_SETTING) ?? [])[$type] ?? null;
+
+        if (filled($uploaded)) {
+            return Storage::disk('public')->url($uploaded);
+        }
+
+        $block = static::find($type);
+
+        return $block === null ? null : $block::preview();
     }
 
     /**

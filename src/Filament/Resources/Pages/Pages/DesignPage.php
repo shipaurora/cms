@@ -3,6 +3,7 @@
 namespace Aurora\Filament\Resources\Pages\Pages;
 
 use Aurora\Blocks\Block;
+use Aurora\Blocks\Blocks;
 use Aurora\Enums\RevisionSource;
 use Aurora\Filament\Resources\Pages\Concerns\TranslatesBlocks;
 use Aurora\Filament\Resources\Pages\PageResource;
@@ -35,6 +36,16 @@ class DesignPage extends BaseDesignPage
     use TranslatesBlocks;
 
     protected static string $resource = PageResource::class;
+
+    /**
+     * The block list, with each block's picture (uploaded in Settings › Blocks, else its own).
+     *
+     * @return array<int, array{type: string, label: string, icon: ?string, category: string, description: ?string, preview: ?string}>
+     */
+    public function getPaletteProperty(): array
+    {
+        return array_map(fn (array $item): array => [...$item, 'preview' => Blocks::preview($item['type'])], parent::getPaletteProperty());
+    }
 
     public function mount(int|string $record): void
     {

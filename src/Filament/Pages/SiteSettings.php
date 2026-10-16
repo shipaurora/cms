@@ -4,8 +4,10 @@ namespace Aurora\Filament\Pages;
 
 use Aurora\Filament\Auth\AuthenticatorApps;
 use Aurora\Filament\Concerns\ConfirmsLeaving;
+use Aurora\Filament\Concerns\ManagesBlockPreviews;
 use Aurora\Filament\Concerns\ManagesImageFormats;
 use Aurora\Filament\Concerns\ManagesLayouts;
+use Aurora\Filament\Concerns\ManagesMenuLocations;
 use Aurora\Filament\Concerns\TranslatesPageLabels;
 use Aurora\Filament\Forms\Components\AssetPicker;
 use Aurora\Filament\Pages\Auth\SetUpRequiredPasskey;
@@ -58,8 +60,10 @@ class SiteSettings extends Page implements HasSchemas
 {
     use ConfirmsLeaving;
     use HasUnsavedDataChangesAlert;
+    use ManagesBlockPreviews;
     use ManagesImageFormats;
     use ManagesLayouts;
+    use ManagesMenuLocations;
     use TranslatesPageLabels;
 
     protected static string|BackedEnum|null $navigationIcon = 'phosphor-gear';
@@ -262,6 +266,19 @@ class SiteSettings extends Page implements HasSchemas
                     ->description(__('The sizes the library makes of every image. Blocks pick the one that fits, and responsive formats let browsers choose the size that suits the screen.'))
                     ->schema(fn (): array => $this->formatRows()),
             ]),
+            'menu-locations' => Tab::make(__('Menu locations'))->icon('phosphor-map-pin')->schema([
+                Section::make(__('Menu locations'))
+                    ->icon('phosphor-map-pin')
+                    ->description(__('The places in the website’s templates a menu can be shown. Put a menu in one with “Locations”, under Menus.'))
+                    ->schema(fn (): array => $this->menuLocationRows()),
+            ]),
+            // Every block, with the picture the visual editor's block list shows beside it.
+            'blocks' => Tab::make(__('Blocks'))->icon('phosphor-squares-four')->schema([
+                Section::make(__('Blocks'))
+                    ->icon('phosphor-squares-four')
+                    ->description(__('The blocks editors build pages from, with the picture shown beside each in the visual editor. Upload a screenshot to show your own.'))
+                    ->schema(fn (): array => $this->blockRows()),
+            ]),
             // Languages and their translations; a table of its own (Aurora\Livewire\LanguagesTable).
             'languages' => static::canManageLanguages() ? Tab::make(__('Languages'))
                 ->icon('phosphor-translate')
@@ -422,7 +439,7 @@ class SiteSettings extends Page implements HasSchemas
                 ->action(fn () => $this->save())
                 ->keyBindings(['mod+s'])
                 // Sections that save as they're changed, through their own dialogs.
-                ->visible(fn (): bool => ! in_array($this->sectionKey(), ['layouts', 'image-formats', 'languages', 'sites', 'search'], true)),
+                ->visible(fn (): bool => ! in_array($this->sectionKey(), ['layouts', 'image-formats', 'menu-locations', 'blocks', 'languages', 'sites', 'search'], true)),
         ];
     }
 

@@ -31,6 +31,17 @@ abstract class Block implements InlineEditable, PageBlock
     }
 
     /**
+     * A picture of the block (a screenshot of it on a page), shown beside it in the visual
+     * editor's block list so editors see what they're adding: any image URL, such as
+     * asset('vendor/my-blocks/hero.png') or Vite::asset('resources/images/blocks/hero.png').
+     * None: the list shows its icon and description only.
+     */
+    public static function preview(): ?string
+    {
+        return null;
+    }
+
+    /**
      * Palette group: layout, content, marketing, media, design or developer.
      */
     public static function category(): string
