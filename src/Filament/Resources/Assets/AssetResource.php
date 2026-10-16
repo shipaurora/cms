@@ -193,6 +193,8 @@ class AssetResource extends Resource
             ->contentGrid(['default' => 2, 'md' => 3, 'xl' => 5])
             // Picked up by the folder browser: cards can be dragged onto folders.
             // overflow-hidden/min-w-0: long unbroken titles (e.g. camera file names) can't widen a card.
+            // Edit for those who may change it, view-only otherwise (Filament would try view first).
+            ->recordUrl(fn (Asset $record): ?string => static::urlFor($record))
             // Only files someone may change can be selected, so a read-only file offers no actions;
             // with none on the page, there's nothing to select and no bulk actions.
             ->checkIfRecordIsSelectableUsing(fn (Asset $record): bool => auth()->user()->can('update', $record))
@@ -447,6 +449,23 @@ class AssetResource extends Resource
                 ? [__('Alt text') => $record->alt ? str($record->alt)->limit(50)->toString() : __('Missing')]
                 : [__('Type') => $record->type()->getLabel()],
         ]);
+    }
+
+    /**
+     * A file's page for this person: to edit it, or to look at it when they may only read it.
+     */
+    public static function urlFor(Asset $record): ?string
+    {
+        return match (true) {
+            static::canEdit($record) => static::getUrl('edit', ['record' => $record]),
+            static::canView($record) => static::getUrl('view', ['record' => $record]),
+            default => null,
+        };
+    }
+
+    public static function getGlobalSearchResultUrl(Model $record): ?string
+    {
+        return $record instanceof Asset ? static::urlFor($record) : null;
     }
 
     public static function getGlobalSearchEloquentQuery(): Builder

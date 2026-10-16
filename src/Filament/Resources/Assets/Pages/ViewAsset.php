@@ -24,6 +24,18 @@ class ViewAsset extends ViewRecord
 
     protected static string $resource = AssetResource::class;
 
+    /**
+     * Those who may change the file get its edit page, wherever they came from.
+     */
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        if (AssetResource::canEdit($this->getRecord())) {
+            $this->redirect(AssetResource::getUrl('edit', ['record' => $this->getRecord()]));
+        }
+    }
+
     public function bootedViewAsset(): void
     {
         ContentLocale::set($this->activeLocale ?? null);
