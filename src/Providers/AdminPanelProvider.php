@@ -205,11 +205,6 @@ class AdminPanelProvider extends PanelProvider
                     ->usingMenuModel(Menu::class)
                     ->usingMenuItemModel(MenuItem::class)
                     ->usingMenuLocationModel(MenuLocation::class)
-                    ->addLocations([
-                        'header' => 'Main navigation',
-                        'footer' => 'Footer',
-                        'legal' => 'Footer: legal links',
-                    ])
                     ->addMenuPanels([
                         ModelMenuPanel::make('Pages')
                             ->model(Page::class)

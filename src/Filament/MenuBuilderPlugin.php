@@ -2,12 +2,13 @@
 
 namespace Aurora\Filament;
 
+use Aurora\Models\NavigationLocation;
 use Datlechin\FilamentMenuBuilder\FilamentMenuBuilderPlugin;
 
 /**
- * The menu builder, with its location names ("Main navigation", "Footer") in the person's
- * language. They are registered with the panel, before anyone's language is known, so they
- * are translated each time they are read instead.
+ * The menu builder, with its locations from the database (NavigationLocation, set up under
+ * Menus › More › Manage locations), their names in the person's language. Read each time, so
+ * a new location is there straight away.
  */
 class MenuBuilderPlugin extends FilamentMenuBuilderPlugin
 {
@@ -16,6 +17,7 @@ class MenuBuilderPlugin extends FilamentMenuBuilderPlugin
      */
     public function getLocations(): array
     {
-        return array_map(fn (string $label): string => __($label), parent::getLocations());
+        // Before the database is set up (installing), none.
+        return rescue(fn (): array => NavigationLocation::options(), [], report: false);
     }
 }

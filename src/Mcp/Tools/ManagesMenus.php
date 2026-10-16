@@ -28,7 +28,7 @@ trait ManagesMenus
             ?? Menu::query()->whereHas('locations', fn ($query) => $query->where('location', $identifier))->first()
             ?? Menu::query()->where('name', $identifier)->first();
 
-        return $menu ?? throw new InvalidArgumentException("No menu \"{$identifier}\". Use get_menus to see the menus and their locations (header, footer, legal).");
+        return $menu ?? throw new InvalidArgumentException("No menu \"{$identifier}\". Use get_menus to see the menus and their locations (".NavigationLocation::cached()->pluck('handle')->implode(', ').').');
     }
 
     protected function findItem(string $id): MenuItem
