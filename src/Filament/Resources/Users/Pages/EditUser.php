@@ -2,6 +2,7 @@
 
 namespace Aurora\Filament\Resources\Users\Pages;
 
+use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Users\UserResource;
 use Filament\Actions\Action;
@@ -12,6 +13,7 @@ use STS\FilamentImpersonate\Actions\Impersonate;
 
 class EditUser extends EditRecord
 {
+    use ConfirmsLeaving;
     use SavesFromHeader;
 
     protected static string $resource = UserResource::class;

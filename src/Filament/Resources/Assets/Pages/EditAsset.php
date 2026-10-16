@@ -5,6 +5,7 @@ namespace Aurora\Filament\Resources\Assets\Pages;
 use Aurora\Enums\AssetType;
 use Aurora\Filament\Actions\AccessAction;
 use Aurora\Filament\Actions\LanguageSwitcher;
+use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\ManagesImageFormats;
 use Aurora\Filament\Concerns\SavesFromHeader;
@@ -27,6 +28,7 @@ use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable
  */
 class EditAsset extends EditRecord
 {
+    use ConfirmsLeaving;
     use FollowsActiveLocale;
     use ManagesImageFormats;
     use SavesFromHeader;

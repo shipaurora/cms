@@ -42,7 +42,7 @@ class PagePresenter
         return [
             ...static::summary($page, $user),
             'excerpt' => $page->excerpt,
-            'layout' => $page->layout->value,
+            'layout' => $page->layoutOrDefault()?->handle,
             'seo' => [
                 'meta_title' => $page->meta_title,
                 'meta_description' => $page->meta_description,

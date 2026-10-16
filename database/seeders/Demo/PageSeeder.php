@@ -3,12 +3,12 @@
 namespace Aurora\Database\Seeders\Demo;
 
 use Aurora\Database\Seeders\Demo\Support\B;
-use Aurora\Enums\PageLayout;
 use Aurora\Enums\PageStatus;
 use Aurora\Enums\RevisionSource;
 use Aurora\Models\Asset;
 use Aurora\Models\AssetTag;
 use Aurora\Models\Form;
+use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Models\User;
 use Aurora\Support\AssetLibrary;
@@ -105,29 +105,29 @@ class PageSeeder extends Seeder
         // Aurora's own website: the product, the docs and the guides. One guide waits for
         // review and one is a draft, so the workflow has something to show.
         $pages = [
-            ['home', 'Home', PageLayout::Landing, PageStatus::Published, $admin, 'Aurora is a content management system for Laravel, built on Filament.', true],
-            ['why-aurora', 'Why Aurora', PageLayout::Default, PageStatus::Published, $editor, 'Pages are layouts, not forms: the thinking behind Aurora.'],
-            ['features', 'Features', PageLayout::Default, PageStatus::Published, $editor, 'A tour of the CMS, from the canvas to the command line.'],
-            ['architecture', 'Architecture', PageLayout::Default, PageStatus::Published, $admin, 'How Aurora is built: a Laravel package, your blocks, and one set of tools for editors and AI.'],
-            ['docs', 'Docs', PageLayout::Default, PageStatus::Published, $admin, 'Install Aurora, build a website on it and run it with your team.'],
-            ['getting-started', 'Getting started', PageLayout::Default, PageStatus::Published, $admin, 'Install Aurora into a Laravel app and sign in for the first time.'],
-            ['creating-blocks', 'Creating blocks', PageLayout::Default, PageStatus::Published, $admin, 'Write a block: a PHP class, a Blade view and one line to register it.'],
-            ['website-settings', 'Website settings', PageLayout::Default, PageStatus::Published, $admin, 'Give your templates settings editors can change, per site.'],
-            ['translations', 'Languages & translations', PageLayout::Default, PageStatus::Published, $editor, 'Content in every language, and every label in the admin.'],
-            ['ai-and-mcp', 'AI assistant & MCP', PageLayout::Default, PageStatus::Published, $admin, 'Switch on the assistant and connect Claude and other apps.'],
-            ['security', 'Roles & security', PageLayout::Default, PageStatus::Published, $admin, 'Roles, permissions, passkeys and two-factor sign-in.'],
-            ['guides', 'Guides', PageLayout::Default, PageStatus::Published, $editor, 'Short, practical how-tos for editors and developers.'],
-            ['build-a-landing-page', 'Build a landing page in the visual editor', PageLayout::Default, PageStatus::Published, $editor, 'From an empty canvas to a published campaign page, step by step.'],
-            ['let-claude-draft-a-page', 'Let Claude draft a page for you', PageLayout::Default, PageStatus::Published, $editor, 'Connect Claude over MCP and ask it for a first draft you can refine.'],
-            ['add-your-own-block', 'Add your own block', PageLayout::Default, PageStatus::Published, $admin, 'How the code sample block on these pages was made.'],
-            ['run-several-sites', 'Run several websites from one admin', PageLayout::Default, PageStatus::Review, $author, 'Domains, languages and access for more than one website.'],
-            ['upgrading-from-other-cmses', 'Moving to Aurora from another CMS', PageLayout::Default, PageStatus::Draft, $author, 'Notes for teams moving content from a form-based CMS.'],
-            ['release-notes', 'Release notes', PageLayout::Default, PageStatus::Published, $admin, 'What changed in each version of Aurora.'],
-            ['components', 'Component library', PageLayout::Default, PageStatus::Published, $admin, 'Every block editors can use, on one page.'],
-            ['contact', 'Contact', PageLayout::Default, PageStatus::Published, $editor, 'Questions about Aurora, or a demo for your team.'],
-            ['legal', 'Legal', PageLayout::Default, PageStatus::Published, $admin, 'The terms and policies for this website.'],
-            ['privacy', 'Privacy policy', PageLayout::Default, PageStatus::Published, $admin, 'How we handle your data.'],
-            ['terms', 'Terms of service', PageLayout::Default, PageStatus::Published, $admin, 'The terms that apply to this website.'],
+            ['home', 'Home', 'landing', PageStatus::Published, $admin, 'Aurora is a content management system for Laravel, built on Filament.', true],
+            ['why-aurora', 'Why Aurora', 'standard', PageStatus::Published, $editor, 'Pages are layouts, not forms: the thinking behind Aurora.'],
+            ['features', 'Features', 'standard', PageStatus::Published, $editor, 'A tour of the CMS, from the canvas to the command line.'],
+            ['architecture', 'Architecture', 'standard', PageStatus::Published, $admin, 'How Aurora is built: a Laravel package, your blocks, and one set of tools for editors and AI.'],
+            ['docs', 'Docs', 'standard', PageStatus::Published, $admin, 'Install Aurora, build a website on it and run it with your team.'],
+            ['getting-started', 'Getting started', 'standard', PageStatus::Published, $admin, 'Install Aurora into a Laravel app and sign in for the first time.'],
+            ['creating-blocks', 'Creating blocks', 'standard', PageStatus::Published, $admin, 'Write a block: a PHP class, a Blade view and one line to register it.'],
+            ['website-settings', 'Website settings', 'standard', PageStatus::Published, $admin, 'Give your templates settings editors can change, per site.'],
+            ['translations', 'Languages & translations', 'standard', PageStatus::Published, $editor, 'Content in every language, and every label in the admin.'],
+            ['ai-and-mcp', 'AI assistant & MCP', 'standard', PageStatus::Published, $admin, 'Switch on the assistant and connect Claude and other apps.'],
+            ['security', 'Roles & security', 'standard', PageStatus::Published, $admin, 'Roles, permissions, passkeys and two-factor sign-in.'],
+            ['guides', 'Guides', 'standard', PageStatus::Published, $editor, 'Short, practical how-tos for editors and developers.'],
+            ['build-a-landing-page', 'Build a landing page in the visual editor', 'standard', PageStatus::Published, $editor, 'From an empty canvas to a published campaign page, step by step.'],
+            ['let-claude-draft-a-page', 'Let Claude draft a page for you', 'standard', PageStatus::Published, $editor, 'Connect Claude over MCP and ask it for a first draft you can refine.'],
+            ['add-your-own-block', 'Add your own block', 'standard', PageStatus::Published, $admin, 'How the code sample block on these pages was made.'],
+            ['run-several-sites', 'Run several websites from one admin', 'standard', PageStatus::Review, $author, 'Domains, languages and access for more than one website.'],
+            ['upgrading-from-other-cmses', 'Moving to Aurora from another CMS', 'standard', PageStatus::Draft, $author, 'Notes for teams moving content from a form-based CMS.'],
+            ['release-notes', 'Release notes', 'standard', PageStatus::Published, $admin, 'What changed in each version of Aurora.'],
+            ['components', 'Component library', 'standard', PageStatus::Published, $admin, 'Every block editors can use, on one page.'],
+            ['contact', 'Contact', 'standard', PageStatus::Published, $editor, 'Questions about Aurora, or a demo for your team.'],
+            ['legal', 'Legal', 'standard', PageStatus::Published, $admin, 'The terms and policies for this website.'],
+            ['privacy', 'Privacy policy', 'standard', PageStatus::Published, $admin, 'How we handle your data.'],
+            ['terms', 'Terms of service', 'standard', PageStatus::Published, $admin, 'The terms that apply to this website.'],
         ];
 
         // Create every page first so blocks can link to them by id.
@@ -136,7 +136,7 @@ class PageSeeder extends Seeder
                 'title' => $title,
                 'slug' => $slug,
                 'excerpt' => $excerpt,
-                'layout' => $layout,
+                'layout_id' => Layout::query()->where('handle', $layout)->value('id'),
                 'status' => $status,
                 'published_at' => $status === PageStatus::Published ? now()->subDays(count($pages) - $index) : null,
                 'is_homepage' => $pages[$index][6] ?? false,
@@ -780,18 +780,17 @@ PHP, 'php', 'app/Providers/AppServiceProvider.php'),
             ['type' => 'alert', 'data' => ['variant' => 'info', 'title' => 'Want something to click on first?', 'body' => 'Run the installer with --demo to get this very website: its pages, menus, media and demo accounts for each role.']],
             B::rich('<h2>Sign in</h2><p>Open <code>/admin</code> and sign in with the account the installer created. You land on the dashboard: recent changes, pages waiting for review and the newest form submissions.</p>'),
             B::image('demo/screen-dashboard.jpg', 'The Aurora dashboard', null, '16/9', true),
-            B::rich('<h2>Draw your pages</h2><p>Aurora draws a page with a Blade view in your app, <code>page</code> by default. It gets the page, and <code>&lt;x-aurora::blocks&gt;</code> renders its blocks in the language being shown; everything around them (your header, footer and styles) is yours.</p>'),
+            B::rich('<h2>Draw your pages</h2><p>Each page picks a layout (Standard, Landing page, Minimal, or one of your own under Pages › More › Layouts), and each layout is a Blade view. The installer publishes Aurora\'s to <code>resources/views/vendor/aurora/layouts</code>: make them yours there. A view gets the page, and <code>&lt;x-aurora::blocks&gt;</code> renders its blocks in the language being shown; everything around them (your header, footer and styles) is yours.</p>'),
             B::code(<<<'BLADE'
 <x-layouts.site :title="$page->seoTitle()">
     <x-aurora::blocks :page="$page" />
 </x-layouts.site>
-BLADE, 'blade', 'resources/views/page.blade.php', 'The visual editor shows pages with this view too, so editors see your real design.'),
-            B::rich('<h2>Configure</h2><p>Publish the config file to change the CMS\'s name or the view pages are drawn with:</p>'),
+BLADE, 'blade', 'resources/views/vendor/aurora/layouts/standard.blade.php', 'The visual editor shows pages with these views too, so editors see your real design.'),
+            B::rich('<h2>Configure</h2><p>Publish the config file to change the CMS\'s name, its admin theme and more:</p>'),
             B::code('php artisan vendor:publish --tag=aurora-config', 'bash'),
             B::code(<<<'PHP'
 return [
     'name' => env('AURORA_NAME', 'Aurora CMS'),
-    'page_view' => 'page',
 ];
 PHP, 'php', 'config/aurora.php'),
         ]);

@@ -7,6 +7,7 @@ use Aurora\Enums\RevisionSource;
 use Aurora\Filament\Resources\Pages\Concerns\TranslatesBlocks;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Support\BlockTranslations;
+use Aurora\Support\Layouts;
 use Aurora\Support\RevisionContext;
 use CarlJanzell\FilamentPageBuilder\Filament\Pages\DesignPage as BaseDesignPage;
 use CarlJanzell\FilamentPageBuilder\Support\EmbedUrl;
@@ -203,7 +204,7 @@ class DesignPage extends BaseDesignPage
         $page = $this->getRecord()->replicate()->forceFill(['blocks' => $this->blocks, 'block_translations' => []]);
         $page->id = $this->getRecord()->getKey();
 
-        return view(config('aurora.page_view'), ['page' => $page, 'preview' => false, 'embedded' => true])->render();
+        return view(Layouts::viewFor($page), ['page' => $page, 'layout' => $page->layoutOrDefault(), 'preview' => false, 'embedded' => true])->render();
     }
 
     /**

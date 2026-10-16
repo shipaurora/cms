@@ -2,10 +2,12 @@
 
 namespace Aurora\Filament\Resources\Pages\Schemas;
 
-use Aurora\Enums\PageLayout;
 use Aurora\Enums\PageStatus;
 use Aurora\Filament\Forms\Components\AssetPicker;
+use Aurora\Filament\Forms\Components\LayoutPicker;
+use Aurora\Filament\Resources\Pages\Actions\OpenVisualEditorAction;
 use Aurora\Filament\Resources\Pages\PageResource;
+use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
@@ -15,7 +17,6 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -162,20 +163,18 @@ class PageForm
     protected static function contentSection(): Section
     {
         return Section::make(__('Content'))
+            ->key('content')
             ->icon('phosphor-paint-brush')
             ->description(__('Pages are composed visually, on the page itself.'))
             ->visibleOn(Operation::Edit)
             ->headerActions([
-                Action::make('design')
-                    ->label(__('Open visual editor'))
-                    ->icon('phosphor-paint-brush')
-                    // In the language being edited: another language opens the editor to translate.
-                    ->url(fn (Page $record): string => PageResource::getUrl('design', ['record' => $record, ...(ContentLocale::current() === $record->primaryLocale() ? [] : ['language' => ContentLocale::current()])]))
-                    ->visible(fn (Page $record): bool => PageResource::canEdit($record))
-                    ->keyBindings(['mod+e']),
+                // Asks to save first when the form has unsaved changes.
+                OpenVisualEditorAction::make()->color('primary')->keyBindings([]),
             ])
             ->schema([
-                View::make('aurora::filament.pages.content-overview'),
+                // With the layout chosen in the form, saved or not: the preview follows the picker.
+                View::make('aurora::filament.pages.content-overview')
+                    ->viewData(fn (Get $get): array => ['layoutId' => $get('layout_id')]),
             ]);
     }
 
@@ -417,12 +416,14 @@ class PageForm
     {
         return Section::make(__('Layout'))
             ->icon('phosphor-app-window')
+            ->visible(fn (): bool => Layout::cached()->isNotEmpty())
             ->collapsible()
             ->schema([
-                Radio::make('layout')
+                // Layouts are set up under Pages › More › Layouts.
+                LayoutPicker::make('layout_id')
                     ->hiddenLabel()
-                    ->options(PageLayout::class)
-                    ->default(PageLayout::Default),
+                    ->inModal()
+                    ->formatStateUsing(fn (?string $state): ?string => $state ?? Layout::default()?->getKey()),
             ]);
     }
 
@@ -457,8 +458,10 @@ class PageForm
                     ->belowContent(fn (?Page $record): ?string => $record && ! $record->shouldBeSearchable() && ! $record->exclude_from_search ? __('Left out of search: it isn’t live, or is hidden from search engines.') : null)
                     ->placeholder(__('Never'))
                     ->visible(fn (): bool => (bool) auth()->user()?->can('manage-search Page')),
+                // Like the other search tools: only for those who manage search.
                 Toggle::make('exclude_from_search')
                     ->label(__('Leave out of the search index'))
+                    ->visible(fn (): bool => (bool) auth()->user()?->can('manage-search Page'))
                     ->helperText(__('The site’s search won’t find it, and it’s removed from the index if it’s there. Search engines still can.')),
                 TextEntry::make('revisions_count')
                     ->label(__('Revisions'))

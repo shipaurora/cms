@@ -41,9 +41,9 @@ SettingsTabs::register('footer', fn (): Tab => Tab::make(__('Footer'))->schema([
 
 Read them in templates with `Aurora\Models\Setting::get('footer_note')`.
 
-## The page view
+## Page layouts
 
-`config('aurora.page_view')` (default `page`) draws one page from `$page` (an `Aurora\Models\Page`), `$preview` and `$embedded` (true inside the visual editor). Its blocks render through the page builder's public component; keep the layout around them in the app.
+Each page is drawn by its layout (`Aurora\Models\Layout`, set up under Pages › More › Layouts), which names a Blade view. Aurora's own are `aurora::layouts.standard`, `aurora::layouts.landing` and `aurora::layouts.minimal`, published to `resources/views/vendor/aurora/layouts` on install (or with `php artisan vendor:publish --tag=aurora-layouts`) to make them the site's. A layout view gets `$page` (an `Aurora\Models\Page`), `$layout`, `$preview` and `$embedded` (true inside the visual editor). Its blocks render through `<x-aurora::blocks :page="$page" />`; keep the markup around them in the view. For a new layout, write a view anywhere in the app (`layouts.campaign`) and add a layout naming it in the Layouts dialog.
 
 ## The admin theme
 
@@ -68,6 +68,6 @@ Pages are searchable with Laravel Scout, out of the box: on save, Aurora keeps w
 
 ## Configuration and commands
 
-- Publish the config with `php artisan vendor:publish --tag=aurora-config`: the CMS name (`AURORA_NAME`), demo mode (`AURORA_DEMO_LOGIN`), `page_view` and `translations_path`.
+- Publish the config with `php artisan vendor:publish --tag=aurora-config`: the CMS name (`AURORA_NAME`), demo mode (`AURORA_DEMO_LOGIN`) and `translations_path`.
 - `php artisan aurora:install` sets up the CMS (database, roles, a first admin; `--demo` for the demo content).
 - `php artisan aurora:import-translations` loads labels into the admin's Translations screen; `aurora:sync-translations` adds new labels from the code; `aurora:export-translations` writes edited labels back to the lang files.

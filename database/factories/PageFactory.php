@@ -2,7 +2,6 @@
 
 namespace Aurora\Database\Factories;
 
-use Aurora\Enums\PageLayout;
 use Aurora\Enums\PageStatus;
 use Aurora\Models\Page;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -17,7 +16,6 @@ class PageFactory extends Factory
         return [
             'title' => fake()->unique()->sentence(3),
             'excerpt' => fake()->sentence(),
-            'layout' => PageLayout::Default,
             'status' => PageStatus::Draft,
             'blocks' => [
                 ['id' => fake()->uuid(), 'type' => 'heading', 'data' => ['text' => 'Hello', 'level' => 'h1']],

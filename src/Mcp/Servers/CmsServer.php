@@ -55,6 +55,7 @@ class CmsServer extends Server
         Tools\RestoreRevision::class,
         Tools\ListImages::class,
         Tools\ListForms::class,
+        Tools\ListLayouts::class,
         Tools\UploadImageFromUrl::class,
         Tools\GetMenus::class,
         Tools\AddMenuItem::class,

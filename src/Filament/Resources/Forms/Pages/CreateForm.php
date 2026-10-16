@@ -3,6 +3,7 @@
 namespace Aurora\Filament\Resources\Forms\Pages;
 
 use Aurora\Filament\Concerns\BreadcrumbsToList;
+use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Forms\FormResource;
 use Filament\Resources\Pages\CreateRecord;
@@ -10,6 +11,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateForm extends CreateRecord
 {
     use BreadcrumbsToList;
+    use ConfirmsLeaving;
     use SavesFromHeader;
 
     /**

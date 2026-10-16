@@ -4,8 +4,6 @@ namespace Aurora\Providers;
 
 use Aurora\Aurora;
 use Aurora\Blocks\Blocks;
-use Aurora\Support\Search\DatabaseEngine as SearchDatabaseEngine;
-use Laravel\Scout\EngineManager;
 use Aurora\Console\Commands\ExportTranslations;
 use Aurora\Console\Commands\ImportTranslations;
 use Aurora\Console\Commands\InstallCms;
@@ -34,7 +32,9 @@ use Aurora\Support\Copilot;
 use Aurora\Support\CopilotContext;
 use Aurora\Support\CopilotToolRegistry;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\Layouts;
 use Aurora\Support\MissingLabels;
+use Aurora\Support\Search\DatabaseEngine as SearchDatabaseEngine;
 use Aurora\Support\SiteIcon;
 use Aurora\Support\TranslationLoader;
 use BladeUI\Icons\Factory as IconFactory;
@@ -77,6 +77,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
+use Laravel\Scout\EngineManager;
 use Livewire\Livewire;
 use Spatie\Translatable\Facades\Translatable;
 
@@ -133,7 +134,9 @@ class AuroraServiceProvider extends ServiceProvider
             $this->publishes([__DIR__.'/../../config/aurora.php' => config_path('aurora.php')], 'aurora-config');
             // aurora:make-block's templates, to shape new blocks after the site's own.
             $this->publishes([__DIR__.'/../../stubs' => base_path('stubs/aurora')], 'aurora-stubs');
-            // The website-facing views a site may want to make its own: the password page.
+            // The website-facing views a site makes its own: the page layouts (published on
+            // install) and the password page.
+            $this->publishes([__DIR__.'/../../resources/views/layouts' => Layouts::path()], 'aurora-layouts');
             $this->publishes([__DIR__.'/../../resources/views/page-password.blade.php' => resource_path('views/vendor/aurora/page-password.blade.php')], 'aurora-views');
             $this->commands([InstallCms::class, MakeBlock::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class]);
         }

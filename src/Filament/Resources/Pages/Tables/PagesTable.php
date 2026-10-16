@@ -2,7 +2,6 @@
 
 namespace Aurora\Filament\Resources\Pages\Tables;
 
-use Aurora\Enums\PageLayout;
 use Aurora\Enums\PageStatus;
 use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
 use Aurora\Filament\Resources\Pages\PageResource;
@@ -12,7 +11,6 @@ use Aurora\Support\PeoplePicker;
 use Aurora\Support\UserBadge;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Forms\Components\TextInput;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -22,6 +20,7 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\ImageColumn;
@@ -101,7 +100,8 @@ class PagesTable
                     ->options(PageStatus::class)
                     ->multiple(),
                 SelectFilter::make('layout')
-                    ->options(PageLayout::class),
+                    ->relationship('layout', 'name')
+                    ->preload(),
                 SelectFilter::make('author')
                     ->relationship('author', 'name')
                     ->getOptionLabelFromRecordUsing(fn (User $user): string => PeoplePicker::option($user))

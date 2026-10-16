@@ -3,21 +3,22 @@
 namespace Aurora\Filament\Resources\Pages\Pages;
 
 use Aurora\Enums\PageStatus;
+use Aurora\Filament\Concerns\ManagesLayouts;
 use Aurora\Filament\Concerns\WithoutBreadcrumbs;
+use Aurora\Filament\Resources\Pages\Actions\SearchPagesAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Filament\Actions\Action;
-use Filament\Notifications\Notification;
 use Filament\Actions\ActionGroup;
-use Aurora\Filament\Resources\Pages\Actions\SearchPagesAction;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListPages extends ListRecords
 {
-    use WithoutBreadcrumbs;
+    use ManagesLayouts, WithoutBreadcrumbs;
 
     protected static string $resource = PageResource::class;
 
@@ -44,6 +45,8 @@ class ListPages extends ListRecords
                 ])
                 ->action(fn (array $data) => $this->redirect(PageResource::getUrl('create', ['title' => $data['title']]), navigate: true)),
             ActionGroup::make([
+                // The layouts pages are drawn with (those who manage settings).
+                $this->layoutsAction(),
                 // Try a search across the site's pages (only those who manage search).
                 SearchPagesAction::make(),
                 // Every page of the site in search again: after a change of search driver, say.

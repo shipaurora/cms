@@ -4,6 +4,7 @@ namespace Aurora\Filament\Resources\Forms\Pages;
 
 use Aurora\Filament\Actions\LanguageSwitcher;
 use Aurora\Filament\Concerns\BreadcrumbsToList;
+use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Forms\FormResource;
@@ -20,6 +21,7 @@ use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable
 class EditForm extends EditRecord
 {
     use BreadcrumbsToList;
+    use ConfirmsLeaving;
     use FollowsActiveLocale;
     use SavesFromHeader;
     use Translatable {

@@ -3,7 +3,6 @@
 namespace Aurora\Models;
 
 use Aurora\Database\Factories\PageFactory;
-use Aurora\Enums\PageLayout;
 use Aurora\Enums\PageStatus;
 use Aurora\Models\Concerns\BelongsToSite;
 use Aurora\Observers\PageObserver;
@@ -11,8 +10,6 @@ use Aurora\Support\BlockTranslations;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\PageSearch;
-use Laravel\Scout\Engines\DatabaseEngine;
-use Laravel\Scout\Searchable;
 use CarlJanzell\FilamentPageBuilder\Concerns\HasBlocks;
 use CarlJanzell\FilamentPageBuilder\Support\BlockTree;
 use Closure;
@@ -29,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Laravel\Scout\Engines\DatabaseEngine;
+use Laravel\Scout\Searchable;
 use Spatie\Sluggable\HasTranslatableSlug;
 use Spatie\Sluggable\SlugOptions;
 use Spatie\Translatable\HasTranslations;
@@ -67,11 +66,10 @@ class Page extends Model implements MenuPanelable
      *
      * @var array<int, string>
      */
-    public const SNAPSHOT = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
+    public const SNAPSHOT = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
 
     protected $attributes = [
         'status' => 'draft',
-        'layout' => 'default',
         'noindex' => false,
         'exclude_from_search' => false,
     ];
@@ -83,7 +81,6 @@ class Page extends Model implements MenuPanelable
             'block_translations' => 'array',
             'locales' => 'array',
             'status' => PageStatus::class,
-            'layout' => PageLayout::class,
             'published_at' => 'datetime',
             'indexed_at' => 'datetime',
             'is_homepage' => 'boolean',
@@ -158,6 +155,24 @@ class Page extends Model implements MenuPanelable
     }
 
     /* ── Relations ─────────────────────────────────────── */
+
+    /**
+     * Null: the default layout (layoutOrDefault()).
+     *
+     * @return BelongsTo<Layout, $this>
+     */
+    public function layout(): BelongsTo
+    {
+        return $this->belongsTo(Layout::class);
+    }
+
+    /**
+     * The layout the page is drawn with: its own, else the default.
+     */
+    public function layoutOrDefault(): ?Layout
+    {
+        return Layout::cached()->firstWhere('id', $this->layout_id) ?? Layout::default();
+    }
 
     public function author(): BelongsTo
     {
@@ -483,12 +498,17 @@ class Page extends Model implements MenuPanelable
     /**
      * A signed, expiring link that shows the page even while it is a draft.
      */
-    public function previewUrl(int $minutes = 60, bool $embed = false, ?string $locale = null): string
+    /**
+     * A signed link to the page as it will look: in another language, or drawn with another
+     * layout (the layout picker's thumbnails), without changing it.
+     */
+    public function previewUrl(int $minutes = 60, bool $embed = false, ?string $locale = null, ?string $layout = null): string
     {
         return URL::temporarySignedRoute('pages.preview', now()->addMinutes($minutes), array_filter([
             'previewPage' => $this->getKey(),
             'embed' => $embed ? 1 : null,
             'locale' => $locale !== null && $locale !== $this->primaryLocale() ? $locale : null,
+            'layout' => $layout,
         ]));
     }
 
@@ -513,7 +533,6 @@ class Page extends Model implements MenuPanelable
             ...$this->only(self::SNAPSHOT),
             // Every language's text, not just the one being read.
             ...collect($this->translatable)->mapWithKeys(fn (string $attribute): array => [$attribute => $this->getTranslations($attribute)])->all(),
-            'layout' => $this->layout?->value,
             'noindex' => (bool) $this->noindex,
             'exclude_from_search' => (bool) $this->exclude_from_search,
         ];
@@ -521,7 +540,8 @@ class Page extends Model implements MenuPanelable
 
     /**
      * A revision's snapshot as attributes to put back on the page. Older snapshots can hold
-     * null for columns that may not be null (noindex was null on pages created without it).
+     * null for columns that may not be null (noindex was null on pages created without it),
+     * or a layout that has been deleted since.
      *
      * @param  array<string, mixed>  $snapshot
      * @return array<string, mixed>
@@ -532,7 +552,8 @@ class Page extends Model implements MenuPanelable
 
         return [
             ...$attributes,
-            'layout' => $attributes['layout'] ?? 'default',
+            // A layout deleted since: the default.
+            'layout_id' => Layout::cached()->firstWhere('id', $attributes['layout_id'] ?? null)?->getKey(),
             'noindex' => (bool) ($attributes['noindex'] ?? false),
             'exclude_from_search' => (bool) ($attributes['exclude_from_search'] ?? false),
         ];

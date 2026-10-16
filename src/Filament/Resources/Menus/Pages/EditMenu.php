@@ -4,6 +4,7 @@ namespace Aurora\Filament\Resources\Menus\Pages;
 
 use Aurora\Filament\Actions\LanguageSwitcher;
 use Aurora\Filament\Concerns\BreadcrumbsToList;
+use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Forms\Components\PagePicker;
 use Aurora\Filament\Forms\Components\TranslatedField;
@@ -41,6 +42,7 @@ use Illuminate\Support\Str;
 class EditMenu extends BaseEditMenu
 {
     use BreadcrumbsToList;
+    use ConfirmsLeaving;
     use SavesFromHeader;
 
     public function content(Schema $schema): Schema

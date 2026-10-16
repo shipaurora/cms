@@ -3,11 +3,13 @@
 namespace Aurora\Http\Controllers;
 
 use Aurora\Http\Middleware\UseSiteLocale;
+use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Models\PageRevision;
 use Aurora\Models\Redirect;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\Layouts;
 use Aurora\Support\PagePassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +21,7 @@ use Illuminate\View\View;
 
 /**
  * The website's pages: the homepage, a page by its address, signed previews, the sitemap and
- * robots.txt. Each page is drawn with the site's page view (config('aurora.page_view')).
+ * robots.txt. Each page is drawn with its layout's view (Aurora\Support\Layouts).
  */
 class PageController
 {
@@ -93,6 +95,11 @@ class PageController
             $page->forceFill(Page::attributesFromSnapshot($revision->snapshot));
         }
 
+        // Drawn with another layout, as the layout picker shows it.
+        if (($layout = Layout::cached()->firstWhere('id', $request->query('layout'))) !== null) {
+            $page->layout_id = $layout->getKey();
+        }
+
         return $this->render($page, preview: ! $request->boolean('embed'), embedded: $request->boolean('embed'), signed: true);
     }
 
@@ -129,8 +136,9 @@ class PageController
             return response()->view('aurora::page-password', ['page' => $page])->header('Cache-Control', 'no-store, private');
         }
 
-        $response = response()->view(config('aurora.page_view'), [
+        $response = response()->view(Layouts::viewFor($page), [
             'page' => $page,
+            'layout' => $page->layoutOrDefault(),
             'preview' => $preview,
             'embedded' => $embedded,
         ]);

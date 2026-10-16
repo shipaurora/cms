@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\HtmlString;
+use Livewire\Attributes\On;
 
 class RevisionsRelationManager extends RelationManager
 {
@@ -46,6 +47,15 @@ class RevisionsRelationManager extends RelationManager
     public static function getBadge(Model $ownerRecord, string $pageClass): ?string
     {
         return (string) $ownerRecord->revisions()->count();
+    }
+
+    /**
+     * Saving the page (EditPage) adds a version: the list shows it straight away.
+     */
+    #[On('page-saved')]
+    public function refreshHistory(): void
+    {
+        $this->resetPage();
     }
 
     public function isReadOnly(): bool

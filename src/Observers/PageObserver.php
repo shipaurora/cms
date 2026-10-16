@@ -5,13 +5,13 @@ namespace Aurora\Observers;
 use Aurora\Enums\PageStatus;
 use Aurora\Models\AssetUsage;
 use Aurora\Models\Page;
-use Aurora\Support\PageSearch;
 use Aurora\Models\Redirect;
 use Aurora\Models\User;
 use Aurora\Support\AssetLibrary;
 use Aurora\Support\CmsNotifications;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\PageSearch;
 use Aurora\Support\RevisionContext;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -24,7 +24,7 @@ class PageObserver
     /**
      * Attributes whose change is worth a revision. Status changes are not content.
      */
-    protected const TRACKED = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
+    protected const TRACKED = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
 
     public function saving(Page $page): void
     {
@@ -213,6 +213,7 @@ class PageObserver
             'block_translations' => 'translations',
             'locales' => 'languages',
             'slug' => 'address',
+            'layout_id' => 'layout',
             'excerpt' => 'summary',
             'meta_title', 'meta_description', 'og_image', 'noindex' => 'SEO',
             'exclude_from_search' => 'search',

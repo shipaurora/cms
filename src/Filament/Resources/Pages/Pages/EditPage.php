@@ -2,17 +2,19 @@
 
 namespace Aurora\Filament\Resources\Pages\Pages;
 
-use Aurora\Support\CurrentSite;
 use Aurora\Enums\PageStatus;
 use Aurora\Filament\Actions\LanguageSwitcher;
 use Aurora\Filament\Concerns\BreadcrumbsToList;
+use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
+use Aurora\Filament\Resources\Pages\Actions\OpenVisualEditorAction;
 use Aurora\Filament\Resources\Pages\Actions\SearchIndexAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Aurora\Support\ContentLocale;
+use Aurora\Support\CurrentSite;
 use Aurora\Support\PageRedirects;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -32,6 +34,7 @@ use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable
 class EditPage extends EditRecord
 {
     use BreadcrumbsToList;
+    use ConfirmsLeaving;
     use FollowsActiveLocale;
     use SavesFromHeader;
     use Translatable {
@@ -139,6 +142,9 @@ class EditPage extends EditRecord
     {
         PageRedirects::keep($this->record, $this->redirectsToKeep);
 
+        // The history below the form lists the version this save made.
+        $this->dispatch('page-saved');
+
         if ($this->record->wasChanged('is_homepage') && $this->record->is_homepage) {
             Notification::make()
                 ->title(__('“:title” is now the homepage', ['title' => $this->record->title]))
@@ -199,11 +205,7 @@ class EditPage extends EditRecord
     {
         return [
             LanguageSwitcher::make()->visible(fn (): bool => count($this->pageLocales()) > 1),
-            Action::make('design')
-                ->label(__('Open visual editor'))
-                ->icon('phosphor-paint-brush')
-                ->color('gray')
-                ->url(fn (): string => PageResource::getUrl('design', ['record' => $this->record])),
+            OpenVisualEditorAction::make(),
             Action::make('preview')
                 ->label(__('Preview'))
                 ->icon('phosphor-eye')

@@ -46,19 +46,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | The website's page view
-    |--------------------------------------------------------------------------
-    |
-    | The Blade view the website draws a page with ($page, $preview and
-    | $embedded). The visual editor shows pages with it too, so editors see
-    | the real thing. Aurora's own is a plain document to start from.
-    |
-    */
-
-    'page_view' => 'aurora::page',
-
-    /*
-    |--------------------------------------------------------------------------
     | Admin theme
     |--------------------------------------------------------------------------
     |

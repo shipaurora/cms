@@ -26,7 +26,8 @@ return new class extends Migration
             $table->json('locales')->nullable();
             $table->string('status')->default('draft')->index();
             $table->timestamp('published_at')->nullable()->index();
-            $table->string('layout')->default('default');
+            // Null: the default layout.
+            $table->foreignUuid('layout_id')->nullable()->constrained()->nullOnDelete();
             $table->boolean('is_homepage')->default(false)->index();
             $table->json('meta_title')->nullable();
             $table->json('meta_description')->nullable();

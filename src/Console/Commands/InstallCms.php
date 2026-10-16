@@ -100,6 +100,9 @@ class InstallCms extends Command
         // The admin's prebuilt theme and scripts, copied to public/.
         $this->components->task('Publishing the admin\'s theme and scripts', fn () => $this->callSilently('filament:assets') === self::SUCCESS);
 
+        // The page layouts' views, to make the website's own (a site's edited copies are kept).
+        $this->components->task('Publishing the page layouts', fn () => $this->callSilently('vendor:publish', ['--tag' => 'aurora-layouts']) === self::SUCCESS);
+
         if ($demo && Page::withTrashed()->exists()) {
             $this->components->warn('The site already has pages: skipping the demo content. Use --fresh to start over.');
             $demo = false;

@@ -2,8 +2,8 @@
 
 namespace Aurora\Mcp\Tools;
 
-use Aurora\Enums\PageLayout;
 use Aurora\Mcp\PagePresenter;
+use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Models\User;
 use Aurora\Support\ContentLocale;
@@ -31,7 +31,7 @@ class UpdatePage extends CmsTool
             'parent' => $schema->string()->description('Id or slug of the page to move this one under ("" for the top level). Old addresses keep working.'),
             'redirect_old_address' => $schema->boolean()->description('When the slug of a live page changes, keep the old address working with a redirect. Defaults to true.'),
             'excerpt' => $schema->string(),
-            'layout' => $schema->string()->enum(array_column(PageLayout::cases(), 'value')),
+            'layout' => $schema->string()->enum(Layout::cached()->pluck('handle')->all())->description('The layout\'s handle, see list_layouts.'),
             'status' => $schema->string()->enum(['draft', 'review', 'published']),
             'published_at' => $schema->string()->description('ISO 8601 date-time. A future date with status "published" schedules the page.'),
             'is_homepage' => $schema->boolean(),
@@ -39,7 +39,7 @@ class UpdatePage extends CmsTool
             'meta_description' => $schema->string(),
             'og_image' => $schema->string()->description('Share image path, see list_images.'),
             'noindex' => $schema->boolean(),
-            'exclude_from_search' => $schema->boolean()->description('Leave the page out of the site’s own search index.'),
+            'exclude_from_search' => $schema->boolean()->description('Leave the page out of the site’s own search index. Needs the "Manage search" permission.'),
         ];
     }
 
@@ -55,7 +55,21 @@ class UpdatePage extends CmsTool
             'published_at' => ['sometimes', 'nullable', 'date'],
         ]);
 
-        $attributes = Arr::only($request->all(), ['title', 'slug', 'excerpt', 'layout', 'status', 'published_at', 'is_homepage', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search']);
+        $attributes = Arr::only($request->all(), ['title', 'slug', 'excerpt', 'status', 'published_at', 'is_homepage', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search']);
+
+        if (array_key_exists('exclude_from_search', $attributes) && ! $user->can('manage-search Page')) {
+            return Response::error('Leaving a page out of the search index needs the "Manage search" permission.');
+        }
+
+        if ($request->has('layout')) {
+            $layout = Layout::cached()->firstWhere('handle', $request->get('layout'));
+
+            if ($layout === null) {
+                return Response::error('No layout has the handle "'.$request->get('layout').'". See list_layouts.');
+            }
+
+            $attributes['layout_id'] = $layout->getKey();
+        }
 
         if ($request->has('parent')) {
             $attributes['parent_id'] = filled($request->get('parent')) ? $this->findPage($request, 'parent')->getKey() : null;

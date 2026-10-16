@@ -4,6 +4,7 @@ namespace Aurora\Filament\Resources\Pages\Pages;
 
 use Aurora\Filament\Actions\LanguageSwitcher;
 use Aurora\Filament\Concerns\BreadcrumbsToList;
+use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Pages\PageResource;
@@ -17,6 +18,7 @@ use LaraZeus\SpatieTranslatable\Resources\Pages\CreateRecord\Concerns\Translatab
 class CreatePage extends CreateRecord
 {
     use BreadcrumbsToList;
+    use ConfirmsLeaving;
     use FollowsActiveLocale;
     use SavesFromHeader;
     use Translatable {

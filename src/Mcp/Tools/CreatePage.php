@@ -3,10 +3,10 @@
 namespace Aurora\Mcp\Tools;
 
 use Aurora\Enums\AiChannel;
-use Aurora\Enums\PageLayout;
 use Aurora\Enums\PageStatus;
 use Aurora\Mcp\BlockInput;
 use Aurora\Mcp\PagePresenter;
+use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Models\User;
 use Aurora\Support\BlockTreeBuilder;
@@ -30,7 +30,7 @@ class CreatePage extends CmsTool
             'slug' => $schema->string()->description('Address, e.g. "about-us". Generated from the title when omitted.'),
             'parent' => $schema->string()->description('Id or slug of the page this one sits under; its address then starts with the parent\'s (/docs/getting-started). Omit for a top-level page.'),
             'excerpt' => $schema->string()->description('One or two sentences summarising the page. Used in page lists and as SEO fallback.'),
-            'layout' => $schema->string()->enum(array_column(PageLayout::cases(), 'value'))->description('"landing" makes the header float over a hero block; "minimal" hides menu and footer.'),
+            'layout' => $schema->string()->enum(Layout::cached()->pluck('handle')->all())->description('The layout\'s handle, see list_layouts. Defaults to the default layout.'),
             'status' => $schema->string()->enum(['draft', 'review', 'published'])->description('Defaults to draft.'),
             'meta_title' => $schema->string()->description('SEO title (max ~60 characters).'),
             'meta_description' => $schema->string()->description('SEO description (max ~155 characters).'),
@@ -58,7 +58,7 @@ class CreatePage extends CmsTool
             'title' => $request->get('title'),
             'slug' => $request->get('slug'),
             'excerpt' => $request->get('excerpt'),
-            'layout' => PageLayout::tryFrom((string) $request->get('layout')) ?? PageLayout::Default,
+            'layout_id' => (Layout::cached()->firstWhere('handle', $request->get('layout')) ?? Layout::default())?->getKey(),
             'status' => PageStatus::tryFrom((string) $request->get('status')) ?? PageStatus::Draft,
             'meta_title' => $request->get('meta_title'),
             'meta_description' => $request->get('meta_description'),
