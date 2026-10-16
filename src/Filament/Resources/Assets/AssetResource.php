@@ -156,7 +156,18 @@ class AssetResource extends Resource
                                 ->visible(fn (Asset $record): bool => $record->isImage()),
                             TextEntry::make('size')->state(fn (Asset $record): ?string => $record->file() ? Number::fileSize($record->file()->size, 1) : null),
                             TextEntry::make('uploaded')->state(fn (Asset $record): string => $record->created_at->isoFormat('ll'))->belowContent(fn (Asset $record): ?HtmlString => UserBadge::html($record->uploader)),
-                            TextEntry::make('url')->label(__('Original'))->state(fn (Asset $record): ?string => $record->url(null))->copyable()->limit(40)->url(fn (Asset $record): ?string => $record->url(null), shouldOpenInNewTab: true),
+                            // Its address to copy, and a button that plainly opens it.
+                            TextEntry::make('url')
+                                ->label(__('Original'))
+                                ->state(fn (Asset $record): ?string => $record->url(null))
+                                ->copyable()
+                                ->limit(40)
+                                ->belowContent(fn (Asset $record): Action => Action::make('openOriginal')
+                                    ->label(__('Open original'))
+                                    ->icon('phosphor-arrow-square-out')
+                                    ->color('gray')
+                                    ->size('sm')
+                                    ->url($record->url(null), shouldOpenInNewTab: true)),
                         ]),
                     // What the camera wrote into the file: for the formats that carry EXIF PHP can read,
                     // when the file has some.

@@ -7,6 +7,7 @@ use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Aurora\Models\User;
+use Aurora\Support\CurrentSite;
 use Aurora\Support\PeoplePicker;
 use Aurora\Support\UserBadge;
 use Filament\Actions\Action;
@@ -31,6 +32,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class PagesTable
 {
@@ -44,7 +46,8 @@ class PagesTable
             ->columns([
                 TextColumn::make('title')
                     ->weight(FontWeight::SemiBold)
-                    ->description(fn (Page $record): string => $record->path())
+                    // On the site's domain, as the address field shows it: filament-cms-demo.test/about.
+                    ->description(fn (Page $record): string => Str::after(CurrentSite::url($record->path()), '://'))
                     ->icon(fn (Page $record): ?string => $record->is_homepage ? 'phosphor-house-bold' : null)
                     ->iconColor('primary')
                     // A key after the title of a password-protected page.

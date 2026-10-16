@@ -130,6 +130,16 @@ class PageForm
                             ->tooltip(__('Generate from title'))
                             ->action(fn (Get $get, Set $set, ?Page $record) => $set('slug', Page::uniqueSlug((string) $get('title'), except: $record?->getKey()))),
                     ),
+                // In the address's place on the homepage: the same field, blank, so it reads as
+                // the site's own address (the real one is kept, hidden, for when it's replaced).
+                TextInput::make('homepage_address')
+                    ->label(__('Address'))
+                    ->prefix(fn (): string => Str::of(CurrentSite::url(ContentLocale::prefix()))->after('://')->rtrim('/')->append('/')->toString())
+                    ->placeholder('')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->helperText(__('The homepage is at the site’s own address.'))
+                    ->visible(fn (Get $get): bool => (bool) $get('is_homepage')),
                 TextInput::make('slug_touched')->hidden()->dehydrated(false),
                 Textarea::make('excerpt')
                     ->label(__('Summary'))

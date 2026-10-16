@@ -17,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Str;
 
 class UsagesRelationManager extends RelationManager
 {
@@ -65,7 +66,8 @@ class UsagesRelationManager extends RelationManager
                     })
                     ->description(fn (AssetUsage $record): ?string => collect([
                         Site::query()->count() > 1 ? $record->usable?->site?->name : null,
-                        $record->usable instanceof Page ? CurrentSite::using($record->usable->site, fn (): string => $record->usable->path()) : null,
+                        // On its site's domain, as the pages list shows it.
+                        $record->usable instanceof Page ? CurrentSite::using($record->usable->site, fn (): string => Str::after(CurrentSite::url($record->usable->path()), '://')) : null,
                     ])->filter()->join(' · ') ?: null),
                 TextColumn::make('location')
                     ->label(__('Where'))
@@ -76,10 +78,11 @@ class UsagesRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('open')
-                    ->label(fn (AssetUsage $record): string => $record->usable instanceof Redirect ? __('Open redirects') : __('Open in editor'))
-                    ->icon(fn (AssetUsage $record): string => $record->usable instanceof Redirect ? 'phosphor-arrow-u-up-right' : 'phosphor-paint-brush')
+                    ->label(fn (AssetUsage $record): string => $record->usable instanceof Redirect ? __('Open redirects') : __('Open page'))
+                    ->icon(fn (AssetUsage $record): string => $record->usable instanceof Redirect ? 'phosphor-arrow-u-up-right' : 'phosphor-file-text')
+                    // The page's settings, on its own site: the visual editor is a click away from there.
                     ->url(fn (AssetUsage $record): ?string => match (true) {
-                        $record->usable instanceof Page => PageResource::editorUrl($record->usable),
+                        $record->usable instanceof Page => PageResource::getUrl('edit', ['record' => $record->usable], tenant: $record->usable->site),
                         $record->usable instanceof Redirect => RedirectResource::getUrl('index', tenant: $record->usable->site),
                         default => null,
                     }),
