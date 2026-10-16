@@ -4,6 +4,7 @@ namespace Aurora\Filament\Resources\Users\Tables;
 
 use Aurora\Models\Role;
 use Aurora\Models\User;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -22,7 +23,7 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with('roles')->withCount('pages'))
+            ->modifyQueryUsing(fn ($query) => $query->with('roles'))
             ->columns([
                 ImageColumn::make('avatar')
                     ->label('')
@@ -45,7 +46,6 @@ class UsersTable
                         'Author' => 'info',
                         default => 'gray',
                     }),
-                TextColumn::make('pages_count')->label(__('Pages'))->alignCenter()->sortable(),
                 ToggleColumn::make('is_active')
                     ->label(__('Active'))
                     ->disabled(fn (User $record): bool => $record->is(auth()->user()) || ! auth()->user()->can('update', $record)),
@@ -55,13 +55,15 @@ class UsersTable
                 TernaryFilter::make('is_active')->label(__('Active')),
             ])
             ->recordActions([
-                Impersonate::make()
-                    ->icon('phosphor-detective-bold')
-                    ->label(__('View as'))
-                    ->tooltip(fn (User $record): string => __('See the CMS exactly as :name does', ['name' => $record->name]))
-                    ->redirectTo(fn (): string => filament()->getUrl()),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    Impersonate::make()
+                        ->icon('phosphor-detective-bold')
+                        ->label(__('View as'))
+                        ->tooltip(fn (User $record): string => __('See the CMS exactly as :name does', ['name' => $record->name]))
+                        ->redirectTo(fn (): string => filament()->getUrl()),
+                    DeleteAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([DeleteBulkAction::make()]),

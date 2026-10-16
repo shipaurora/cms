@@ -239,8 +239,9 @@ class AdminPanelProvider extends PanelProvider
                     ->commands(fn (): array => PaletteCommands::all())
                     ->placeholder(fn (): string => __('Search, or type what you want to do…'))
                     ->template('groups')
-                    ->maxResults(14)
-                    ->recordSearch(true, 6)
+                    ->maxResults(20)
+                    // Enough that every kind of record (roles too) gets a turn after the pages and files.
+                    ->recordSearch(true, 12)
                     ->publishViewsCommand(false),
                 // The in-panel AI copilot. Hidden for everyone until it is set up in Site settings
                 // (Copilot::isConfigured()), and only for people allowed to use the AI assistant.

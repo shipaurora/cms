@@ -2,6 +2,7 @@
 
 namespace Aurora\Filament\Resources\Users\Pages;
 
+use Aurora\Filament\Concerns\BreadcrumbsToList;
 use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Users\UserResource;
@@ -13,6 +14,7 @@ use STS\FilamentImpersonate\Actions\Impersonate;
 
 class EditUser extends EditRecord
 {
+    use BreadcrumbsToList;
     use ConfirmsLeaving;
     use SavesFromHeader;
 
@@ -31,17 +33,6 @@ class EditUser extends EditRecord
     public function getTitle(): string
     {
         return $this->record->is(auth()->user()) ? __('Your profile') : $this->record->name;
-    }
-
-    /**
-     * Just the way back to the list (the name is the heading); none on your own profile
-     * when you can't see the list.
-     *
-     * @return array<string, string>
-     */
-    public function getBreadcrumbs(): array
-    {
-        return UserResource::canViewAny() ? [UserResource::getUrl('index') => UserResource::getBreadcrumb()] : [];
     }
 
     /**

@@ -1743,5 +1743,10 @@
     "Discard and leave": "Forkast og gå",
     "Shown in the site switcher. Without one, the site’s initial on its brand colours.": "Vises i nettstedsvelgeren. Uten et, nettstedets forbokstav i merkefargene.",
     "Header and footer": "Topp og bunn",
-    "Open in Settings": "Åpne i Innstillinger"
+    "Open in Settings": "Åpne i Innstillinger",
+    "The homepage is at the site’s own address.": "Forsiden ligger på nettstedets egen adresse.",
+    "Homepage address": "Forsidens adresse",
+    "Users & Roles": "Brukere og roller",
+    "The people who work in the CMS, and the role that decides what each of them can do. Invite someone by email, or add them yourself.": "Personene som jobber i CMS-et, og rollen som bestemmer hva hver av dem kan gjøre. Inviter noen på e-post, eller legg dem til selv.",
+    "Open original": "Åpne originalen"
 }

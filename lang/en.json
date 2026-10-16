@@ -1743,5 +1743,10 @@
     "Discard and leave": "Discard and leave",
     "Shown in the site switcher. Without one, the site’s initial on its brand colours.": "Shown in the site switcher. Without one, the site’s initial on its brand colours.",
     "Header and footer": "Header and footer",
-    "Open in Settings": "Open in Settings"
+    "Open in Settings": "Open in Settings",
+    "The homepage is at the site’s own address.": "The homepage is at the site’s own address.",
+    "Homepage address": "Homepage address",
+    "Users & Roles": "Users & Roles",
+    "The people who work in the CMS, and the role that decides what each of them can do. Invite someone by email, or add them yourself.": "The people who work in the CMS, and the role that decides what each of them can do. Invite someone by email, or add them yourself.",
+    "Open original": "Open original"
 }

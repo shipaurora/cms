@@ -3,6 +3,7 @@
 namespace Aurora\Filament\Resources\Roles;
 
 use Aurora\Filament\Concerns\TranslatesResourceLabels;
+use Aurora\Filament\Pages\UsersAndRoles;
 use Aurora\Filament\Resources\Roles\Pages\CreateRole;
 use Aurora\Filament\Resources\Roles\Pages\EditRole;
 use Aurora\Filament\Resources\Roles\Pages\ListRoles;
@@ -12,6 +13,7 @@ use Aurora\Models\User;
 use Aurora\Support\Permissions;
 use Aurora\Support\SearchThumbnail;
 use BackedEnum;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
@@ -20,7 +22,6 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
@@ -29,7 +30,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
-use UnitEnum;
 
 /**
  * Roles, presented as what people can do rather than as permission strings.
@@ -54,7 +54,8 @@ class RoleResource extends Resource
 
     protected static string|BackedEnum|null $activeNavigationIcon = 'phosphor-shield-check-bold';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Administration';
+    // In "Users & Roles", with a side menu between the two.
+    protected static ?string $cluster = UsersAndRoles::class;
 
     protected static ?int $navigationSort = 2;
 
@@ -122,18 +123,12 @@ class RoleResource extends Resource
                     ->label(__('Name'))
                     ->state(fn (Role $record): string => $record->displayName())
                     ->weight(FontWeight::SemiBold)
-                    ->description(fn (Role $record): ?string => $record->displayDescription())
+                    // Long descriptions cut short, whole on hover.
+                    ->description(fn (Role $record): ?string => filled($description = $record->displayDescription()) ? Str::limit($description, 90) : null)
+                    ->tooltip(fn (Role $record): ?string => Str::length((string) $record->displayDescription()) > 90 ? $record->displayDescription() : null)
                     ->icon(fn (Role $record): ?string => $record->name === User::SUPER_ADMIN ? 'phosphor-lock-bold' : null)
                     ->iconColor('danger')
                     ->searchable(['name', 'label']),
-                ImageColumn::make('users.avatar')
-                    ->label(__('People'))
-                    ->disk('public')
-                    ->circular()
-                    ->stacked()
-                    ->limit(5)
-                    ->limitedRemainingText()
-                    ->defaultImageUrl(fn (Role $record): string => 'https://ui-avatars.com/api/?background=e4e4e7&color=71717a&name=%20'),
                 TextColumn::make('users_count')
                     ->label(__('Members'))
                     ->formatStateUsing(fn (int $state): string => trans_choice(':count person|:count people', $state))
@@ -152,18 +147,15 @@ class RoleResource extends Resource
                     ->tooltip(fn (Role $record): ?string => $record->name === User::SUPER_ADMIN
                         ? __('Built in. Super Admins have every permission, and the role cannot be changed or deleted.')
                         : $record->permissions->map(fn ($permission) => Permissions::label($permission->name))->implode(', ')),
-                TextColumn::make('updated_at')
-                    ->label(__('Changed'))
-                    ->since()
-                    ->color('gray')
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make()
-                    ->modalDescription(fn (Role $record): string => $record->users_count > 0
-                        ? trans_choice(':count person will lose this role and its permissions.|:count people will lose this role and its permissions.', $record->users_count)
-                        : __('Nobody has this role.')),
+                ActionGroup::make([
+                    EditAction::make(),
+                    DeleteAction::make()
+                        ->modalDescription(fn (Role $record): string => $record->users_count > 0
+                            ? trans_choice(':count person will lose this role and its permissions.|:count people will lose this role and its permissions.', $record->users_count)
+                            : __('Nobody has this role.')),
+                ]),
             ])
             ->emptyStateHeading(__('No roles yet'));
     }

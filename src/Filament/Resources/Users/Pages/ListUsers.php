@@ -15,6 +15,11 @@ class ListUsers extends ListRecords
 
     protected static string $resource = UserResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return __('The people who work in the CMS, and the role that decides what each of them can do. Invite someone by email, or add them yourself.');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

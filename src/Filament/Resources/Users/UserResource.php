@@ -3,6 +3,7 @@
 namespace Aurora\Filament\Resources\Users;
 
 use Aurora\Filament\Concerns\TranslatesResourceLabels;
+use Aurora\Filament\Pages\UsersAndRoles;
 use Aurora\Filament\Resources\Users\Pages\CreateUser;
 use Aurora\Filament\Resources\Users\Pages\EditUser;
 use Aurora\Filament\Resources\Users\Pages\ListUsers;
@@ -17,7 +18,6 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use UnitEnum;
 
 class UserResource extends Resource
 {
@@ -34,7 +34,8 @@ class UserResource extends Resource
 
     protected static string|BackedEnum|null $activeNavigationIcon = 'phosphor-users-bold';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Administration';
+    // In "Users & Roles", with a side menu between the two.
+    protected static ?string $cluster = UsersAndRoles::class;
 
     protected static ?int $navigationSort = 1;
 
