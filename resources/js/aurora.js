@@ -1,0 +1,10 @@
+// Aurora's admin scripts, bundled into resources/dist/aurora.js (npm run build:aurora).
+import './admin/image-editor.js'
+import './admin/media-drag.js'
+import './admin/passkeys.js'
+import './admin/copilot.js'
+import './admin/global-search.js'
+import './admin/theme.js'
+import './admin/sidebar.js'
+import './admin/editor-leave.js'
+import './admin/context-menu.js'

@@ -1,0 +1,14 @@
+@props(['data' => []])
+
+@php
+    use Aurora\Support\Markup;
+@endphp
+
+{{-- The same view draws the block on the website, in the visual editor and in previews. --}}
+<div class="@container">
+    <h2 class="text-2xl font-semibold" @editable('title')>{{ Markup::inline($data['title'] ?? '') }}</h2>
+
+    @if (Markup::shows('text', $data['text'] ?? null))
+        <p class="mt-3 whitespace-pre-line" @editable('text')>{{ Markup::text($data['text'] ?? '') }}</p>
+    @endif
+</div>

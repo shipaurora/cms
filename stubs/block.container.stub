@@ -1,0 +1,69 @@
+<?php
+
+namespace {{ namespace }};
+
+use Aurora\Blocks\Block;
+use Aurora\Blocks\Contracts\Container;
+use Filament\Forms\Components\ToggleButtons;
+
+/**
+ * {{ label }}: a block that holds other blocks, in the "content" slot.
+ */
+class {{ class }} extends Block implements Container
+{
+    public static function type(): string
+    {
+        return '{{ type }}';
+    }
+
+    public static function label(): string
+    {
+        return __('{{ label }}');
+    }
+
+    public static function description(): string
+    {
+        return __('Describe what {{ lowerLabel }} holds, in one plain sentence.');
+    }
+
+    public static function icon(): ?string
+    {
+        return '{{ icon }}';
+    }
+
+    public static function category(): string
+    {
+        return '{{ category }}';
+    }
+
+    /**
+     * The named places other blocks go; the view draws each with Blocks::slot().
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int, string>
+     */
+    public static function slots(array $data): array
+    {
+        return ['content'];
+    }
+
+    public static function defaults(): array
+    {
+        return ['align' => 'left'];
+    }
+
+    /**
+     * For AI assistants composing pages: what belongs inside it.
+     */
+    public static function aiHints(): ?string
+    {
+        return 'Put the blocks this groups in its "content" slot.';
+    }
+
+    public static function schema(): array
+    {
+        return [
+            ToggleButtons::make('align')->label(__('Alignment'))->options(['left' => __('Left'), 'center' => __('Centre')])->default('left')->inline()->grouped(),
+        ];
+    }
+}

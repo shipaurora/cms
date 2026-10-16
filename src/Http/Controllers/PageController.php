@@ -1,0 +1,153 @@
+<?php
+
+namespace Aurora\Http\Controllers;
+
+use Aurora\Http\Middleware\UseSiteLocale;
+use Aurora\Models\Page;
+use Aurora\Models\PageRevision;
+use Aurora\Models\Redirect;
+use Aurora\Support\ContentLocale;
+use Aurora\Support\CurrentSite;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View as ViewFacade;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+
+/**
+ * The website's pages: the homepage, a page by its address, signed previews, the sitemap and
+ * robots.txt. Each page is drawn with the site's page view (config('aurora.page_view')).
+ */
+class PageController
+{
+    public function home(): View
+    {
+        $page = Page::query()->live()->homepage()->first()
+            ?? Page::query()->live()->oldest()->firstOrFail();
+
+        return $this->render($page);
+    }
+
+    public function show(Request $request, string $slug): View|RedirectResponse
+    {
+        // /nb or /nb/om-oss: the language's prefix comes off the front (UseSiteLocale picked it).
+        if (UseSiteLocale::codeIn($slug) !== null) {
+            $slug = str_contains($slug, '/') ? Str::after($slug, '/') : '';
+
+            if ($slug === '') {
+                return $this->home();
+            }
+        }
+
+        // A subpage's address ends with its own (/docs/getting-started): the page is found by
+        // that, and the rest must be where it sits now. An old one (a parent renamed, the page
+        // moved) sends the visitor to the page's address.
+        $parents = Str::contains($slug, '/') ? '/'.Str::beforeLast($slug, '/') : '';
+        $slug = Str::afterLast($slug, '/');
+        $locale = ContentLocale::current();
+
+        $page = Page::query()->whereSlug($slug)->first();
+
+        // Not translated yet: the page's address in the default site language.
+        if ($page === null && ($page = Page::query()->whereSlug($slug, ContentLocale::default())->first()) !== null) {
+            $locale = ContentLocale::default();
+        }
+
+        if ($page?->is_homepage) {
+            return redirect($page->path(), 301);
+        }
+
+        if ($page !== null && ($page->isLive() || Gate::allows('update', $page))) {
+            if ($parents !== $page->parentPath($locale)) {
+                // A redirect someone set up for exactly this address still wins.
+                return $this->storedRedirect($request) ?? redirect($page->path(), 301);
+            }
+
+            return $this->render($page, preview: ! $page->isLive());
+        }
+
+        return $this->redirectOrFail($request);
+    }
+
+    /**
+     * A signed link to a page (or one of its revisions) as it will look, whatever its status.
+     */
+    public function preview(Request $request, Page $previewPage): View
+    {
+        $page = $previewPage;
+
+        // The page as its own site shows it: its settings, menus and languages (in its default
+        // language, unless another is asked for below).
+        CurrentSite::set($page->site);
+        app()->setLocale(ContentLocale::current());
+
+        // A language other than the page's own, as chosen in the admin.
+        if ($page->isAvailableIn($locale = (string) $request->query('locale'))) {
+            ContentLocale::set($locale);
+            app()->setLocale($locale);
+        }
+
+        if ($request->filled('revision')) {
+            $revision = PageRevision::query()->whereBelongsTo($page)->findOrFail($request->string('revision'));
+            $page->forceFill(Page::attributesFromSnapshot($revision->snapshot));
+        }
+
+        return $this->render($page, preview: ! $request->boolean('embed'), embedded: $request->boolean('embed'));
+    }
+
+    public function sitemap(): Response
+    {
+        $pages = Page::query()->live()->where('noindex', false)->latest('updated_at')->get();
+
+        return response()
+            ->view('aurora::sitemap', ['pages' => $pages])
+            ->header('Content-Type', 'application/xml');
+    }
+
+    public function robots(): Response
+    {
+        return response("User-agent: *\nDisallow: /admin\nDisallow: /preview\n\nSitemap: ".url('sitemap.xml')."\n")
+            ->header('Content-Type', 'text/plain');
+    }
+
+    protected function render(Page $page, bool $preview = false, bool $embedded = false): View
+    {
+        // Blocks that need to know where they are (a form records the page it was sent from).
+        ViewFacade::share('currentPage', $page);
+        // A preview links between languages within the preview: the page may be on a site
+        // without a domain, or not live yet.
+        ViewFacade::share('previewing', $preview || $embedded);
+
+        // A page only exists in the languages it was given.
+        abort_unless($page->isAvailableIn(ContentLocale::current()), 404);
+
+        return view(config('aurora.page_view'), [
+            'page' => $page,
+            'preview' => $preview,
+            'embedded' => $embedded,
+        ]);
+    }
+
+    protected function redirectOrFail(Request $request): RedirectResponse
+    {
+        return $this->storedRedirect($request) ?? abort(404);
+    }
+
+    /**
+     * The redirect set up for the address asked for, if there is one (and it still leads somewhere).
+     */
+    protected function storedRedirect(Request $request): ?RedirectResponse
+    {
+        $redirect = Redirect::query()->where('from_path', Redirect::normalisePath($request->path()))->first();
+
+        if ($redirect === null || blank($destination = $redirect->destination())) {
+            return null;
+        }
+
+        $redirect->increment('hits', 1, ['last_hit_at' => now()]);
+
+        return redirect($destination, $redirect->status_code);
+    }
+}

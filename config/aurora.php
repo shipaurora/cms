@@ -1,0 +1,118 @@
+<?php
+
+use Aurora\Models\User;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Product name
+    |--------------------------------------------------------------------------
+    |
+    | The CMS's own name: in the admin panel's logo and browser title, on the
+    | sign-in and invitation pages, and as the name AI apps connect to. Set
+    | here rather than from APP_NAME, so it doesn't change between installs.
+    | The website's own name is "Site name" under Settings.
+    |
+    */
+
+    'name' => env('AURORA_NAME', 'Aurora CMS'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | User model
+    |--------------------------------------------------------------------------
+    |
+    | Aurora owns the user model: the app's auth uses it. To add your own
+    | behaviour, make a model that extends Aurora\Models\User and name it
+    | here. User ids are UUIDs.
+    |
+    */
+
+    'user_model' => User::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Demo mode
+    |--------------------------------------------------------------------------
+    |
+    | One-click sign-in as the seeded demo accounts, shown on the admin login
+    | page (php artisan aurora:install --demo can turn it on). For presenting
+    | the demo only: never enable this on a public site.
+    |
+    */
+
+    'demo_login' => (bool) env('AURORA_DEMO_LOGIN', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | The website's page view
+    |--------------------------------------------------------------------------
+    |
+    | The Blade view the website draws a page with ($page, $preview and
+    | $embedded). The visual editor shows pages with it too, so editors see
+    | the real thing. Aurora's own is a plain document to start from.
+    |
+    */
+
+    'page_view' => 'aurora::page',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin theme
+    |--------------------------------------------------------------------------
+    |
+    | The admin's look. Empty: Aurora's theme (aurora/aurora). The id of
+    | another theme a package registers with Filament, for a custom look. Or a
+    | Vite entry (ending in .css) for the site's own build on Aurora's
+    | (resources/css/index.css) with its design tokens and blocks, so the
+    | visual editor shows them styled.
+    |
+    */
+
+    'theme' => env('AURORA_THEME'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Blocks
+    |--------------------------------------------------------------------------
+    |
+    | Where the site's page blocks live. Every block class in this folder is
+    | registered on its own; list blocks with Aurora\Blocks\Blocks::register()
+    | only to set their order in the palette. php artisan aurora:make-block
+    | creates new ones here. The namespace is worked out from the folder
+    | when it's inside app/. Set the path to null to register blocks by hand.
+    |
+    */
+
+    'block_path' => app_path('Blocks'),
+
+    'block_namespace' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Website routes
+    |--------------------------------------------------------------------------
+    |
+    | Aurora serves the website's pages (/, each page's address, previews,
+    | the sitemap and robots.txt) after the app's own routes. Turn off to
+    | route them yourself with Aurora\Http\Controllers\PageController.
+    |
+    */
+
+    'routes' => env('AURORA_ROUTES', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Translations
+    |--------------------------------------------------------------------------
+    |
+    | Where aurora:sync-translations adds new labels and
+    | aurora:export-translations writes labels edited in the admin. Empty
+    | means the app's own lang directory.
+    |
+    */
+
+    'translations_path' => env('AURORA_TRANSLATIONS_PATH'),
+
+];

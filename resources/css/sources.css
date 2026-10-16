@@ -1,0 +1,7 @@
+/*
+ * What the CMS's admin markup uses (its views, code and scripts), for Tailwind to find: an
+ * admin theme (Aurora's, aurora/aurora, or a site's own) imports this beside its styles.
+ */
+@source '../../src/**/*';
+@source '../views/**/*.blade.php';
+@source '../js/admin/**/*';

@@ -1,0 +1,90 @@
+<?php
+
+namespace Aurora\Filament\Resources\Users\Pages;
+
+use Aurora\Filament\Concerns\SavesFromHeader;
+use Aurora\Filament\Resources\Users\UserResource;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\EditRecord;
+use STS\FilamentImpersonate\Actions\Impersonate;
+
+class EditUser extends EditRecord
+{
+    use SavesFromHeader;
+
+    protected static string $resource = UserResource::class;
+
+    /**
+     * This page doubles as everyone's profile ("Profile" in the user menu), so it does not
+     * require access to the user list. The record itself is still authorised through
+     * UserPolicy::update(): you may edit yourself, or others if you manage users.
+     */
+    public static function authorizeResourceAccess(): void
+    {
+        //
+    }
+
+    public function getTitle(): string
+    {
+        return $this->record->is(auth()->user()) ? __('Your profile') : $this->record->name;
+    }
+
+    /**
+     * Just the way back to the list (the name is the heading); none on your own profile
+     * when you can't see the list.
+     *
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return UserResource::canViewAny() ? [UserResource::getUrl('index') => UserResource::getBreadcrumb()] : [];
+    }
+
+    /**
+     * Your own profile: the top bar's user menu shows the new name and picture straight away,
+     * and a new preferred language applies straight away (a reload in it).
+     */
+    protected function afterSave(): void
+    {
+        if (! $this->record->is(auth()->user())) {
+            return;
+        }
+
+        if ($this->record->wasChanged('locale')) {
+            $this->redirect(static::getUrl(['record' => $this->record]), navigate: true);
+
+            return;
+        }
+
+        $this->dispatch('refresh-topbar');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Impersonate::make()
+                ->icon('phosphor-detective-bold')
+                ->label(__('View as :name', ['name' => str($this->record->name)->before(' ')]))
+                ->record($this->record)
+                ->redirectTo(fn (): string => filament()->getUrl()),
+            // Someone lost their phone: they add an app again (and must, if it is required).
+            Action::make('resetTwoFactor')
+                ->label(__('Reset two-factor sign-in'))
+                ->icon('phosphor-shield-slash')
+                ->color('gray')
+                ->visible(fn (): bool => ! $this->record->is(auth()->user()) && $this->record->authenticatorApps()->exists())
+                ->requiresConfirmation()
+                ->modalDescription(fn (): string => __(':name’s authenticator apps and recovery codes are removed, and they sign in with just their password until they add an app again.', ['name' => $this->record->name]))
+                ->action(function (): void {
+                    $this->record->saveAppAuthenticationSecret(null);
+                    $this->record->saveAppAuthenticationRecoveryCodes(null);
+
+                    Notification::make()->title(__('Two-factor sign-in reset'))->success()->send();
+                }),
+            DeleteAction::make(),
+            $this->headerSaveButton(),
+        ];
+    }
+}

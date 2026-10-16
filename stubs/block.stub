@@ -1,0 +1,77 @@
+<?php
+
+namespace {{ namespace }};
+
+use Aurora\Blocks\Block;
+use Aurora\Blocks\Editable;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+
+/**
+ * {{ label }}: what this block is for, in a sentence.
+ */
+class {{ class }} extends Block
+{
+    public static function type(): string
+    {
+        return '{{ type }}';
+    }
+
+    public static function label(): string
+    {
+        return __('{{ label }}');
+    }
+
+    public static function description(): string
+    {
+        return __('Describe what {{ lowerLabel }} shows, in one plain sentence.');
+    }
+
+    public static function icon(): ?string
+    {
+        return '{{ icon }}';
+    }
+
+    public static function category(): string
+    {
+        return '{{ category }}';
+    }
+
+    /**
+     * What a freshly dropped block starts with: enough to look finished on the canvas.
+     */
+    public static function defaults(): array
+    {
+        return [
+            'title' => '{{ label }}',
+            'text' => 'A sentence or two about it.',
+        ];
+    }
+
+    /**
+     * Fields typed straight onto the page in the visual editor (@editable in the view).
+     */
+    public static function editables(): array
+    {
+        return [
+            'title' => Editable::text()->placeholder(__('Title')),
+            'text' => Editable::text()->multiline()->placeholder(__('Text')),
+        ];
+    }
+
+    /**
+     * For AI assistants composing pages: when to use it and what good content looks like.
+     */
+    public static function aiHints(): ?string
+    {
+        return 'title is a short heading; text is one or two plain sentences.';
+    }
+
+    public static function schema(): array
+    {
+        return [
+            TextInput::make('title')->label(__('Title'))->maxLength(120),
+            Textarea::make('text')->label(__('Text'))->rows(3),
+        ];
+    }
+}
