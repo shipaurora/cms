@@ -13,6 +13,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
@@ -50,22 +51,33 @@ trait ManagesImageFormats
             ->modalWidth('2xl')
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('Close'))
-            ->schema(fn (): array => [
-                View::make('aurora::filament.assets.built-in-formats'),
-                Group::make(ImageFormat::cached()->map(fn (ImageFormat $format): Flex => Flex::make([
-                    Group::make([
-                        Text::make(new HtmlString(e($format->name).' <span class="cms-format-handle">('.e($format->handle).')</span>'))->weight(FontWeight::Medium)->color('neutral'),
-                        Text::make(implode(' · ', [$format->describe(), $format->file_format->getLabel(), __(':quality% quality', ['quality' => $format->quality])]))->size('sm'),
-                    ]),
-                    Text::make(__('Responsive'))->badge()->color('primary')->visible($format->is_responsive)->grow(false),
-                    Actions::make([
-                        $this->editFormatAction($format),
-                        $this->deleteFormatAction($format),
-                    ])->key('format-'.$format->id)->grow(false),
-                ])->verticallyAlignCenter()->extraAttributes(['class' => 'cms-format-row']))->all())
-                    ->extraAttributes(['class' => 'cms-format-list']),
-                Actions::make([$this->editFormatAction(null)])->key('add-format'),
-            ]);
+            ->schema(fn (): array => $this->formatRows());
+    }
+
+    /**
+     * The built-in sizes, a row for each format and "Add format": in the dialog, and in
+     * Settings › Image formats.
+     *
+     * @return array<int, Component>
+     */
+    protected function formatRows(): array
+    {
+        return [
+            View::make('aurora::filament.assets.built-in-formats'),
+            Group::make(ImageFormat::cached()->map(fn (ImageFormat $format): Flex => Flex::make([
+                Group::make([
+                    Text::make(new HtmlString(e($format->name).' <span class="cms-format-handle">('.e($format->handle).')</span>'))->weight(FontWeight::Medium)->color('neutral'),
+                    Text::make(implode(' · ', [$format->describe(), $format->file_format->getLabel(), __(':quality% quality', ['quality' => $format->quality])]))->size('sm'),
+                ]),
+                Text::make(__('Responsive'))->badge()->color('primary')->visible($format->is_responsive)->grow(false),
+                Actions::make([
+                    $this->editFormatAction($format),
+                    $this->deleteFormatAction($format),
+                ])->key('format-'.$format->id)->grow(false),
+            ])->verticallyAlignCenter()->extraAttributes(['class' => 'cms-format-row']))->all())
+                ->extraAttributes(['class' => 'cms-format-list']),
+            Actions::make([$this->editFormatAction(null)])->key('add-format'),
+        ];
     }
 
     /**
@@ -154,7 +166,8 @@ trait ManagesImageFormats
     }
 
     /**
-     * Build the "Image formats" dialog behind a format's dialog again, so it lists the change.
+     * Build the list again so it shows the change: the "Image formats" dialog behind a
+     * format's dialog, or the page's form where the list is part of it (Settings).
      */
     protected function refreshFormatsDialog(): void
     {
@@ -162,6 +175,8 @@ trait ManagesImageFormats
 
         if ($index >= 0) {
             $this->cacheSchema("mountedActionSchema{$index}", fn (): ?Schema => $this->getMountedActionSchema($index));
+        } else {
+            unset($this->cachedSchemas['form']);
         }
     }
 

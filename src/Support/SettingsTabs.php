@@ -6,8 +6,8 @@ use Closure;
 use Filament\Schemas\Components\Tabs\Tab;
 
 /**
- * Settings tabs a website adds for its own templates (its header, footer …), next to the
- * CMS's own. Registered from a service provider; the tab's fields are saved with the
+ * Settings a website adds for its own templates (its header, footer …), each a section of
+ * the Settings page next to the CMS's own (its side menu lists them). Registered from a service provider; the tab's fields are saved with the
  * other settings, on the site being edited when their key is listed in $siteKeys.
  *
  *     SettingsTabs::register('footer', fn (): Tab => Tab::make(__('Footer'))->schema([...]), siteKeys: ['footer_note']);
@@ -31,11 +31,21 @@ class SettingsTabs
     }
 
     /**
-     * @return array<int, Tab>
+     * Take a section away again (a site that replaces one of a package's, or a test).
+     */
+    public static function forget(string $key): void
+    {
+        unset(static::$tabs[$key]);
+    }
+
+    /**
+     * By key: each is a section of the Settings page, at ?tab={key}.
+     *
+     * @return array<string, Tab>
      */
     public static function tabs(): array
     {
-        return array_values(array_map(fn (array $registered): Tab => ($registered['tab'])(), static::$tabs));
+        return array_map(fn (array $registered): Tab => ($registered['tab'])(), static::$tabs);
     }
 
     /**

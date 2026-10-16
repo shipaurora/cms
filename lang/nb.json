@@ -1740,5 +1740,8 @@
     "Your changes aren’t saved yet. Save them before you go, or leave without them.": "Endringene dine er ikke lagret ennå. Lagre dem før du går, eller gå uten dem.",
     "Create and leave": "Opprett og gå",
     "Leave page": "Forlat siden",
-    "Discard and leave": "Forkast og gå"
+    "Discard and leave": "Forkast og gå",
+    "Shown in the site switcher. Without one, the site’s initial on its brand colours.": "Vises i nettstedsvelgeren. Uten et, nettstedets forbokstav i merkefargene.",
+    "Header and footer": "Topp og bunn",
+    "Open in Settings": "Åpne i Innstillinger"
 }

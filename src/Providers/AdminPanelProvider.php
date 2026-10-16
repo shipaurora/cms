@@ -5,6 +5,7 @@ namespace Aurora\Providers;
 use Althinect\FilamentSpatieRolesPermissions\FilamentSpatieRolesPermissionsPlugin;
 use Aurora\Blocks\Blocks;
 use Aurora\Filament\Auth\AuthenticatorApps;
+use Aurora\Filament\GlobalSearchProvider;
 use Aurora\Filament\MenuBuilderPlugin;
 use Aurora\Filament\Pages\AiAssistant;
 use Aurora\Filament\Pages\Auth\AcceptInvitation;
@@ -156,6 +157,8 @@ class AdminPanelProvider extends PanelProvider
             ->collapsedSidebarWidth('5.5rem')
             ->maxContentWidth(Width::SevenExtraLarge)
             ->unsavedChangesAlerts()
+            // Records, and the sections of Settings, straight to them.
+            ->globalSearch(GlobalSearchProvider::class)
             ->databaseTransactions()
             // The bell in the topbar: pages sent for review, new form submissions and the like
             // (Aurora\Support\CmsNotifications), checked every half minute.

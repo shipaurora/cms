@@ -1740,5 +1740,8 @@
     "Your changes aren’t saved yet. Save them before you go, or leave without them.": "Your changes aren’t saved yet. Save them before you go, or leave without them.",
     "Create and leave": "Create and leave",
     "Leave page": "Leave page",
-    "Discard and leave": "Discard and leave"
+    "Discard and leave": "Discard and leave",
+    "Shown in the site switcher. Without one, the site’s initial on its brand colours.": "Shown in the site switcher. Without one, the site’s initial on its brand colours.",
+    "Header and footer": "Header and footer",
+    "Open in Settings": "Open in Settings"
 }

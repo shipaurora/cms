@@ -5,13 +5,13 @@ namespace Aurora\Filament\Resources\Pages\Pages;
 use Aurora\Enums\PageStatus;
 use Aurora\Filament\Concerns\ManagesLayouts;
 use Aurora\Filament\Concerns\WithoutBreadcrumbs;
+use Aurora\Filament\Resources\Pages\Actions\ReindexAllAction;
 use Aurora\Filament\Resources\Pages\Actions\SearchPagesAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,24 +50,7 @@ class ListPages extends ListRecords
                 // Try a search across the site's pages (only those who manage search).
                 SearchPagesAction::make(),
                 // Every page of the site in search again: after a change of search driver, say.
-                Action::make('reindexAll')
-                    ->label(__('Reindex all'))
-                    ->icon('phosphor-arrows-clockwise')
-                    ->visible(fn (): bool => auth()->user()->can('manage-search Page'))
-                    ->requiresConfirmation()
-                    ->modalIcon('phosphor-arrows-clockwise')
-                    ->modalHeading(__('Reindex every page?'))
-                    ->modalDescription(__('Each page’s text is worked out again and sent to search. Worth doing after changing the search driver, or if search seems out of date.'))
-                    ->modalSubmitActionLabel(__('Reindex all'))
-                    ->action(function (): void {
-                        $count = 0;
-                        Page::query()->each(function (Page $page) use (&$count): void {
-                            $page->reindex();
-                            $count++;
-                        });
-
-                        Notification::make()->title(trans_choice(':count page reindexed for search|:count pages reindexed for search', $count))->success()->send();
-                    }),
+                ReindexAllAction::make()->color(null),
             ])
                 ->label(__('More'))
                 ->icon('phosphor-dots-three-vertical')

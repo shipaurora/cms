@@ -64,7 +64,7 @@ class LanguagesTable extends Component implements HasActions, HasSchemas, HasTab
                     ->label(__('Language'))
                     ->weight(FontWeight::SemiBold)
                     ->description(fn (Locale $record): string => $record->is_default ? $record->code : $record->code.' · /'.Locale::prefixFor($record->code)),
-                IconColumn::make('is_default')->label(__('Default site language'))->boolean()->trueIcon('phosphor-check')->falseIcon(null),
+                IconColumn::make('is_default')->label(__('Default'))->boolean()->trueIcon('phosphor-check')->falseIcon(null),
                 // Switched on and off right here; the default language is always on.
                 ToggleColumn::make('is_active')
                     ->label(__('Available'))

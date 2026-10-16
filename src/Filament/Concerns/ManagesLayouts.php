@@ -11,6 +11,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Icon;
@@ -43,29 +44,37 @@ trait ManagesLayouts
             ->modalWidth('2xl')
             ->modalSubmitAction(false)
             ->modalCancelActionLabel(__('Close'))
-            ->schema(function (): array {
-                $pages = Page::query()->toBase()->selectRaw('layout_id, count(*) as aggregate')->whereNull('deleted_at')->groupBy('layout_id')->pluck('aggregate', 'layout_id');
+            ->schema(fn (): array => $this->layoutRows());
+    }
 
-                return [
-                    Group::make(Layout::cached()->map(fn (Layout $layout): Flex => Flex::make([
-                        Icon::make($layout->icon ?: 'phosphor-app-window')->color('gray')->grow(false),
-                        Group::make([
-                            Text::make(new HtmlString(e($layout->name).' <span class="cms-format-handle">('.e($layout->handle).')</span>'))->weight(FontWeight::Medium)->color('neutral'),
-                            Text::make(collect([
-                                $layout->description,
-                                trans_choice(':count page|:count pages', (int) ($pages[$layout->getKey()] ?? 0)),
-                            ])->filter()->implode(' · '))->size('sm'),
-                        ]),
-                        Text::make(__('Default'))->badge()->color('primary')->visible($layout->is_default)->grow(false),
-                        Actions::make([
-                            $this->editLayoutAction($layout),
-                            $this->deleteLayoutAction($layout),
-                        ])->key('layout-'.$layout->id)->grow(false),
-                    ])->verticallyAlignCenter()->extraAttributes(['class' => 'cms-format-row']))->all())
-                        ->extraAttributes(['class' => 'cms-format-list']),
-                    Actions::make([$this->editLayoutAction(null)])->key('add-layout'),
-                ];
-            });
+    /**
+     * The layouts, a row each, and "Add layout": in the dialog, and in Settings › Layouts.
+     *
+     * @return array<int, Component>
+     */
+    protected function layoutRows(): array
+    {
+        $pages = Page::query()->toBase()->selectRaw('layout_id, count(*) as aggregate')->whereNull('deleted_at')->groupBy('layout_id')->pluck('aggregate', 'layout_id');
+
+        return [
+            Group::make(Layout::cached()->map(fn (Layout $layout): Flex => Flex::make([
+                Icon::make($layout->icon ?: 'phosphor-app-window')->color('gray')->grow(false),
+                Group::make([
+                    Text::make(new HtmlString(e($layout->name).' <span class="cms-format-handle">('.e($layout->handle).')</span>'))->weight(FontWeight::Medium)->color('neutral'),
+                    Text::make(collect([
+                        $layout->description,
+                        trans_choice(':count page|:count pages', (int) ($pages[$layout->getKey()] ?? 0)),
+                    ])->filter()->implode(' · '))->size('sm'),
+                ]),
+                Text::make(__('Default'))->badge()->color('primary')->visible($layout->is_default)->grow(false),
+                Actions::make([
+                    $this->editLayoutAction($layout),
+                    $this->deleteLayoutAction($layout),
+                ])->key('layout-'.$layout->id)->grow(false),
+            ])->verticallyAlignCenter()->extraAttributes(['class' => 'cms-format-row']))->all())
+                ->extraAttributes(['class' => 'cms-format-list']),
+            Actions::make([$this->editLayoutAction(null)])->key('add-layout'),
+        ];
     }
 
     /**
@@ -185,7 +194,8 @@ trait ManagesLayouts
     }
 
     /**
-     * Build the "Layouts" dialog behind a layout's dialog again, so it lists the change.
+     * Build the list again so it shows the change: the "Layouts" dialog behind a layout's
+     * dialog, or the page's form where the list is part of it (Settings › Layouts).
      */
     protected function refreshLayoutsDialog(): void
     {
@@ -193,6 +203,8 @@ trait ManagesLayouts
 
         if ($index >= 0) {
             $this->cacheSchema("mountedActionSchema{$index}", fn (): ?Schema => $this->getMountedActionSchema($index));
+        } else {
+            unset($this->cachedSchemas['form']);
         }
     }
 }

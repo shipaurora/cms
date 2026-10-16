@@ -4,6 +4,7 @@ namespace Aurora\Filament\Concerns;
 
 use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\EditRecord;
 
 /**
  * Leaving a form with unsaved changes asks first, in Filament's dialog rather than the
@@ -44,7 +45,11 @@ trait ConfirmsLeaving
                     ->action(fn () => $this->redirect(static::leavingTo($arguments['url'] ?? null))),
             ])
             ->action(function (array $arguments): void {
-                $this instanceof CreateRecord ? $this->create() : $this->save(shouldRedirect: false);
+                match (true) {
+                    $this instanceof CreateRecord => $this->create(),
+                    $this instanceof EditRecord => $this->save(shouldRedirect: false),
+                    default => $this->save(),
+                };
 
                 // Not saved (a field to fix, or a question to answer first): stay.
                 if ($this->hasUnsavedChanges()) {

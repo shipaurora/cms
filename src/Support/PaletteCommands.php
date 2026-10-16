@@ -4,6 +4,7 @@ namespace Aurora\Support;
 
 use Aurora\Enums\PageStatus;
 use Aurora\Filament\Pages\AiAssistant;
+use Aurora\Filament\Pages\SiteSettings;
 use Aurora\Filament\Resources\Assets\AssetResource;
 use Aurora\Filament\Resources\Forms\FormResource;
 use Aurora\Filament\Resources\Menus\MenuResource;
@@ -39,6 +40,7 @@ class PaletteCommands
         return [
             ...static::forCurrentPage(),
             ...static::actions(),
+            ...static::settings(),
         ];
     }
 
@@ -142,6 +144,22 @@ class PaletteCommands
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Each section of Settings, to go straight to it.
+     *
+     * @return array<int, CommandItem>
+     */
+    protected static function settings(): array
+    {
+        return array_map(
+            fn (array $section): CommandItem => CommandItem::make($section['label'], $section['url'], __('Settings'), $section['icon'] ?? 'phosphor-gear', keywords: ['settings', 'setting', 'configure'])
+                ->id('cms:settings-'.str($section['url'])->afterLast('tab=')->slug())
+                ->description(__('Open in Settings'))
+                ->priority(10),
+            SiteSettings::sectionLinks(),
+        );
     }
 
     /**
