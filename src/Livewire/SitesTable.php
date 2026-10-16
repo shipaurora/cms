@@ -17,6 +17,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -26,6 +27,7 @@ use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -59,6 +61,11 @@ class SitesTable extends Component implements HasActions, HasSchemas, HasTable
             ->reorderable('sort')
             ->paginated(false)
             ->columns([
+                ImageColumn::make('avatar')
+                    ->label('')
+                    ->state(fn (Site $record): ?string => $record->getFilamentAvatarUrl())
+                    ->imageSize(32)
+                    ->width('1%'),
                 TextColumn::make('name')
                     ->label(__('Site'))
                     ->weight(FontWeight::SemiBold)
@@ -89,7 +96,7 @@ class SitesTable extends Component implements HasActions, HasSchemas, HasTable
                 EditAction::make()
                     ->modalHeading(fn (Site $record): string => __('Edit :site', ['site' => $record->name]))
                     ->schema(fn (): array => $this->formFields())
-                    ->after(fn () => $this->refreshSidebar()),
+                    ->after(fn (Site $record) => $this->afterSaving($record)),
                 DeleteAction::make()
                     // Not the default site, nor the one being worked on (the admin would lose its place).
                     ->hidden(fn (Site $record): bool => $record->is_default || $record->is(Filament::getTenant()))
@@ -104,6 +111,14 @@ class SitesTable extends Component implements HasActions, HasSchemas, HasTable
     protected function formFields(): array
     {
         return [
+            // Stored like people's avatars, not in the media library.
+            FileUpload::make('avatar')
+                ->label(__('Avatar'))
+                ->avatar()
+                ->imageEditor()
+                ->disk('public')
+                ->directory('avatars')
+                ->helperText(__('Shown in the site switcher. Without one, the site’s initial on its brand colours.')),
             TextInput::make('name')
                 ->label(__('Name'))
                 ->required()
@@ -164,6 +179,22 @@ class SitesTable extends Component implements HasActions, HasSchemas, HasTable
     /**
      * The site switcher (in the sidebar) comes and goes with the number of sites.
      */
+    /**
+     * The site being worked on, with a new admin address (its handle, or its domain, where
+     * the admin answers too): on to that address, as the old one is gone. Else the sidebar
+     * shows the change.
+     */
+    protected function afterSaving(Site $site): void
+    {
+        if ($site->is(Filament::getTenant()) && $site->wasChanged(['handle', 'domain'])) {
+            $this->redirect(SiteSettings::getUrl(['tab' => 'sites'], tenant: $site));
+
+            return;
+        }
+
+        $this->refreshSidebar();
+    }
+
     protected function refreshSidebar(): void
     {
         $this->dispatch('refresh-sidebar');

@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('sites', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name');
+            // Its own picture in the site switcher (public disk, like people's avatars), else its initial.
+            $table->string('avatar')->nullable();
             // In the admin's addresses when multi-site is on: /admin/{handle}/pages.
             $table->string('handle')->unique();
             // The site answers on this host; the default site also answers on any other.

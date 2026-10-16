@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
  * any address); more can be added, each with its own pages, menus, redirects and
  * settings and forms, its own domain, languages and people. Media is shared by all.
  */
-#[Fillable(['name', 'handle', 'domain', 'is_default', 'default_locale', 'locales', 'settings', 'sort'])]
+#[Fillable(['name', 'avatar', 'handle', 'domain', 'is_default', 'default_locale', 'locales', 'settings', 'sort'])]
 class Site extends Model implements HasAvatar, HasCurrentTenantLabel
 {
     use HasUuids;
@@ -57,11 +58,15 @@ class Site extends Model implements HasAvatar, HasCurrentTenantLabel
     }
 
     /**
-     * In the site switcher: the site's initial on its brand colours, drawn here rather
-     * than fetched from an avatar service.
+     * In the site switcher: the site's own avatar, else its initial on its brand colours,
+     * drawn here rather than fetched from an avatar service.
      */
     public function getFilamentAvatarUrl(): ?string
     {
+        if (filled($this->avatar)) {
+            return Storage::disk('public')->url($this->avatar);
+        }
+
         $from = $this->setting('brand_color', '#7c3aed');
         $to = $this->setting('accent_color', '#22d3ee');
         $initial = e(mb_strtoupper(mb_substr($this->name, 0, 1)));
