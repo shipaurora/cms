@@ -12,6 +12,7 @@ use Aurora\Filament\Resources\Pages\RelationManagers\RevisionsRelationManager;
 use Aurora\Filament\Resources\Pages\Schemas\PageForm;
 use Aurora\Filament\Resources\Pages\Tables\PagesTable;
 use Aurora\Models\Page;
+use Aurora\Support\CurrentSite;
 use Aurora\Support\AssetLibrary;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\SearchThumbnail;
@@ -96,6 +97,16 @@ class PageResource extends Resource
     public static function getNavigationBadgeTooltip(): ?string
     {
         return __('Waiting for review');
+    }
+
+    /**
+     * What visitors see at the homepage's address while it isn't live (drafted, in review or
+     * in the trash): "Page not found", until it is live again or another page becomes the
+     * homepage. No other page stands in for it.
+     */
+    public static function withoutHomepage(Page $homepage): string
+    {
+        return __('“:page” is the homepage. Until it’s published again, or another page becomes the homepage, visitors to :url see “Page not found”.', ['page' => $homepage->title, 'url' => CurrentSite::url(ContentLocale::prefix() ?: '/')]);
     }
 
     public static function getGloballySearchableAttributes(): array

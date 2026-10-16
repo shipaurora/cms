@@ -10,10 +10,14 @@ use Aurora\Observers\PageObserver;
 use Aurora\Support\BlockTranslations;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\PageSearch;
+use Laravel\Scout\Engines\DatabaseEngine;
+use Laravel\Scout\Searchable;
 use CarlJanzell\FilamentPageBuilder\Concerns\HasBlocks;
 use CarlJanzell\FilamentPageBuilder\Support\BlockTree;
 use Closure;
 use Datlechin\FilamentMenuBuilder\Contracts\MenuPanelable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -30,10 +34,11 @@ use Spatie\Sluggable\SlugOptions;
 use Spatie\Translatable\HasTranslations;
 
 #[ObservedBy(PageObserver::class)]
+#[Hidden(['password'])]
 class Page extends Model implements MenuPanelable
 {
     /** @use HasFactory<PageFactory> */
-    use BelongsToSite, HasBlocks, HasFactory, HasTranslations, SoftDeletes;
+    use BelongsToSite, HasBlocks, HasFactory, HasTranslations, Searchable, SoftDeletes;
 
     // Pages are found by id in the admin and by address on the website (whereSlug).
     use HasTranslatableSlug, HasUuids {
@@ -62,12 +67,13 @@ class Page extends Model implements MenuPanelable
      *
      * @var array<int, string>
      */
-    public const SNAPSHOT = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout', 'meta_title', 'meta_description', 'og_image', 'noindex'];
+    public const SNAPSHOT = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
 
     protected $attributes = [
         'status' => 'draft',
         'layout' => 'default',
         'noindex' => false,
+        'exclude_from_search' => false,
     ];
 
     protected function casts(): array
@@ -79,8 +85,11 @@ class Page extends Model implements MenuPanelable
             'status' => PageStatus::class,
             'layout' => PageLayout::class,
             'published_at' => 'datetime',
+            'indexed_at' => 'datetime',
             'is_homepage' => 'boolean',
             'noindex' => 'boolean',
+            'exclude_from_search' => 'boolean',
+            'password' => 'hashed',
         ];
     }
 
@@ -257,6 +266,18 @@ class Page extends Model implements MenuPanelable
         $query->where('is_homepage', true);
     }
 
+    /**
+     * By title as it's shown: in the content language, else the default one; ignoring case.
+     */
+    #[Scope]
+    protected function orderByTitle(Builder $query, string $direction = 'asc'): void
+    {
+        $grammar = $query->getGrammar();
+        $title = fn (string $locale): string => $grammar->wrap("title->{$locale}");
+
+        $query->orderByRaw('lower(coalesce('.$title(ContentLocale::current()).', '.$title(ContentLocale::default()).')) '.($direction === 'desc' ? 'desc' : 'asc'));
+    }
+
     /* ── State ─────────────────────────────────────────── */
 
     public function isLive(): bool
@@ -268,6 +289,14 @@ class Page extends Model implements MenuPanelable
     public function isScheduled(): bool
     {
         return $this->status === PageStatus::Published && $this->published_at?->isFuture();
+    }
+
+    /**
+     * Visitors type a password to see it (Aurora\Support\PagePassword).
+     */
+    public function isPasswordProtected(): bool
+    {
+        return filled($this->password);
     }
 
     /* ── Languages ─────────────────────────────────────── */
@@ -341,6 +370,69 @@ class Page extends Model implements MenuPanelable
         return $this->site_id !== null && $this->site_id !== CurrentSite::id() && ($site = $this->site) !== null
             ? $site->url($path)
             : CurrentSite::url($path);
+    }
+
+    /**
+     * Search (laravel/scout): the database engine searches search_text (on MySQL, by its
+     * full-text index); a search service gets the page's text language by language.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return $this->searchableUsing() instanceof DatabaseEngine
+            ? ['search_text' => $this->search_text]
+            : PageSearch::document($this);
+    }
+
+    /**
+     * With a FULLTEXT index (MySQL): see Aurora\Support\Search\DatabaseEngine.
+     *
+     * @return array<int, string>
+     */
+    public function fullTextColumns(): array
+    {
+        return ['search_text'];
+    }
+
+    /**
+     * Index the page again: its search text worked out anew, and the search service told
+     * (or the page taken out of it, when it isn't live). For pages saved before search, or
+     * after the search driver changed.
+     */
+    public function reindex(): void
+    {
+        $this->forceFill(PageSearch::indexed($this))->saveQuietly();
+
+        $this->shouldBeSearchable() ? $this->searchable() : $this->unsearchable();
+    }
+
+    public function searchableAs(): string
+    {
+        return 'pages';
+    }
+
+    /**
+     * Only what visitors can read: live, and not hidden from search engines.
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return $this->isLive() && ! $this->noindex && ! $this->exclude_from_search && ! $this->isPasswordProtected() && ! $this->trashed();
+    }
+
+    /**
+     * Search the site's live pages, as a website's search does:
+     * Page::searchSite('fjord')->paginate(10). In the current site (and language, with a
+     * search service), most relevant first.
+     */
+    public static function searchSite(string $terms, bool $liveOnly = true): \Laravel\Scout\Builder
+    {
+        // Every page of the site (drafts too, with the database engine) for the admin's search tester.
+        $search = static::search($terms)->query(fn (Builder $query) => $query->when($liveOnly, fn (Builder $query) => $query->live()->where('noindex', false)->where('exclude_from_search', false)->whereNull('password')));
+
+        return $search->model->searchableUsing() instanceof DatabaseEngine
+            ? $search
+            : $search->where('site_id', CurrentSite::id());
     }
 
     /**
@@ -423,6 +515,7 @@ class Page extends Model implements MenuPanelable
             ...collect($this->translatable)->mapWithKeys(fn (string $attribute): array => [$attribute => $this->getTranslations($attribute)])->all(),
             'layout' => $this->layout?->value,
             'noindex' => (bool) $this->noindex,
+            'exclude_from_search' => (bool) $this->exclude_from_search,
         ];
     }
 
@@ -441,6 +534,7 @@ class Page extends Model implements MenuPanelable
             ...$attributes,
             'layout' => $attributes['layout'] ?? 'default',
             'noindex' => (bool) ($attributes['noindex'] ?? false),
+            'exclude_from_search' => (bool) ($attributes['exclude_from_search'] ?? false),
         ];
     }
 

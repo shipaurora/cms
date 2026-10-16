@@ -8,6 +8,7 @@ use Aurora\Models\PageRevision;
 use Aurora\Models\Redirect;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\PagePassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -22,15 +23,13 @@ use Illuminate\View\View;
  */
 class PageController
 {
-    public function home(): View
+    public function home(): Response
     {
-        $page = Page::query()->live()->homepage()->first()
-            ?? Page::query()->live()->oldest()->firstOrFail();
-
-        return $this->render($page);
+        // Only the homepage: while it isn't live, the address is "Page not found".
+        return $this->render(Page::query()->live()->homepage()->firstOrFail());
     }
 
-    public function show(Request $request, string $slug): View|RedirectResponse
+    public function show(Request $request, string $slug): Response|RedirectResponse
     {
         // /nb or /nb/om-oss: the language's prefix comes off the front (UseSiteLocale picked it).
         if (UseSiteLocale::codeIn($slug) !== null) {
@@ -74,7 +73,7 @@ class PageController
     /**
      * A signed link to a page (or one of its revisions) as it will look, whatever its status.
      */
-    public function preview(Request $request, Page $previewPage): View
+    public function preview(Request $request, Page $previewPage): Response
     {
         $page = $previewPage;
 
@@ -94,12 +93,12 @@ class PageController
             $page->forceFill(Page::attributesFromSnapshot($revision->snapshot));
         }
 
-        return $this->render($page, preview: ! $request->boolean('embed'), embedded: $request->boolean('embed'));
+        return $this->render($page, preview: ! $request->boolean('embed'), embedded: $request->boolean('embed'), signed: true);
     }
 
     public function sitemap(): Response
     {
-        $pages = Page::query()->live()->where('noindex', false)->latest('updated_at')->get();
+        $pages = Page::query()->live()->where('noindex', false)->whereNull('password')->latest('updated_at')->get();
 
         return response()
             ->view('aurora::sitemap', ['pages' => $pages])
@@ -112,8 +111,9 @@ class PageController
             ->header('Content-Type', 'text/plain');
     }
 
-    protected function render(Page $page, bool $preview = false, bool $embedded = false): View
+    protected function render(Page $page, bool $preview = false, bool $embedded = false, bool $signed = false): Response
     {
+
         // Blocks that need to know where they are (a form records the page it was sent from).
         ViewFacade::share('currentPage', $page);
         // A preview links between languages within the preview: the page may be on a site
@@ -123,11 +123,20 @@ class PageController
         // A page only exists in the languages it was given.
         abort_unless($page->isAvailableIn(ContentLocale::current()), 404);
 
-        return view(config('aurora.page_view'), [
+        // Behind a password, and not unlocked yet: its password page, never the page itself,
+        // whoever is signed in. Only a signed preview link shows it: it's given out on purpose.
+        if (! $signed && PagePassword::isLocked($page)) {
+            return response()->view('aurora::page-password', ['page' => $page])->header('Cache-Control', 'no-store, private');
+        }
+
+        $response = response()->view(config('aurora.page_view'), [
             'page' => $page,
             'preview' => $preview,
             'embedded' => $embedded,
         ]);
+
+        // Unlocked for this visitor only: no shared cache may keep it.
+        return $page->isPasswordProtected() ? $response->header('Cache-Control', 'no-store, private') : $response;
     }
 
     protected function redirectOrFail(Request $request): RedirectResponse

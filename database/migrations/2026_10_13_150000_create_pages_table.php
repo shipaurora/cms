@@ -32,10 +32,21 @@ return new class extends Migration
             $table->json('meta_description')->nullable();
             $table->string('og_image')->nullable();
             $table->boolean('noindex')->default(false);
+            // What the page says, in all its languages, for search (Aurora\Support\PageSearch).
+            $table->boolean('exclude_from_search')->default(false);
+            // Hashed: visitors type it to see the page (Aurora\Support\PagePassword).
+            $table->string('password')->nullable();
+            $table->longText('search_text')->nullable();
+            $table->timestamp('indexed_at')->nullable();
             $table->foreignUuid('author_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignUuid('last_edited_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->softDeletes();
             $table->timestamps();
+
+            // Full-text search where the database has it (Aurora\Support\Search\DatabaseEngine).
+            if (in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+                $table->fullText('search_text');
+            }
         });
 
         Schema::create('page_revisions', function (Blueprint $table) {

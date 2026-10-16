@@ -25,7 +25,7 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
 #[Signature('aurora:install
-    {--demo : Seed the demo site (pages, media, forms, menus, demo accounts and Norwegian) without asking}
+    {--demo : Seed the demo site (pages, media, forms, menus, demo accounts and Norwegian)}
     {--demo-login : With the demo: turn on demo mode (one-click sign-in as the demo accounts) in .env}
     {--fresh : Drop every table and start over}
     {--force : Don\'t ask before dropping tables}
@@ -40,18 +40,9 @@ class InstallCms extends Command
 {
     public function handle(TranslationSync $sync): int
     {
-        $demo = $this->option('demo') || ($this->input->isInteractive() && confirm(
-            'Add the demo content?',
-            default: true,
-            hint: 'A sample site with pages, media, forms, menus, demo accounts and Norwegian. Without it, the site starts with no pages.',
-        ));
-
-        // Everything asked up front, so the install then runs without stopping.
-        $demoLogin = $demo && ($this->option('demo-login') || ($this->input->isInteractive() && confirm(
-            'Turn on demo mode?',
-            default: false,
-            hint: 'Adds one-click sign-in as the demo accounts to the login page (AURORA_DEMO_LOGIN in .env). Never on a public site.',
-        )));
+        // The demo content and demo mode only when asked for with their flags: never offered.
+        $demo = (bool) $this->option('demo');
+        $demoLogin = $demo && $this->option('demo-login');
 
         $fresh = (bool) $this->option('fresh');
 
@@ -134,6 +125,13 @@ class InstallCms extends Command
 
         // The default site (no domain: it answers on every address) is named after the website.
         CurrentSite::default()?->update(['name' => $siteName ?? Setting::get('site_name')]);
+
+        // Every page in search from the start (the demo's, or those already there), on every site.
+        $this->components->task('Indexing pages for search', function (): bool {
+            Page::query()->withoutGlobalScopes()->whereNull('deleted_at')->each(fn (Page $page) => $page->reindex());
+
+            return true;
+        });
 
         $this->components->task('Syncing labels from the lang files', function () use ($sync): bool {
             $sync->import();

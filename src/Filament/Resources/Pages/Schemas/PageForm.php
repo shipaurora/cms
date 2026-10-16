@@ -14,6 +14,7 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -98,6 +99,10 @@ class PageForm
                         || ! Page::query()->where('is_homepage', false)->when($record, fn (Builder $query) => $query->whereKeyNot($record->getKey()))->exists()),
                 TextInput::make('slug')
                     ->label(__('Address'))
+                    // The homepage is served at the site's address, so its own isn't shown; it is
+                    // still kept, for when another page becomes the homepage.
+                    ->hidden(fn (Get $get): bool => (bool) $get('is_homepage'))
+                    ->dehydratedWhenHidden()
                     // The address in the language being edited, under the parent page: …/nb/dokumentasjon/kom-i-gang.
                     ->prefix(fn (Get $get): string => Str::of(CurrentSite::url(ContentLocale::prefix()))->after('://')->rtrim('/')
                         ->append(static::parentPath($get('parent_id')).'/')
@@ -240,14 +245,24 @@ class PageForm
                     // The site's first page is its homepage, so it starts published (when the
                     // person may publish); later pages start as drafts.
                     ->default(fn (): PageStatus => ! Page::othersExist() && auth()->user()->can('publish', Page::class) ? PageStatus::Published : PageStatus::Draft)
-                    ->disableOptionWhen(fn (string $value, ?Page $record): bool => ($value === PageStatus::Published->value
+                    ->disableOptionWhen(fn (string $value, ?Page $record): bool => $value === PageStatus::Published->value
                         && ! auth()->user()->can('publish', $record ?? Page::class))
-                        // The homepage stays live; make another page the homepage first.
-                        || ($value !== PageStatus::Published->value && (bool) $record?->getOriginal('is_homepage')))
                     ->required()
                     ->live()
                     ->grouped()
                     ->extraAttributes(['class' => 'cms-toggle-buttons-full']),
+                // The homepage going back to review or draft (or to a later date): what visitors see.
+                Callout::make(__('The homepage won’t be live'))
+                    ->description(fn (?Page $record): ?string => $record ? PageResource::withoutHomepage($record) : null)
+                    ->icon('phosphor-warning')
+                    ->warning()
+                    ->visible(function (?Page $record, Get $get): bool {
+                        $status = $get('status');
+                        $status = $status instanceof PageStatus ? $status : PageStatus::tryFrom((string) $status);
+                        $publishedAt = $get('published_at');
+
+                        return (bool) $record?->getOriginal('is_homepage') && ($status !== PageStatus::Published || ($publishedAt && now()->lt($publishedAt)));
+                    }),
                 Callout::make(__('You can send pages for review. An editor publishes them.'))
                     ->info()
                     ->visible(fn (?Page $record): bool => ! auth()->user()->can('publish', $record ?? Page::class)),
@@ -280,8 +295,9 @@ class PageForm
                             : __('Serve this page at :url.', ['url' => CurrentSite::url(ContentLocale::prefix() ?: '/')]);
                     })
                     ->rule(fn (Get $get, ?Page $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get, $record): void {
-                        // The site's only page may be its homepage before it is live.
-                        if (! Page::othersExist($record?->getKey())) {
+                        // The site's only page may be its homepage before it is live, and the
+                        // homepage may go back to draft or review (the form warns what that means).
+                        if (! Page::othersExist($record?->getKey()) || $record?->getOriginal('is_homepage')) {
                             return;
                         }
 
@@ -293,7 +309,78 @@ class PageForm
                             $fail(__('The homepage must be live. Set the status to Published (with no future date) to use this page as the homepage.'));
                         }
                     }),
+                ...static::passwordFields(),
             ]);
+    }
+
+    /**
+     * "Password protected": switching it on asks for the password in a dialog. The new one
+     * waits in a hidden field until the page is saved, hashed then (the model's cast); the
+     * stored hash never reaches the browser. Switching it off removes the password on save.
+     *
+     * @return array<int, Toggle|Hidden>
+     */
+    protected static function passwordFields(): array
+    {
+        return [
+            Toggle::make('password_protected')
+                ->label(__('Password protected'))
+                ->dehydrated(false)
+                ->formatStateUsing(fn (?Page $record): bool => (bool) $record?->isPasswordProtected())
+                ->live()
+                ->afterStateUpdated(function (bool $state, Set $set, Toggle $component): void {
+                    $set('password', null);
+
+                    if ($state) {
+                        $component->getLivewire()->mountAction('setPassword', context: ['schemaComponent' => $component->getKey()]);
+                    }
+                })
+                ->hintAction(
+                    Action::make('setPassword')
+                        ->label(fn (?Page $record, Get $get): string => $record?->isPasswordProtected() || filled($get('password')) ? __('Change') : __('Set'))
+                        ->icon('phosphor-key')
+                        ->visible(fn (Get $get): bool => (bool) $get('password_protected'))
+                        ->modalIcon('phosphor-lock-key')
+                        ->modalHeading(__('Password for this page'))
+                        ->modalDescription(__('Visitors type it to see the page. It’s stored encrypted, so it can’t be shown again.'))
+                        ->modalWidth('md')
+                        ->schema([
+                            TextInput::make('password')
+                                ->label(__('Password'))
+                                ->password()
+                                ->revealable()
+                                ->required()
+                                ->minLength(4)
+                                ->maxLength(255)
+                                ->autocomplete('new-password'),
+                            TextInput::make('password_confirmation')
+                                ->label(__('Repeat the password'))
+                                ->password()
+                                ->revealable()
+                                ->required()
+                                ->same('password')
+                                ->autocomplete('new-password'),
+                        ])
+                        ->modalSubmitActionLabel(__('Use this password'))
+                        ->action(fn (array $data, Set $set) => $set('password', $data['password'])),
+                )
+                ->helperText(fn (?Page $record, Get $get): string => match (true) {
+                    ! $get('password_protected') => __('Only visitors with the password can see the page.'),
+                    filled($get('password')) => __('The new password is used when you save.'),
+                    (bool) $record?->isPasswordProtected() => __('Visitors type the password to see the page. It’s left out of search and the sitemap.'),
+                    default => __('Set a password, or switch this off.'),
+                })
+                ->rule(fn (Get $get, ?Page $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get, $record): void {
+                    if ($value && blank($get('password')) && ! $record?->isPasswordProtected()) {
+                        $fail(__('Set a password, or switch this off.'));
+                    }
+                }),
+            // The new password, or null to remove it when the toggle is off.
+            Hidden::make('password')
+                ->formatStateUsing(fn (): ?string => null)
+                ->dehydrated(fn (Get $get, ?string $state): bool => filled($state) || ! $get('password_protected'))
+                ->dehydrateStateUsing(fn (Get $get, ?string $state): ?string => $get('password_protected') ? $state : null),
+        ];
     }
 
     /**
@@ -363,6 +450,16 @@ class PageForm
                     ->label(__('Last edited'))
                     ->state(fn (Page $record): string => $record->updated_at->diffForHumans())
                     ->belowContent(fn (?Page $record): ?HtmlString => UserBadge::html($record?->lastEditor)),
+                TextEntry::make('indexed_at')
+                    ->label(__('Last indexed'))
+                    ->state(fn (Page $record): ?string => $record->indexed_at?->diffForHumans())
+                    ->tooltip(fn (Page $record): ?string => $record->indexed_at?->isoFormat('LLL'))
+                    ->belowContent(fn (?Page $record): ?string => $record && ! $record->shouldBeSearchable() && ! $record->exclude_from_search ? __('Left out of search: it isn’t live, or is hidden from search engines.') : null)
+                    ->placeholder(__('Never'))
+                    ->visible(fn (): bool => (bool) auth()->user()?->can('manage-search Page')),
+                Toggle::make('exclude_from_search')
+                    ->label(__('Leave out of the search index'))
+                    ->helperText(__('The site’s search won’t find it, and it’s removed from the index if it’s there. Search engines still can.')),
                 TextEntry::make('revisions_count')
                     ->label(__('Revisions'))
                     ->state(fn (Page $record): int => $record->revisions()->count())

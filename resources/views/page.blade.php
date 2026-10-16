@@ -12,7 +12,7 @@
     @if (filled($description = $page->meta_description ?: $page->excerpt))
         <meta name="description" content="{{ $description }}">
     @endif
-    @if ($page->noindex || $preview || $embedded)
+    @if ($page->noindex || $page->isPasswordProtected() || $preview || $embedded)
         <meta name="robots" content="noindex">
     @endif
     @include('aurora::partials.brand-palette')

@@ -9,6 +9,7 @@ use Aurora\Filament\Concerns\BreadcrumbsToList;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
+use Aurora\Filament\Resources\Pages\Actions\SearchIndexAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Aurora\Support\ContentLocale;
@@ -198,6 +199,11 @@ class EditPage extends EditRecord
     {
         return [
             LanguageSwitcher::make()->visible(fn (): bool => count($this->pageLocales()) > 1),
+            Action::make('design')
+                ->label(__('Open visual editor'))
+                ->icon('phosphor-paint-brush')
+                ->color('gray')
+                ->url(fn (): string => PageResource::getUrl('design', ['record' => $this->record])),
             Action::make('preview')
                 ->label(__('Preview'))
                 ->icon('phosphor-eye')
@@ -227,18 +233,30 @@ class EditPage extends EditRecord
                 }),
             ActionGroup::make([
                 DuplicatePageAction::make(),
+                // Search: what it knows about the page, and a box to try searches with.
+                SearchIndexAction::make(),
+                // Search: the page's text worked out anew and sent to the index.
+                Action::make('reindex')
+                    ->label(__('Reindex'))
+                    ->icon('phosphor-arrows-clockwise')
+                    ->visible(fn (): bool => auth()->user()->can('manage-search Page'))
+                    ->action(function (): void {
+                        $this->record->reindex();
+                        Notification::make()->title(__('Reindexed for search'))->success()->send();
+                    }),
                 Action::make('unpublish')
                     ->label(__('Unpublish'))
                     ->icon('phosphor-eye-slash')
                     ->color('warning')
-                    ->visible(fn (): bool => $this->record->status === PageStatus::Published && ! $this->record->is_homepage && auth()->user()->can('publish', $this->record))
+                    ->visible(fn (): bool => $this->record->status === PageStatus::Published && auth()->user()->can('publish', $this->record))
                     ->requiresConfirmation()
+                    ->modalDescription(fn (): ?string => $this->record->is_homepage ? PageResource::withoutHomepage($this->record) : null)
                     ->action(function (): void {
                         $this->record->update(['status' => PageStatus::Draft]);
                         $this->refreshFormData(['status']);
                     }),
                 DeleteAction::make()
-                    ->hidden(fn (): bool => $this->record->is_homepage),
+                    ->modalDescription(fn (): ?string => $this->record->is_homepage ? PageResource::withoutHomepage($this->record) : null),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ])->icon('phosphor-dots-three-vertical')->color('gray')->button()->label(__('More')),

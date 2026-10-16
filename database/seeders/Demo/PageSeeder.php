@@ -800,9 +800,9 @@ PHP, 'php', 'config/aurora.php'),
     protected function blocksForCreatingBlocks(): array
     {
         return $this->doc('creating-blocks', [
-            B::rich('<p>A block is two files: a class that describes it (its fields, defaults and what the AI should know) and a Blade view that draws it. The same view renders on your website, in the visual editor and in previews.</p><h2>1. The class</h2>'),
+            B::rich('<p>A block is two files: a class that describes it (its fields, defaults and what the AI should know) and a Blade view that draws it. The same view renders on your website, in the visual editor and in previews. <code>php artisan aurora:make-block Quote</code> creates both, ready to fill in.</p><h2>1. The class</h2>'),
             B::code(<<<'PHP'
-namespace App\PageBlocks;
+namespace App\Blocks;
 
 use Aurora\Blocks\Block;
 use Aurora\Blocks\Editable;
@@ -843,7 +843,7 @@ class QuoteBlock extends Block
         ];
     }
 }
-PHP, 'php', 'app/PageBlocks/QuoteBlock.php'),
+PHP, 'php', 'app/Blocks/QuoteBlock.php'),
             B::rich('<h2>2. The view</h2><p>An anonymous component named after the block\'s type. Mark text editors can change on the canvas with <code>@editable</code>.</p>'),
             B::code(<<<'BLADE'
 @props(['data' => []])
@@ -853,7 +853,7 @@ PHP, 'php', 'app/PageBlocks/QuoteBlock.php'),
     <figcaption class="mt-4 text-zinc-500">{{ $data['author'] ?? '' }}</figcaption>
 </figure>
 BLADE, 'blade', 'resources/views/components/blocks/quote.blade.php'),
-            B::rich('<h2>3. Register it</h2><p>Add it to the list in your service provider. The order is the order of the block palette.</p>'),
+            B::rich('<h2>3. Its place in the palette</h2><p>Blocks in <code>app/Blocks</code> are found on their own: there is nothing to register. To choose where they sit in the block palette, list them in your service provider; the rest follow.</p>'),
             B::code(<<<'PHP'
 use Aurora\Blocks\Blocks;
 
@@ -992,15 +992,15 @@ class CodeSampleBlock extends Block
         ];
     }
 }
-PHP, 'php', 'app/PageBlocks/CodeSampleBlock.php'),
+PHP, 'php', 'nordlys/src/CodeSampleBlock.php'),
             B::rich('<h2>The view</h2><p>It always draws on a dark panel, whatever the band behind it, and copies the code exactly as written.</p>'),
             B::code(<<<'BLADE'
 <figure class="rounded-2xl bg-zinc-950 text-zinc-100">
     <figcaption>{{ $data['filename'] ?? '' }}</figcaption>
     <pre><code>{{ $data['code'] ?? '' }}</code></pre>
 </figure>
-BLADE, 'blade', 'resources/views/components/blocks/code-sample.blade.php'),
-            B::rich('<h2>Register it</h2><p>One line in <code>Blocks::register()</code>, and it is in the palette, the AI catalogue and the component library.</p>'),
+BLADE, 'blade', 'nordlys/resources/views/components/blocks/code-sample.blade.php'),
+            B::rich('<h2>Where it lives</h2><p>It comes with Aurora\'s block library (<code>aurora/nordlys</code>), which registers it: it is in the palette, the AI catalogue and the component library as soon as the package is installed.</p>'),
             B::buttons([B::button('Read: Creating blocks', $this->id('creating-blocks'), 'outline', icon: 'book-open')]),
         ]);
     }

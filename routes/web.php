@@ -6,6 +6,7 @@ use Aurora\Http\Controllers\BrandImageController;
 use Aurora\Http\Controllers\DemoLoginController;
 use Aurora\Http\Controllers\FormSubmissionController;
 use Aurora\Http\Controllers\SubmissionFileController;
+use Aurora\Http\Controllers\UnlockPageController;
 use Illuminate\Support\Facades\Route;
 use Spatie\LaravelPasskeys\Http\Controllers\GeneratePasskeyAuthenticationOptionsController;
 
@@ -15,6 +16,12 @@ Route::middleware('web')->group(function (): void {
     Route::post('forms/{form}', FormSubmissionController::class)
         ->middleware('throttle:10,1')
         ->name('forms.submit');
+
+    // The password form of a password-protected page.
+    Route::post('pages/{page}/unlock', UnlockPageController::class)
+        ->middleware('throttle:10,1')
+        ->whereUuid('page')
+        ->name('pages.unlock');
 
     // WebAuthn ceremonies for "Sign in with a passkey" (spatie/laravel-passkeys), signing in
     // through our controller: people with an authenticator app still enter its code.

@@ -31,6 +31,8 @@ class Permissions
                     'delete Page' => ['Delete pages', 'Move pages to the trash.'],
                     'restore Page' => ['Restore pages', 'Bring pages back from the trash.'],
                     'force-delete Page' => ['Delete permanently', 'Remove trashed pages for good.'],
+                    // No role has it by default: only Super Admins (who have every permission).
+                    'manage-search Page' => ['Manage search', 'See what search indexes for a page, and index pages again.'],
                 ],
             ],
             'Media' => [

@@ -48,9 +48,14 @@ class PagesTable
                     ->description(fn (Page $record): string => $record->path())
                     ->icon(fn (Page $record): ?string => $record->is_homepage ? 'phosphor-house-bold' : null)
                     ->iconColor('primary')
+                    // A key after the title of a password-protected page.
+                    ->html()
+                    ->formatStateUsing(fn (Page $record): HtmlString => new HtmlString(e($record->title).($record->isPasswordProtected()
+                        ? ' <span class="cms-page-title-key" title="'.e(__('Password protected')).'">'.svg('phosphor-key', 'size-4')->toHtml().'<span class="sr-only">'.e(__('Password protected')).'</span></span>'
+                        : '')))
                     ->wrap()
                     ->searchable(['title', 'slug'])
-                    ->sortable(),
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderByTitle($direction)),
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (Page $record): string => $record->isScheduled() ? __('Scheduled') : $record->status->getLabel())
@@ -157,7 +162,7 @@ class PagesTable
                         ])
                         ->action(fn (array $data, Page $record, $livewire) => $livewire->redirect(PageResource::getUrl('create', ['title' => $data['title'], 'parent' => $record->getKey()]), navigate: true)),
                     DuplicatePageAction::make(),
-                    DeleteAction::make()->hidden(fn (Page $record): bool => $record->is_homepage),
+                    DeleteAction::make()->modalDescription(fn (Page $record): ?string => $record->is_homepage ? PageResource::withoutHomepage($record) : null),
                     RestoreAction::make(),
                 ]),
             ])
@@ -183,11 +188,23 @@ class PagesTable
                         ->requiresConfirmation()
                         ->visible(fn (): bool => auth()->user()->can('publish', Page::class))
                         ->authorizeIndividualRecords('publish')
-                        // The homepage stays live (see PageObserver).
-                        ->action(fn (Collection $records) => $records->reject->is_homepage->each(fn (Page $page) => $page->update(['status' => PageStatus::Draft])))
+                        ->modalDescription(fn (BulkAction $action): ?string => static::homepageAmong($action))
+                        ->action(fn (Collection $records) => $records->each(fn (Page $page) => $page->update(['status' => PageStatus::Draft])))
                         ->deselectRecordsAfterCompletion(),
-                    // Page by page, as the policy allows; the homepage always stays (see PageObserver).
-                    DeleteBulkAction::make()->authorizeIndividualRecords('delete'),
+                    // Search: their text worked out anew and sent to the index.
+                    BulkAction::make('reindex')
+                        ->label(__('Reindex'))
+                        ->icon('phosphor-arrows-clockwise')
+                        ->visible(fn (): bool => auth()->user()->can('manage-search Page'))
+                        ->action(function (Collection $records): void {
+                            $records->each->reindex();
+                            Notification::make()->title(trans_choice(':count page reindexed for search|:count pages reindexed for search', $records->count()))->success()->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                    // Page by page, as the policy allows; warned when the homepage is among them.
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete')
+                        ->modalDescription(fn (BulkAction $action): ?string => static::homepageAmong($action)),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                 ]),
@@ -195,5 +212,15 @@ class PagesTable
             ->emptyStateIcon('phosphor-file-plus')
             ->emptyStateHeading(__('No pages yet'))
             ->emptyStateDescription(__('Create your first page and design it visually.'));
+    }
+
+    /**
+     * When the homepage is among the selected pages: what visitors then see.
+     */
+    protected static function homepageAmong(BulkAction $action): ?string
+    {
+        $homepage = $action->getSelectedRecords()->first(fn (Page $page): bool => $page->is_homepage);
+
+        return $homepage ? PageResource::withoutHomepage($homepage) : null;
     }
 }

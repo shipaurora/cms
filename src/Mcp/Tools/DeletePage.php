@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 
 #[Name('delete_page')]
-#[Description('Move a page to the trash. It can be restored by an editor in the admin panel. The homepage cannot be deleted.')]
+#[Description('Move a page to the trash. It can be restored by an editor in the admin panel. Deleting the homepage leaves the site\'s address showing "Page not found" until another page becomes the homepage.')]
 #[IsDestructive]
 class DeletePage extends CmsTool
 {

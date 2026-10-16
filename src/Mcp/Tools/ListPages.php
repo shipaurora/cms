@@ -36,7 +36,7 @@ class ListPages extends CmsTool
             ->when($request->get('search'), fn ($query, $search) => $query->where(fn ($query) => $query->where('title', 'like', "%{$search}%")->orWhere('slug', 'like', "%{$search}%")))
             ->when($request->get('status'), fn ($query, $status) => $query->where('status', $status))
             ->orderByDesc('is_homepage')
-            ->orderBy('title->'.ContentLocale::current())
+            ->orderByTitle()
             ->get();
 
         return Response::json([

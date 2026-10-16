@@ -4,6 +4,8 @@ namespace Aurora\Providers;
 
 use Aurora\Aurora;
 use Aurora\Blocks\Blocks;
+use Aurora\Support\Search\DatabaseEngine as SearchDatabaseEngine;
+use Laravel\Scout\EngineManager;
 use Aurora\Console\Commands\ExportTranslations;
 use Aurora\Console\Commands\ImportTranslations;
 use Aurora\Console\Commands\InstallCms;
@@ -51,7 +53,6 @@ use Filament\Infolists\Components\Entry;
 use Filament\Notifications\Livewire\Notifications;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
-use Filament\Support\Assets\Theme;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\VerticalAlignment;
 use Filament\Support\Facades\FilamentAsset;
@@ -132,6 +133,8 @@ class AuroraServiceProvider extends ServiceProvider
             $this->publishes([__DIR__.'/../../config/aurora.php' => config_path('aurora.php')], 'aurora-config');
             // aurora:make-block's templates, to shape new blocks after the site's own.
             $this->publishes([__DIR__.'/../../stubs' => base_path('stubs/aurora')], 'aurora-stubs');
+            // The website-facing views a site may want to make its own: the password page.
+            $this->publishes([__DIR__.'/../../resources/views/page-password.blade.php' => resource_path('views/vendor/aurora/page-password.blade.php')], 'aurora-views');
             $this->commands([InstallCms::class, MakeBlock::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class]);
         }
 
@@ -141,9 +144,9 @@ class AuroraServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
-        // Aurora's prebuilt admin assets (npm run build:aurora), published by filament:assets.
+        // Aurora's prebuilt admin scripts (npm run build:aurora), published by filament:assets.
+        // Its admin theme comes from aurora/aurora.
         FilamentAsset::register([
-            Theme::make('aurora', Aurora::path('resources/dist/theme.css')),
             // The image editor's styles (Cropper.js), which come with the scripts.
             Css::make('image-editor', Aurora::path('resources/dist/aurora.css')),
             Js::make('aurora', Aurora::path('resources/dist/aurora.js'))->module()->loadedOnRequest(),
@@ -179,6 +182,9 @@ class AuroraServiceProvider extends ServiceProvider
 
         // Provider, model and API key come from Site settings, not .env.
         $this->app->booted(fn () => Copilot::applyConfig());
+
+        // Scout's database engine, with full-text search on MySQL (Aurora\Support\Search\DatabaseEngine).
+        $this->app->resolving(EngineManager::class, fn (EngineManager $engines) => $engines->extend('database', fn () => new SearchDatabaseEngine));
 
         // The site's blocks in aurora.block_path, after those it registers itself (whose order
         // in the palette they keep).
@@ -349,6 +355,14 @@ class AuroraServiceProvider extends ServiceProvider
             'auth.providers.users.model' => $isAuroras(config('auth.providers.users.model')) ? null : $user,
             'passkeys.models.authenticatable' => $isAuroras(config('passkeys.models.authenticatable')) ? null : $user,
         ]));
+
+        // Search works out of the box: the database (full-text on MySQL), unless a search
+        // service is set up. Scout's own default, "collection", reads every page into PHP.
+        $driver = config('scout.driver');
+
+        if (blank($driver) || $driver === 'collection' || ($driver === 'algolia' && blank(config('scout.algolia.id')))) {
+            config(['scout.driver' => 'database']);
+        }
 
         config([
             'passkeys.models.passkey' => Passkey::class,

@@ -48,6 +48,8 @@ class PagePresenter
                 'meta_description' => $page->meta_description,
                 'og_image' => $page->og_image,
                 'noindex' => $page->noindex,
+                'exclude_from_search' => $page->exclude_from_search,
+                'password_protected' => $page->isPasswordProtected(),
             ],
             'links' => static::links($page),
             'outline' => static::outlineText(BlockOutline::for($page->blocks ?? [])),

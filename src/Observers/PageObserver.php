@@ -5,6 +5,7 @@ namespace Aurora\Observers;
 use Aurora\Enums\PageStatus;
 use Aurora\Models\AssetUsage;
 use Aurora\Models\Page;
+use Aurora\Support\PageSearch;
 use Aurora\Models\Redirect;
 use Aurora\Models\User;
 use Aurora\Support\AssetLibrary;
@@ -23,10 +24,19 @@ class PageObserver
     /**
      * Attributes whose change is worth a revision. Status changes are not content.
      */
-    protected const TRACKED = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout', 'meta_title', 'meta_description', 'og_image', 'noindex'];
+    protected const TRACKED = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
 
     public function saving(Page $page): void
     {
+        // What it says, for search: kept with the page, so the database can search it.
+        $indexed = PageSearch::indexed($page);
+        $page->search_text = $indexed['search_text'];
+
+        // A save that writes the page indexes it again (Scout, once saved); left out, it isn't.
+        if ($page->isDirty()) {
+            $page->indexed_at = $indexed['indexed_at'];
+        }
+
         // Publishing is its own permission, checked here so no surface can skip it:
         // not the form, not a bulk action, not an AI assistant over MCP.
         // Taking a page live counts however it happens: its status, or the date a published
@@ -86,15 +96,15 @@ class PageObserver
     }
 
     /**
-     * The site always has exactly one homepage, and it is always live.
-     *
-     * Turning the flag off would leave `/` to a fallback, and pointing it at a draft would
-     * show visitors whatever the fallback finds: both look like the switch did nothing.
-     * Checked here so the page form and MCP follow the same rule.
+     * Which page is the homepage changes by choosing another one, and a page becomes it only
+     * when it is live: turning the flag off, or pointing it at a draft, would leave `/` to a
+     * fallback and look like the switch did nothing. The homepage itself may go back to
+     * review or draft, or to the trash (the admin warns what visitors then see). Checked here
+     * so the page form and MCP follow the same rule.
      */
     protected function guardHomepage(Page $page): void
     {
-        if (! $page->isDirty('is_homepage') && ! ($page->is_homepage && $page->isDirty('status', 'published_at'))) {
+        if (! $page->isDirty('is_homepage')) {
             return;
         }
 
@@ -113,18 +123,20 @@ class PageObserver
     }
 
     /**
-     * The homepage never goes to the trash, whoever asks (a Super Admin skips the policy):
-     * a bulk delete leaves it out. Make another page the homepage first.
+     * Back from the trash after another page became the homepage: an ordinary page again.
      */
-    public function deleting(Page $page): ?bool
+    public function restored(Page $page): void
     {
-        return $page->is_homepage && ! $page->isForceDeleting() ? false : null;
+        if ($page->is_homepage && Page::query()->homepage()->whereKeyNot($page->getKey())->exists()) {
+            $page->forceFill(['is_homepage' => false])->saveQuietly();
+        }
     }
 
     public function saved(Page $page): void
     {
         if ($page->is_homepage && $page->wasChanged('is_homepage') || ($page->wasRecentlyCreated && $page->is_homepage)) {
-            Page::query()->whereKeyNot($page->getKey())->where('is_homepage', true)->update(['is_homepage' => false]);
+            // Also one in the trash, so restoring it doesn't bring back a second homepage.
+            Page::withTrashed()->whereKeyNot($page->getKey())->where('is_homepage', true)->update(['is_homepage' => false]);
         }
 
         // A redirect from one of the page's own addresses would loop.
@@ -203,6 +215,7 @@ class PageObserver
             'slug' => 'address',
             'excerpt' => 'summary',
             'meta_title', 'meta_description', 'og_image', 'noindex' => 'SEO',
+            'exclude_from_search' => 'search',
             default => str_replace('_', ' ', $attribute),
         }, $changed);
 

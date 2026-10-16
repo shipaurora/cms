@@ -48,7 +48,7 @@ class PagePolicy
 
     public function delete(User $user, Page $page): bool
     {
-        return ! $page->is_homepage && $user->can('delete Page') && $this->update($user, $page);
+        return $user->can('delete Page') && $this->update($user, $page);
     }
 
     public function deleteAny(User $user): bool

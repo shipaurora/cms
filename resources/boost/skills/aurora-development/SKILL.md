@@ -47,16 +47,24 @@ Read them in templates with `Aurora\Models\Setting::get('footer_note')`.
 
 ## The admin theme
 
-Aurora's admin comes with a prebuilt theme; run `php artisan filament:assets` after installing or updating Aurora. To show your blocks styled in the visual editor, build your own admin theme on Aurora's and name its Vite entry in `config('aurora.theme')`:
+Aurora's admin comes with a prebuilt theme (`aurora/aurora`); run `php artisan filament:assets` after installing or updating Aurora. A different look for the CMS is a theme package of its own: it registers a Filament theme (`FilamentAsset::register([Theme::make('acme', …)])`), and `config('aurora.theme')` names its id. To show your blocks styled in the visual editor, build your own admin theme on Aurora's (its styles, and the CMS's markup for Tailwind) and name its Vite entry in `config('aurora.theme')`:
 
 ```css
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 @plugin '@tailwindcss/typography';
 @import '../../site/tokens.css'; /* your design tokens */
-@import '../../../../vendor/aurora/cms/resources/css/filament/admin/index.css';
-@source '../../../../app/PageBlocks/**/*';
+@import '../../../../vendor/aurora/aurora/resources/css/index.css';
+@import '../../../../vendor/aurora/cms/resources/css/sources.css';
+@source '../../../../app/Blocks/**/*';
 @source '../../../../resources/views/components/blocks/**/*';
+/* With Aurora's block library (aurora/nordlys): */
+@source '../../../../vendor/aurora/nordlys/src/**/*';
+@source '../../../../vendor/aurora/nordlys/resources/views/**/*';
 ```
+
+## Search
+
+Pages are searchable with Laravel Scout, out of the box: on save, Aurora keeps what a live page says (titles, excerpt, meta description and its blocks' text, in every language) for the index. Search the current site's live pages with `Aurora\Models\Page::searchSite($terms)` (a Scout builder: `->paginate(10)`, `->get()`). By default it uses the database, with full-text search on MySQL; set `SCOUT_DRIVER` (meilisearch, typesense, algolia) for a search service, then `php artisan scout:import "Aurora\Models\Page"`. Each page's "Reindex" action (and the bulk one) indexes pages again.
 
 ## Configuration and commands
 

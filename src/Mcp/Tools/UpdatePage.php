@@ -39,6 +39,7 @@ class UpdatePage extends CmsTool
             'meta_description' => $schema->string(),
             'og_image' => $schema->string()->description('Share image path, see list_images.'),
             'noindex' => $schema->boolean(),
+            'exclude_from_search' => $schema->boolean()->description('Leave the page out of the site’s own search index.'),
         ];
     }
 
@@ -54,7 +55,7 @@ class UpdatePage extends CmsTool
             'published_at' => ['sometimes', 'nullable', 'date'],
         ]);
 
-        $attributes = Arr::only($request->all(), ['title', 'slug', 'excerpt', 'layout', 'status', 'published_at', 'is_homepage', 'meta_title', 'meta_description', 'og_image', 'noindex']);
+        $attributes = Arr::only($request->all(), ['title', 'slug', 'excerpt', 'layout', 'status', 'published_at', 'is_homepage', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search']);
 
         if ($request->has('parent')) {
             $attributes['parent_id'] = filled($request->get('parent')) ? $this->findPage($request, 'parent')->getKey() : null;
