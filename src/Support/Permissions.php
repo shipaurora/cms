@@ -86,6 +86,7 @@ class Permissions
                 'description' => 'Site-wide settings, the AI assistant and external AI apps.',
                 'permissions' => [
                     'manage-settings' => ['Site settings', 'Change the site name, brand colours, header and footer.'],
+                    'view-any Activity' => ['See the activity log', 'See who changed what across the CMS. Not granted to any role by default.'],
                     'manage-sites' => ['Manage sites', 'Add sites, set their domains and languages, and choose who works on each. Sees every site.'],
                     'manage-languages' => ['Manage languages', 'Add languages, choose the website\'s language and switch languages on or off.'],
                     'translate' => ['Translate labels', 'Edit and translate every label in the website and the admin panel.'],
