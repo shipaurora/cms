@@ -4,6 +4,7 @@ namespace Aurora\Support;
 
 use Aurora\Models\Form;
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -108,7 +109,53 @@ class FormFields
                 ToggleButtons::make('width')->options(['full' => 'Full', 'half' => 'Half'])->default('full')->inline()->grouped(),
             ]),
             Toggle::make('required')->label('Required')->default($type === 'consent'),
+            // Shown only when another field has a given answer (Shared with the website's form
+            // block and FormFields::visible()).
+            Fieldset::make(__('Show only when'))
+                ->columnSpanFull()
+                ->columns(2)
+                ->schema([
+                    Select::make('show_if_field')
+                        ->label(__('This field'))
+                        ->placeholder(__('Always show'))
+                        ->options(fn (Get $get, $livewire): array => collect($livewire->data['fields'] ?? [])
+                            ->map(fn (array $field): array => (array) ($field['data'] ?? []))
+                            ->filter(fn (array $data): bool => filled($data['name'] ?? null) && ($data['name'] ?? null) !== $get('name'))
+                            ->mapWithKeys(fn (array $data): array => [$data['name'] => $data['label'] ?? $data['name']])
+                            ->all())
+                        ->live(),
+                    TextInput::make('show_if_value')
+                        ->label(__('Is'))
+                        ->placeholder(__('e.g. Yes'))
+                        ->helperText(__('The answer, as it’s written in that field’s choices. A consent box: Yes.'))
+                        ->required(fn (Get $get): bool => filled($get('show_if_field')))
+                        ->visible(fn (Get $get): bool => filled($get('show_if_field'))),
+                ]),
         ];
+    }
+
+    /**
+     * The fields showing for these answers: a field shown only when another has a given
+     * answer is left out otherwise (not asked for, not checked, not kept).
+     *
+     * @param  array<int, array{type: string, name: string, label: string, required: bool, data: array<string, mixed>}>  $fields
+     * @param  array<string, mixed>  $input
+     * @return array<int, array{type: string, name: string, label: string, required: bool, data: array<string, mixed>}>
+     */
+    public static function visible(array $fields, array $input): array
+    {
+        return array_values(array_filter($fields, function (array $field) use ($input): bool {
+            $on = $field['data']['show_if_field'] ?? null;
+
+            if (blank($on)) {
+                return true;
+            }
+
+            $answer = $input[$on] ?? null;
+            $answers = is_array($answer) ? $answer : [$answer === '1' ? 'Yes' : $answer];
+
+            return in_array((string) ($field['data']['show_if_value'] ?? ''), array_map('strval', array_filter($answers, 'is_scalar')), true);
+        }));
     }
 
     /**
