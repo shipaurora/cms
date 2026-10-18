@@ -106,7 +106,19 @@ class Copilot
 
     public static function customUrl(): ?string
     {
-        return filled($url = Setting::get('copilot.custom_url')) ? rtrim(trim($url), '/') : null;
+        $url = filled($url = Setting::get('copilot.custom_url')) ? rtrim(trim($url), '/') : null;
+
+        if ($url === null) {
+            return null;
+        }
+
+        // The Ollama driver calls /api/chat on the server itself. An address that
+        // already ends in /api (or /v1) would be asked for /api/api/chat, which is a 404.
+        if (self::customApi() === 'ollama') {
+            $url = preg_replace('#/(api|v1)$#', '', $url) ?? $url;
+        }
+
+        return $url;
     }
 
     /**

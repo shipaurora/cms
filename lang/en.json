@@ -834,6 +834,7 @@
     "The assistant is on": "The assistant is on",
     "The assistant switches off until a new key is saved.": "The assistant switches off until a new key is saved.",
     "The base URL, usually ending in /v1.": "The base URL, usually ending in /v1.",
+    "The server’s address only, such as http://localhost:11434. Leave off /api: the assistant adds it.": "The server’s address only, such as http://localhost:11434. Leave off /api: the assistant adds it.",
     "The big opening statement: headline, intro and calls to action.": "The big opening statement: headline, intro and calls to action.",
     "The button at the right of the main navigation.": "The button at the right of the main navigation.",
     "The homepage must be live. Set the status to Published (with no future date) to use this page as the homepage.": "The homepage must be live. Set the status to Published (with no future date) to use this page as the homepage.",
@@ -1788,5 +1789,13 @@
     "Screenshot removed": "Screenshot removed",
     "Upload block preview": "Upload block preview",
     "Reset block preview": "Reset block preview",
-    "Screenshot": "Screenshot"
+    "Screenshot": "Screenshot",
+    "Attach files": "Attach files",
+    "Attach a file, or drop it on the chat. Images, PDFs, and text or CSV files.": "Attach a file, or drop it on the chat. Images, PDFs, and text or CSV files.",
+    "Drop files to attach them": "Drop files to attach them",
+    "Remove file": "Remove file",
+    "Use the attached files.": "Use the attached files.",
+    "You can attach up to 4 files.": "You can attach up to 4 files.",
+    "You can’t add files.": "You can’t add files.",
+    "Attach an image, a PDF, or a text or CSV file.": "Attach an image, a PDF, or a text or CSV file."
 }

@@ -1,6 +1,7 @@
 <?php
 
 use Aurora\Http\Controllers\AssetFileController;
+use Aurora\Http\Controllers\AssistantFileController;
 use Aurora\Http\Controllers\AuthenticateWithPasskeyController;
 use Aurora\Http\Controllers\BrandImageController;
 use Aurora\Http\Controllers\DemoLoginController;
@@ -35,6 +36,12 @@ Route::middleware('web')->group(function (): void {
 
     // A media library file's lasting address: links to it survive the file being replaced.
     Route::get('files/{asset}', AssetFileController::class)->whereUuid('asset')->name('files.show');
+
+    // A picture attached in the assistant, before it is saved into the media library.
+    Route::get('assistant-files/{file}', AssistantFileController::class)
+        ->middleware('auth')
+        ->where('file', 'tmp_[0-9a-hjkmnp-tv-z]{26}')
+        ->name('assistant-files.show');
 
     if (config('aurora.demo_login')) {
         Route::get('_demo/login/{email}', DemoLoginController::class)->name('demo.login');

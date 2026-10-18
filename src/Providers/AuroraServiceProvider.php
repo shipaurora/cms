@@ -14,6 +14,7 @@ use Aurora\Filament\Forms\Components\RichTextLinkAction;
 use Aurora\Filament\Forms\Components\WriteWithAi;
 use Aurora\Filament\Resources\Roles\RoleResource;
 use Aurora\Http\Middleware\ResolveSite;
+use Aurora\Http\Middleware\SetCopilotSite;
 use Aurora\Http\Middleware\UseSiteLocale;
 use Aurora\Livewire\AssistantChat;
 use Aurora\Livewire\ManagePasskeys;
@@ -27,6 +28,7 @@ use Aurora\Models\Permission;
 use Aurora\Models\Role;
 use Aurora\Models\User;
 use Aurora\Support\AdminIcons;
+use Aurora\Support\AssistantAgent;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\Copilot;
 use Aurora\Support\CopilotContext;
@@ -39,6 +41,7 @@ use Aurora\Support\SiteIcon;
 use Aurora\Support\TranslationLoader;
 use BladeUI\Icons\Factory as IconFactory;
 use EslamRedaDiv\FilamentCopilot\Agent\ContextBuilder;
+use EslamRedaDiv\FilamentCopilot\Agent\CopilotAgent;
 use EslamRedaDiv\FilamentCopilot\Services\ToolRegistry;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -68,6 +71,7 @@ use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
@@ -100,6 +104,7 @@ class AuroraServiceProvider extends ServiceProvider
         // The in-panel copilot: CMS-specific instructions and screen awareness, and only the
         // CMS tools plus memory (see Aurora\Support\CopilotContext and CopilotToolRegistry).
         $this->app->bind(ContextBuilder::class, CopilotContext::class);
+        $this->app->bind(CopilotAgent::class, AssistantAgent::class);
 
         // The admin panel draws Phosphor icons wherever Heroicons are asked for; the website
         // keeps the real Heroicons as "hero-" icons (see Aurora\Support\AdminIcons and SiteIcon).
@@ -185,6 +190,20 @@ class AuroraServiceProvider extends ServiceProvider
 
         // Provider, model and API key come from Site settings, not .env.
         $this->app->booted(fn () => Copilot::applyConfig());
+
+        // The copilot package loads its routes from a booted callback, after this provider's,
+        // so the stream route does not exist yet to attach middleware to. Add it when the
+        // route is matched, before that middleware runs: the stream sits outside the admin's
+        // tenant routes and otherwise saves the chat with no site.
+        Event::listen(RouteMatched::class, function (RouteMatched $event): void {
+            if ($event->route->getName() !== 'filament-copilot.stream') {
+                return;
+            }
+
+            if (! in_array(SetCopilotSite::class, $event->route->middleware(), true)) {
+                $event->route->middleware(SetCopilotSite::class);
+            }
+        });
 
         // Scout's database engine, with full-text search on MySQL (Aurora\Support\Search\DatabaseEngine).
         $this->app->resolving(EngineManager::class, fn (EngineManager $engines) => $engines->extend('database', fn () => new SearchDatabaseEngine));

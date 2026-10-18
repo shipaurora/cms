@@ -7,6 +7,7 @@ use Aurora\Mcp\Servers\CmsServer;
 use Aurora\Models\Asset;
 use Aurora\Models\Locale;
 use Aurora\Models\Page;
+use CarlJanzell\FilamentPageBuilder\Support\BlockTree;
 use EslamRedaDiv\FilamentCopilot\Agent\ContextBuilder;
 use Filament\Facades\Filament;
 use Filament\Pages\Page as FilamentPage;
@@ -31,9 +32,11 @@ class CopilotContext extends ContextBuilder
 
     public function build(): string
     {
+        // The open page comes first. A small local model treats a long guide as the
+        // whole task and then asks which page, even when the answer is further down.
         return implode("\n\n", array_filter([
-            parent::build(),
             $this->buildScreenContext(),
+            parent::build(),
         ]));
     }
 
@@ -48,16 +51,17 @@ class CopilotContext extends ContextBuilder
             $this->languageContext(),
             Str::replace('call `whoami` first to see what you may do', 'call `whoami` if you are unsure what you may do', CmsServer::INSTRUCTIONS),
             "## Links\nWhen you point to something, link it with a short title as Markdown, e.g. [Open “About us” in the visual editor](https://…). Never paste a bare URL: links are shown as buttons, and the title is their label.",
+            'When the user\'s message lists attached files with ids, those files are not in the media library yet. Pass the id in the block\'s file or image field and it is saved into the library then. Do not ask them to upload the file, and do not call `upload_image_from_url` for it.',
             filled($guide) ? "## Content guide\n".$guide : null,
         ]));
     }
 
     /**
-     * The language the person reads the admin panel in (their profile, or the default).
+     * The language the person reads the admin panel in (their profile, or the site's).
      */
     protected function languageContext(): string
     {
-        $code = Locale::isActiveCode($this->user->locale ?? null) ? $this->user->locale : Locale::defaultCode();
+        $code = Locale::isActiveCode($this->user->locale ?? null) ? $this->user->locale : ContentLocale::default();
         $name = Locale::options()[$code] ?? $code;
 
         return "## Language\n{$this->user->name} reads the admin panel in {$name} ({$code}). Reply in {$name}, unless they write to you in another language: then reply in that one.";
@@ -185,19 +189,62 @@ class CopilotContext extends ContextBuilder
             default => 'open',
         };
 
+        $blocks = $page->blocks ?? [];
+
         $lines = [
             "The user has the page “{$page->title}” {$where}.",
-            "- id: {$page->id}",
+            "Page id: {$page->id}. This is the page they mean. Do not ask which page, and do not ask them to confirm it. Pass this id as `page` to every page tool.",
             "- address: {$page->path()}",
             '- status: '.$page->status->value.($page->is_homepage ? ' (the homepage)' : ''),
-            '',
-            'When the user says “this page”, “here”, “the heading”, “the button” and so on, they mean this page: do not ask which page. Its blocks right now (id, type and a hint of the content):',
-            ...static::outline(BlockOutline::for($page->blocks ?? [])),
-            '',
-            'Call `get_page` for the full data of a block before changing it.',
         ];
 
+        if ($headline = static::mainHeadline($blocks)) {
+            $lines[] = "The main headline is block {$headline['id']}, field `{$headline['field']}`: “{$headline['text']}”. When they say “the headline” or “the heading” without naming another block, change this field — including when they ask to improve it. Do not ask which headline.";
+        }
+
+        $lines[] = '';
+        $lines[] = 'Its blocks right now (id, type and a hint of the content):';
+        array_push($lines, ...static::outline(BlockOutline::for($blocks)));
+        $lines[] = '';
+        $lines[] = 'Call `get_page` for the full data of a block before changing it.';
+
         return implode("\n", $lines);
+    }
+
+    /**
+     * The headline a person means when they say "the headline" on this page: the hero's, or the first heading.
+     *
+     * @param  array<int, array<string, mixed>>  $blocks
+     * @return array{id: string, field: string, text: string}|null
+     */
+    protected static function mainHeadline(array $blocks): ?array
+    {
+        $fallback = null;
+
+        foreach (BlockTree::hydrate($blocks) as $block) {
+            $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+            $headline = is_string($data['headline'] ?? null) ? trim($data['headline']) : '';
+            $heading = ($block['type'] ?? '') === 'heading' && is_string($data['text'] ?? null) ? trim($data['text']) : '';
+            $text = $headline !== '' ? $headline : $heading;
+
+            if ($text === '') {
+                continue;
+            }
+
+            $match = [
+                'id' => (string) $block['id'],
+                'field' => $headline !== '' ? 'headline' : 'text',
+                'text' => Str::limit($text, 120),
+            ];
+
+            if (($block['type'] ?? '') === 'hero' && $headline !== '') {
+                return $match;
+            }
+
+            $fallback ??= $match;
+        }
+
+        return $fallback;
     }
 
     /**

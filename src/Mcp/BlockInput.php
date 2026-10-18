@@ -2,6 +2,8 @@
 
 namespace Aurora\Mcp;
 
+use Aurora\Models\Asset;
+use Aurora\Support\AssistantFiles;
 use Aurora\Support\BlockCatalogue;
 use CarlJanzell\FilamentPageBuilder\BlockRegistries;
 use CarlJanzell\FilamentPageBuilder\Support\BlockStyle;
@@ -40,18 +42,67 @@ class BlockInput
      */
     public static function tree(array $nodes, string $path = 'blocks'): array
     {
+        $created = [];
+
+        try {
+            $nodes = static::claimNodes(array_values($nodes), $created);
+        } catch (InvalidArgumentException $exception) {
+            AssistantFiles::discard($created);
+
+            throw $exception;
+        }
+
         $errors = [];
-        $nodes = array_values($nodes);
 
         foreach ($nodes as $index => $node) {
             array_push($errors, ...static::errorsFor($node, "{$path}[{$index}]"));
         }
 
         if ($errors !== []) {
+            AssistantFiles::discard($created);
+
             throw new InvalidArgumentException("The blocks were not saved:\n- ".implode("\n- ", array_slice($errors, 0, 15)));
         }
 
         return array_map(fn ($node) => static::clean($node), $nodes);
+    }
+
+    /**
+     * Swap attached-file ids in block data for media library ids, before validation.
+     *
+     * @param  array<int, mixed>  $nodes
+     * @param  array<int, Asset>  $created
+     * @return array<int, mixed>
+     */
+    protected static function claimNodes(array $nodes, array &$created): array
+    {
+        foreach ($nodes as $index => $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+
+            if (array_key_exists('data', $node)) {
+                $data = static::decode($node['data']);
+                $node['data'] = is_array($data) ? AssistantFiles::claimWithin($data, $created) : $data;
+            }
+
+            if (array_key_exists('children', $node)) {
+                $children = static::decode($node['children']);
+
+                if (is_array($children) && $children !== []) {
+                    $node['children'] = array_is_list($children)
+                        ? static::claimNodes($children, $created)
+                        : array_map(
+                            fn (mixed $list): mixed => is_array($list) ? static::claimNodes(array_values($list), $created) : $list,
+                            $children,
+                        );
+                }
+            }
+
+            $nodes[$index] = $node;
+        }
+
+        return $nodes;
     }
 
     /**

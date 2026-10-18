@@ -5,6 +5,7 @@
     conversationLoading: false,
     streamingEnabled: true,
     isStreaming: false,
+    droppingImages: false,
     streamedContent: '',
     pendingComplete: false,
     pendingApprovals: [],
@@ -175,8 +176,9 @@
                     'Accept': 'text/event-stream',
                     'X-CSRF-TOKEN': params.csrfToken,
                 },
-                body: JSON.stringify({
+                    body: JSON.stringify({
                     message: params.message,
+                    images: params.images || undefined,
                     conversation_id: params.conversationId,
                     panel_id: params.panelId,
                     decisions: params.decisions || undefined,
@@ -214,6 +216,11 @@
                             switch (currentEvent) {
                                 case 'conversation':
                                     newConversationId = data.id;
+                                    // The editor may reload before this reply finishes. Remember the
+                                    // conversation now, so the reloaded chat still has it.
+                                    if (! $wire.conversationId && data.id) {
+                                        $wire.rememberConversation(data.id);
+                                    }
                                     break;
                                 case 'chunk':
                                     this.streamedContent += data.text;
@@ -283,12 +290,17 @@
                 this.isStreaming = false;
 
                 // Keep streamedContent visible — overlay stays on screen until the Livewire morph replaces it.
-                $wire.dispatchSelf('copilot-stream-complete', {
-                    content: this.streamedContent,
-                    newConversationId: newConversationId,
-                    toolCalls: this.toolCalls.length ? JSON.parse(JSON.stringify(this.toolCalls)) : null,
-                    messageId: assistantMessageId,
-                });
+                // Wait until the conversation is stored, then tell the editor it may reload.
+                try {
+                    await $wire.handleStreamComplete(
+                        this.streamedContent,
+                        newConversationId,
+                        this.toolCalls.length ? JSON.parse(JSON.stringify(this.toolCalls)) : null,
+                        assistantMessageId,
+                    );
+                } finally {
+                    window.dispatchEvent(new CustomEvent('cms-copilot-persisted'));
+                }
 
                 // Execute pending navigation after stream completes
                 if (this._pendingNavigateUrl) {
@@ -341,6 +353,34 @@
             streamUrl: @js(route('filament-copilot.stream')),
             csrfToken: @js(csrf_token()),
         });
+    },
+    // A drag only counts when it is carrying files. Text and links pass through.
+    draggedFiles(event) {
+        return Array.from(event.dataTransfer?.types || []).includes('Files');
+    },
+    dragImagesOver(event) {
+        if (! this.draggedFiles(event)) return;
+        event.preventDefault();
+        if (this.isStreaming || this.$wire.isLoading) {
+            event.dataTransfer.dropEffect = 'none';
+            return;
+        }
+        event.dataTransfer.dropEffect = 'copy';
+        this.droppingImages = true;
+    },
+    dragImagesLeave(event) {
+        if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget)) return;
+        this.droppingImages = false;
+    },
+    dropImages(event) {
+        if (! this.draggedFiles(event)) return;
+        event.preventDefault();
+        this.droppingImages = false;
+        if (this.isStreaming || this.$wire.isLoading) return;
+        const input = this.$refs.imageUploads;
+        if (! input || input.disabled || event.dataTransfer.files.length === 0) return;
+        input.files = event.dataTransfer.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 }" x-cloak @copilot-open.window="open = true" @copilot-close-sidebar.window="sidebarOpen = false"
     @copilot-load-conversation.window="sidebarOpen = false" @keydown.escape.window="if(open) open = false">
@@ -377,8 +417,20 @@
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-4 scale-95"
         x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100" x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+        x-on:dragenter="dragImagesOver($event)" x-on:dragover="dragImagesOver($event)"
+        x-on:dragleave="dragImagesLeave($event)" x-on:drop="dropImages($event)"
         class="copilot-chat-widget fixed bottom-24 end-5 z-50 flex origin-bottom-right flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-950/10 dark:bg-gray-900 dark:ring-white/10"
         style="width: min(26rem, calc(100vw - 2.5rem)); height: min(40rem, calc(100dvh - 8rem));">
+
+        <div x-show="droppingImages" x-cloak x-transition.opacity.duration.150ms
+            class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-white/80 backdrop-blur-sm dark:bg-gray-900/80">
+            <div class="flex flex-col items-center gap-3 px-6 text-center">
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 dark:bg-primary-900/20">
+                    <x-filament::icon icon="phosphor-paperclip" class="h-8 w-8 text-primary-400 dark:text-primary-500" />
+                </div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-300">{{ __('Drop files to attach them') }}</p>
+            </div>
+        </div>
 
         {{-- Header (sticky, inside the chat bubble) --}}
         <div
@@ -609,24 +661,69 @@
         <div
             class="sticky bottom-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 shrink-0 px-6 py-4">
             <form wire:submit="sendMessage"
-                class="flex items-center gap-2 rounded-xl ring-1 ring-gray-300 dark:ring-gray-600 bg-white dark:bg-gray-800 p-2 focus-within:ring-2 focus-within:ring-primary-500 transition-shadow">
-                <textarea wire:model="message" @keydown="handleKeydown($event)" @input="autoResize($event.target)" rows="1"
-                    class="copilot-textarea flex-1 resize-none bg-transparent text-sm text-gray-900 dark:text-white py-1 px-2 border-none shadow-none outline-none placeholder-gray-400 dark:placeholder-gray-500"
-                    style="max-height: 120px" placeholder="{{ __('filament-copilot::filament-copilot.input_placeholder') }}"
-                    :disabled="$wire.isLoading || isStreaming"></textarea>
-                <button type="submit"
-                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                    :disabled="$wire.isLoading || isStreaming">
-                    <x-filament::icon icon="phosphor-paper-plane-right-fill" class="w-4 h-4" x-show="!isStreaming && !$wire.isLoading" />
-                    <svg x-show="isStreaming || $wire.isLoading" x-cloak class="animate-spin w-4 h-4"
-                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                            stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                    </svg>
-                </button>
+                class="rounded-xl ring-1 ring-gray-300 dark:ring-gray-600 bg-white dark:bg-gray-800 p-2 focus-within:ring-2 focus-within:ring-primary-500 transition-shadow">
+                @if ($attachedImages !== [])
+                    <div class="mb-2 flex flex-wrap gap-2 px-1">
+                        @foreach ($attachedImages as $image)
+                            <div class="relative">
+                                @if (filled($image['url'] ?? null))
+                                    <img src="{{ $image['url'] }}" alt="{{ $image['title'] }}"
+                                        class="rounded-lg object-cover ring-1 ring-gray-950/10 dark:ring-white/10"
+                                        style="width: 3.5rem; height: 3.5rem">
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-gray-50 px-2 text-xs text-gray-700 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-200 dark:ring-white/10"
+                                        style="height: 3.5rem; max-width: 12rem">
+                                        <x-filament::icon :icon="$image['icon'] ?? 'phosphor-file'" class="size-4 shrink-0 text-gray-400" />
+                                        <span class="truncate">{{ $image['title'] }}</span>
+                                    </span>
+                                @endif
+                                <button type="button" wire:click="detachImage('{{ $image['id'] }}')"
+                                    class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                                    title="{{ __('Remove file') }}">
+                                    <x-filament::icon icon="phosphor-x-bold" class="size-3" />
+                                    <span class="sr-only">{{ __('Remove file') }}</span>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                <div class="flex items-center gap-2">
+                    <label
+                        class="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-500/5 hover:text-gray-600 dark:hover:bg-gray-400/5 dark:hover:text-gray-200"
+                        title="{{ __('Attach a file, or drop it on the chat. Images, PDFs, and text or CSV files.') }}"
+                        wire:loading.class="opacity-40 pointer-events-none" wire:target="imageUploads">
+                        <input type="file" x-ref="imageUploads" wire:model="imageUploads" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,application/pdf,text/plain,text/csv,.csv,.txt,.pdf"
+                            multiple class="sr-only"
+                            x-on:livewire-upload-finish="$el.value = ''"
+                            :disabled="$wire.isLoading || isStreaming">
+                        <x-filament::icon icon="phosphor-paperclip" class="size-5" wire:loading.remove wire:target="imageUploads" />
+                        <svg wire:loading wire:target="imageUploads" class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg"
+                            fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span class="sr-only">{{ __('Attach files') }}</span>
+                    </label>
+                    <textarea wire:model="message" @keydown="handleKeydown($event)" @input="autoResize($event.target)" rows="1"
+                        class="copilot-textarea flex-1 resize-none bg-transparent text-sm text-gray-900 dark:text-white py-1 px-2 border-none shadow-none outline-none placeholder-gray-400 dark:placeholder-gray-500"
+                        style="max-height: 120px" placeholder="{{ __('filament-copilot::filament-copilot.input_placeholder') }}"
+                        :disabled="$wire.isLoading || isStreaming"></textarea>
+                    <button type="submit"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                        :disabled="$wire.isLoading || isStreaming">
+                        <x-filament::icon icon="phosphor-paper-plane-right-fill" class="w-4 h-4" x-show="!isStreaming && !$wire.isLoading" />
+                        <svg x-show="isStreaming || $wire.isLoading" x-cloak class="animate-spin w-4 h-4"
+                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
             </form>
 
             {{-- Keyboard shortcut hint (desktop only) --}}

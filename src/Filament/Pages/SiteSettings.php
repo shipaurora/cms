@@ -373,8 +373,10 @@ class SiteSettings extends Page implements HasSchemas
                         TextInput::make('copilot.custom_url')
                             ->label(__('Endpoint'))
                             ->url()
-                            ->placeholder('https://openrouter.ai/api/v1')
-                            ->helperText(__('The base URL, usually ending in /v1.'))
+                            ->placeholder(fn (Get $get): string => $get('copilot.custom_api') === 'ollama' ? 'http://localhost:11434' : 'https://openrouter.ai/api/v1')
+                            ->helperText(fn (Get $get): string => $get('copilot.custom_api') === 'ollama'
+                                ? __('The server’s address only, such as http://localhost:11434. Leave off /api: the assistant adds it.')
+                                : __('The base URL, usually ending in /v1.'))
                             ->visible(fn (Get $get): bool => $get('copilot.provider') === 'custom')
                             ->required(fn (Get $get): bool => $get('copilot.provider') === 'custom')
                             ->columnSpan(2),

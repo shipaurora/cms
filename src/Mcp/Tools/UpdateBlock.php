@@ -4,6 +4,7 @@ namespace Aurora\Mcp\Tools;
 
 use Aurora\Mcp\BlockInput;
 use Aurora\Models\User;
+use Aurora\Support\AssistantFiles;
 use Aurora\Support\BlockCatalogue;
 use CarlJanzell\FilamentPageBuilder\BlockRegistries;
 use CarlJanzell\FilamentPageBuilder\Support\BlockStyle;
@@ -53,7 +54,27 @@ class UpdateBlock extends CmsTool
                 throw new InvalidArgumentException('"data" must be an object.');
             }
 
+            $created = [];
+
+            try {
+                $claimed = AssistantFiles::claimWithin($data, $created);
+            } catch (InvalidArgumentException $exception) {
+                AssistantFiles::discard($created);
+
+                throw $exception;
+            }
+
+            if (! is_array($claimed)) {
+                AssistantFiles::discard($created);
+
+                throw new InvalidArgumentException('"data" must be an object.');
+            }
+
+            $data = $claimed;
+
             if ($errors = BlockCatalogue::validate($block['type'], $data)) {
+                AssistantFiles::discard($created);
+
                 throw new InvalidArgumentException("The block was not changed:\n- ".implode("\n- ", $errors));
             }
 

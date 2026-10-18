@@ -1018,6 +1018,7 @@
     "The assistant writes it from the rest of the form and the page content. You can still edit it before saving.": "Assistenten skriver den ut fra resten av skjemaet og innholdet på siden. Du kan fortsatt redigere den før du lagrer.",
     "The assistant writes it from the rest of the row. You can still edit it afterwards.": "Assistenten skriver den ut fra resten av raden. Du kan fortsatt redigere den etterpå.",
     "The base URL, usually ending in /v1.": "Basis-URL-en, vanligvis med /v1 på slutten.",
+    "The server’s address only, such as http://localhost:11434. Leave off /api: the assistant adds it.": "Bare serverens adresse, for eksempel http://localhost:11434. Utelat /api: assistenten legger det til.",
     "The big opening statement: headline, intro and calls to action.": "Den store åpningen: overskrift, ingress og handlingsoppfordringer.",
     "The button at the right of the main navigation.": "Knappen til høyre i hovednavigasjonen.",
     "The catalogue of content blocks pages are built from: every field, option, slot, default and usage hint, plus the shared styling options.": "Katalogen over innholdsblokkene sidene bygges av: alle felt, valg, plasser, standardverdier og bruksråd, pluss de felles stilvalgene.",
@@ -1788,5 +1789,13 @@
     "Screenshot removed": "Skjermbildet er fjernet",
     "Upload block preview": "Last opp blokkbilde",
     "Reset block preview": "Tilbakestill blokkbilde",
-    "Screenshot": "Skjermbilde"
+    "Screenshot": "Skjermbilde",
+    "Attach files": "Legg ved filer",
+    "Attach a file, or drop it on the chat. Images, PDFs, and text or CSV files.": "Legg ved en fil, eller slipp den på chatten. Bilder, PDF-er og tekst- eller CSV-filer.",
+    "Drop files to attach them": "Slipp filer her for å legge dem ved",
+    "Remove file": "Fjern filen",
+    "Use the attached files.": "Bruk de vedlagte filene.",
+    "You can attach up to 4 files.": "Du kan legge ved opptil 4 filer.",
+    "You can’t add files.": "Du kan ikke legge til filer.",
+    "Attach an image, a PDF, or a text or CSV file.": "Legg ved et bilde, en PDF, eller en tekst- eller CSV-fil."
 }

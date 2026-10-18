@@ -8,9 +8,30 @@
 @endphp
 
 @if ($isUser)
+    @php
+        $files = is_array($msg['files'] ?? null) ? $msg['files'] : (is_array($msg['images'] ?? null) ? $msg['images'] : []);
+        $showText = filled($msg['content'] ?? null) && ! ($files !== [] && $msg['content'] === __('Use the attached files.'));
+    @endphp
     <div class="flex items-start gap-2.5 justify-end">
         <div class="min-w-0 max-w-[85%] rounded-2xl rounded-tr-md px-3.5 py-2.5 bg-primary-600 text-white">
-            <p class="text-sm whitespace-pre-wrap wrap-break-word leading-relaxed">{{ $msg['content'] }}</p>
+            @if ($files !== [])
+                <div class="flex flex-wrap justify-end gap-1.5 {{ $showText ? 'mb-2' : '' }}">
+                    @foreach ($files as $file)
+                        @if (filled($file['url'] ?? null))
+                            <img src="{{ $file['url'] }}" alt="{{ $file['title'] ?? '' }}"
+                                class="rounded-lg object-cover ring-1 ring-white/30" style="width: 4rem; height: 4rem">
+                        @else
+                            <span class="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2 text-xs" style="height: 2.5rem; max-width: 12rem">
+                                <x-filament::icon :icon="$file['icon'] ?? 'phosphor-file'" class="size-4 shrink-0" />
+                                <span class="truncate">{{ $file['title'] ?? '' }}</span>
+                            </span>
+                        @endif
+                    @endforeach
+                </div>
+            @endif
+            @if ($showText)
+                <p class="text-sm whitespace-pre-wrap wrap-break-word leading-relaxed">{{ $msg['content'] }}</p>
+            @endif
         </div>
         {{-- Your own avatar (or your initials): conversations belong to the person signed in. --}}
         <img src="{{ filament()->getUserAvatarUrl(auth()->user()) }}" alt="" loading="lazy"
