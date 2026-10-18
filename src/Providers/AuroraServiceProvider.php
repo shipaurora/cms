@@ -4,12 +4,15 @@ namespace Aurora\Providers;
 
 use Aurora\Aurora;
 use Aurora\Blocks\Blocks;
+use Aurora\Blocks\SharedSectionBlock;
 use Aurora\Console\Commands\ExportTranslations;
 use Aurora\Console\Commands\ImportTranslations;
+use Aurora\Console\Commands\ImportWordPress;
 use Aurora\Console\Commands\InstallCms;
 use Aurora\Console\Commands\MakeBlock;
 use Aurora\Console\Commands\SyncTranslations;
 use Aurora\Enums\AssetType;
+use Aurora\Events\ContentEvent;
 use Aurora\Filament\Forms\Components\RichTextLinkAction;
 use Aurora\Filament\Forms\Components\WriteWithAi;
 use Aurora\Filament\Resources\Roles\RoleResource;
@@ -17,16 +20,31 @@ use Aurora\Http\Middleware\ResolveSite;
 use Aurora\Http\Middleware\SetCopilotSite;
 use Aurora\Http\Middleware\UseSiteLocale;
 use Aurora\Livewire\AssistantChat;
+use Aurora\Livewire\EditLock;
 use Aurora\Livewire\ManagePasskeys;
 use Aurora\Livewire\MenuItems;
 use Aurora\Livewire\PasskeyPrompt;
+use Aurora\Models\Asset;
+use Aurora\Models\Form;
+use Aurora\Models\ImageFormat;
 use Aurora\Models\LanguageLine;
+use Aurora\Models\Layout;
+use Aurora\Models\Locale;
 use Aurora\Models\Media;
+use Aurora\Models\Menu;
+use Aurora\Models\MenuItem;
+use Aurora\Models\MenuLocation;
+use Aurora\Models\NavigationLocation;
 use Aurora\Models\Page;
 use Aurora\Models\Passkey;
 use Aurora\Models\Permission;
+use Aurora\Models\Redirect;
 use Aurora\Models\Role;
+use Aurora\Models\Setting;
+use Aurora\Models\SharedSection;
+use Aurora\Models\Site;
 use Aurora\Models\User;
+use Aurora\Support\ActivityLog;
 use Aurora\Support\AdminIcons;
 use Aurora\Support\AssistantAgent;
 use Aurora\Support\ContentLocale;
@@ -36,9 +54,11 @@ use Aurora\Support\CopilotToolRegistry;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\Layouts;
 use Aurora\Support\MissingLabels;
+use Aurora\Support\PageCache;
 use Aurora\Support\Search\DatabaseEngine as SearchDatabaseEngine;
 use Aurora\Support\SiteIcon;
 use Aurora\Support\TranslationLoader;
+use Aurora\Support\Webhooks;
 use BladeUI\Icons\Factory as IconFactory;
 use EslamRedaDiv\FilamentCopilot\Agent\ContextBuilder;
 use EslamRedaDiv\FilamentCopilot\Agent\CopilotAgent;
@@ -133,7 +153,15 @@ class AuroraServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/ai.php');
+        $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
         $this->registerWebsite();
+        $this->clearPageCacheOnChanges();
+
+        // Who changed what (Administration › Activity log).
+        ActivityLog::listen();
+
+        // What happens to the content, sent to the webhooks that want it.
+        Event::listen(Webhooks::EVENTS, fn (ContentEvent $event) => Webhooks::send($event));
 
         if ($this->app->runningInConsole()) {
             $this->publishes([__DIR__.'/../../config/aurora.php' => config_path('aurora.php')], 'aurora-config');
@@ -142,13 +170,14 @@ class AuroraServiceProvider extends ServiceProvider
             // The website-facing views a site makes its own: the page layouts (published on
             // install) and the password page.
             $this->publishes([__DIR__.'/../../resources/views/layouts' => Layouts::path()], 'aurora-layouts');
-            $this->publishes([__DIR__.'/../../resources/views/page-password.blade.php' => resource_path('views/vendor/aurora/page-password.blade.php')], 'aurora-views');
-            $this->commands([InstallCms::class, MakeBlock::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class]);
+            $this->publishes(collect(['page-password', 'page-sign-in', 'site-closed'])->mapWithKeys(fn (string $view): array => [__DIR__."/../../resources/views/{$view}.blade.php" => resource_path("views/vendor/aurora/{$view}.blade.php")])->all(), 'aurora-views');
+            $this->commands([InstallCms::class, MakeBlock::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class, ImportWordPress::class]);
         }
 
         // Livewire components used by tag (<livewire:…>); the app's own namespace is found by itself.
         Livewire::component('manage-passkeys', ManagePasskeys::class);
         Livewire::component('passkey-prompt', PasskeyPrompt::class);
+        Livewire::component('edit-lock', EditLock::class);
 
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
@@ -210,10 +239,13 @@ class AuroraServiceProvider extends ServiceProvider
 
         // The site's blocks in aurora.block_path, after those it registers itself (whose order
         // in the palette they keep).
+        // Then the CMS's own (a shared section), whatever block library the site uses.
         $this->app->booted(function (): void {
             if (filled($path = config('aurora.block_path'))) {
                 Blocks::discover($path, config('aurora.block_namespace'));
             }
+
+            Blocks::register([SharedSectionBlock::class]);
         });
 
         // Aurora's own versions of packages' Livewire components: registered once every
@@ -424,6 +456,17 @@ class AuroraServiceProvider extends ServiceProvider
      * comes first, before route parameters are looked up (a page, form or redirect is found on
      * the site asked for). Pages are routed after the app's own routes, so the app's win.
      */
+    /**
+     * Any change to what pages show clears the page cache (Aurora\Support\PageCache):
+     * pages, their menus, layouts, settings, sites, languages, forms, redirects and media.
+     */
+    protected function clearPageCacheOnChanges(): void
+    {
+        $models = [Page::class, SharedSection::class, Menu::class, MenuItem::class, MenuLocation::class, NavigationLocation::class, Layout::class, Setting::class, Site::class, Locale::class, Form::class, Redirect::class, Asset::class, ImageFormat::class];
+
+        Event::listen(array_merge(...array_map(fn (string $model): array => ["eloquent.saved: {$model}", "eloquent.deleted: {$model}"], $models)), fn () => PageCache::flush());
+    }
+
     protected function registerWebsite(): void
     {
         // On the HTTP kernel as it is made (or now, if it already is): making it resets the
