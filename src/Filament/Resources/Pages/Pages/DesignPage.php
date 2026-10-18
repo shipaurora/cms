@@ -23,6 +23,7 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Illuminate\Support\Js;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 
 /**
  * The visual editor for a page.
@@ -153,6 +154,32 @@ class DesignPage extends BaseDesignPage
         }
 
         RevisionContext::as(RevisionSource::Canvas, null, fn () => parent::save());
+    }
+
+    /**
+     * The assistant saved this page in the database. Draw that version on the canvas,
+     * without reloading the admin page, so the chat stays open. Unsaved work on the
+     * canvas is left as it is.
+     */
+    #[On('cms-copilot-refresh')]
+    public function refreshFromAssistant(): void
+    {
+        if ($this->isDirty) {
+            return;
+        }
+
+        $this->getRecord()->refresh();
+
+        $this->blocks = $this->prepareBlocks($this->getRecord()->{$this->blocksAttribute()} ?? []);
+        $this->loadedUpdatedAt = optional($this->getRecord()->updated_at)->toJSON();
+        $this->history()->clear();
+        $this->loadTranslation();
+
+        if (! $this->isTranslating()) {
+            $this->markSaved();
+        }
+
+        $this->syncInspector();
     }
 
     /**

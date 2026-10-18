@@ -7,6 +7,7 @@ use Aurora\Filament\Actions\LanguageSwitcher;
 use Aurora\Filament\Concerns\BreadcrumbsToList;
 use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
+use Aurora\Filament\Concerns\RefreshesFromAssistant;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
 use Aurora\Filament\Resources\Pages\Actions\OpenVisualEditorAction;
@@ -36,6 +37,7 @@ class EditPage extends EditRecord
     use BreadcrumbsToList;
     use ConfirmsLeaving;
     use FollowsActiveLocale;
+    use RefreshesFromAssistant;
     use SavesFromHeader;
     use Translatable {
         Translatable::updatedActiveLocale as updatedTranslatableActiveLocale;

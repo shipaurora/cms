@@ -2,7 +2,9 @@
  * Keeps the screen in step with the in-panel copilot. The copilot changes content through
  * the CMS tools on the server, so a page editor (or menu editor) the user has open would
  * still show, and later save, the old version. This reads a copy of the copilot's stream
- * and, once a reply that changed content has finished, reloads the open editor.
+ * and, once a reply that changed content has finished, redraws the open editor.
+ * The canvas and a page's form redraw in place. Lists and the menu and media
+ * editors still reload the page, because their content is not one form.
  *
  * Never over unsaved edits: then it says so, with a button to reload when the user is ready.
  * What it needs from the server (the tools that change content, Aurora\Support\CopilotTools,
@@ -10,16 +12,21 @@
  */
 const settings = () => window.cmsCopilot ?? { changingTools: [], panelPath: '/admin', strings: {} }
 
-// The editors, under /admin/{site}/…: a page's canvas and form, the pages list, a menu, the media library.
-const reloadScreens = () => {
+// The editors, under /admin/{site}/…. The canvas and a page's settings form redraw
+// themselves. The pages list, a menu and the media library reload the page.
+const editorScreens = () => {
     const panel = settings().panelPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-    return [
-        new RegExp(`^${panel}/[^/]+/pages/[^/]+/(design|edit)$`),
-        new RegExp(`^${panel}/[^/]+/pages/?$`),
-        new RegExp(`^${panel}/[^/]+/menus/[^/]+/edit$`),
-        new RegExp(`^${panel}/[^/]+/assets`),
-    ]
+    return {
+        inPlace: [
+            new RegExp(`^${panel}/[^/]+/pages/[^/]+/(design|edit)$`),
+        ],
+        reload: [
+            new RegExp(`^${panel}/[^/]+/pages/?$`),
+            new RegExp(`^${panel}/[^/]+/menus/[^/]+/edit$`),
+            new RegExp(`^${panel}/[^/]+/assets`),
+        ],
+    }
 }
 
 /**
@@ -43,11 +50,20 @@ const hasUnsavedChanges = () => {
 const reload = () => (window.Livewire?.navigate ? window.Livewire.navigate(window.location.href) : window.location.reload())
 
 const reloadIfOpen = () => {
-    if (! reloadScreens().some((pattern) => pattern.test(window.location.pathname))) {
+    const path = window.location.pathname
+    const screens = editorScreens()
+
+    if (! [...screens.inPlace, ...screens.reload].some((pattern) => pattern.test(path))) {
         return
     }
 
     if (! hasUnsavedChanges()) {
+        if (screens.inPlace.some((pattern) => pattern.test(path)) && window.Livewire?.dispatch) {
+            window.Livewire.dispatch('cms-copilot-refresh')
+
+            return
+        }
+
         reload()
 
         return
@@ -72,12 +88,33 @@ const reloadIfOpen = () => {
 
 window.addEventListener('cms-copilot-reload', reload)
 
+const scheduleReload = () => {
+    let scheduled = false
+
+    const go = () => {
+        if (scheduled) {
+            return
+        }
+
+        scheduled = true
+        // Let the reply paint, then bring the editor in line with what was saved.
+        setTimeout(reloadIfOpen, 400)
+    }
+
+    // The chat fires this once the conversation is in the session. If that never
+    // arrives, reload anyway: the id was stored when the reply started.
+    window.addEventListener('cms-copilot-persisted', go, { once: true })
+    setTimeout(go, 2000)
+}
+
 async function watch(response) {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
     let event = null
     let changed = false
+    let awaitingApproval = false
+    let finished = false
 
     for (;;) {
         const { done, value } = await reader.read()
@@ -93,6 +130,7 @@ async function watch(response) {
         for (const line of lines) {
             if (line.startsWith('event: ')) {
                 event = line.slice(7).trim()
+                finished ||= event === 'done'
             } else if (line.startsWith('data: ') && event === 'tool_result') {
                 try {
                     const data = JSON.parse(line.slice(6))
@@ -102,13 +140,35 @@ async function watch(response) {
                 } catch {
                     // Not JSON; ignore.
                 }
+            } else if (line.startsWith('data: ') && (event === 'tool_approval_request' || event === 'done')) {
+                try {
+                    const data = JSON.parse(line.slice(6))
+
+                    awaitingApproval ||= (data.approvals ?? []).length > 0
+                } catch {
+                    // Not JSON; ignore.
+                }
             }
         }
     }
 
-    if (changed) {
-        // Let the chat finish rendering the reply first.
-        setTimeout(reloadIfOpen, 600)
+    if (! finished) {
+        return
+    }
+
+    // An approval is on screen. Reloading now would dismiss it and drop the chat.
+    // Reload after the person decides, once that follow-up reply has finished.
+    if (awaitingApproval) {
+        if (changed) {
+            window.cmsCopilotReloadAfterApproval = true
+        }
+
+        return
+    }
+
+    if (changed || window.cmsCopilotReloadAfterApproval) {
+        window.cmsCopilotReloadAfterApproval = false
+        scheduleReload()
     }
 }
 
