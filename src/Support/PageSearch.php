@@ -23,7 +23,7 @@ class PageSearch
      */
     public static function indexed(Page $page): array
     {
-        return $page->exclude_from_search || $page->isPasswordProtected()
+        return $page->exclude_from_search || $page->isRestricted()
             ? ['search_text' => null, 'indexed_at' => null]
             : ['search_text' => static::text($page), 'indexed_at' => now()];
     }

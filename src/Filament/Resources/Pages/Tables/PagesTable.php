@@ -8,6 +8,7 @@ use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Aurora\Models\User;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\EditLocks;
 use Aurora\Support\PeoplePicker;
 use Aurora\Support\UserBadge;
 use Filament\Actions\Action;
@@ -52,18 +53,36 @@ class PagesTable
                     ->iconColor('primary')
                     // A key after the title of a password-protected page.
                     ->html()
-                    ->formatStateUsing(fn (Page $record): HtmlString => new HtmlString(e($record->title).($record->isPasswordProtected()
-                        ? ' <span class="cms-page-title-key" title="'.e(__('Password protected')).'">'.svg('phosphor-key', 'size-4')->toHtml().'<span class="sr-only">'.e(__('Password protected')).'</span></span>'
-                        : '')))
+                    ->formatStateUsing(fn (Page $record): HtmlString => new HtmlString(e($record->title)
+                        .($record->isPasswordProtected() ? static::titleIcon('phosphor-key', __('Password protected')) : '')
+                        .($record->hasWorkingCopy() ? static::titleIcon('phosphor-pencil-simple-line', __('Changes not on the website yet')) : '')
+                        .(($editor = EditLocks::holder($record)) !== null ? static::titleIcon('phosphor-lock-simple', __(':name is editing this page', ['name' => $editor['name']])) : '')))
                     ->wrap()
                     ->searchable(['title', 'slug'])
                     ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderByTitle($direction)),
                 TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn (Page $record): string => $record->isScheduled() ? __('Scheduled') : $record->status->getLabel())
-                    ->color(fn (Page $record): string => $record->isScheduled() ? 'info' : $record->status->getColor())
-                    ->icon(fn (Page $record): string => $record->isScheduled() ? 'phosphor-clock' : $record->status->getIcon())
-                    ->tooltip(fn (Page $record): ?string => $record->isScheduled() ? __('Goes live :when', ['when' => $record->published_at->diffForHumans()]) : null)
+                    ->formatStateUsing(fn (Page $record): string => match (true) {
+                        $record->isScheduled() => __('Scheduled'),
+                        $record->hasEnded() => __('Ended'),
+                        default => $record->status->getLabel(),
+                    })
+                    ->color(fn (Page $record): string => match (true) {
+                        $record->isScheduled() => 'info',
+                        $record->hasEnded() => 'gray',
+                        default => $record->status->getColor(),
+                    })
+                    ->icon(fn (Page $record): string => match (true) {
+                        $record->isScheduled() => 'phosphor-clock',
+                        $record->hasEnded() => 'phosphor-calendar-x',
+                        default => $record->status->getIcon(),
+                    })
+                    ->tooltip(fn (Page $record): ?string => match (true) {
+                        $record->isScheduled() => __('Goes live :when', ['when' => $record->published_at->diffForHumans()]),
+                        $record->hasEnded() => __('Came down :when', ['when' => $record->unpublish_at->diffForHumans()]),
+                        $record->isLive() && $record->unpublish_at !== null => __('Comes down :when', ['when' => $record->unpublish_at->diffForHumans()]),
+                        default => null,
+                    })
                     ->sortable(),
                 TextColumn::make('layout')
                     ->badge()
@@ -225,5 +244,13 @@ class PagesTable
         $homepage = $action->getSelectedRecords()->first(fn (Page $page): bool => $page->is_homepage);
 
         return $homepage ? PageResource::withoutHomepage($homepage) : null;
+    }
+
+    /**
+     * A small icon after a page's title (a password, unpublished changes), named for screen readers.
+     */
+    protected static function titleIcon(string $icon, string $label): string
+    {
+        return ' <span class="cms-page-title-key" title="'.e($label).'">'.svg($icon, 'size-4')->toHtml().'<span class="sr-only">'.e($label).'</span></span>';
     }
 }

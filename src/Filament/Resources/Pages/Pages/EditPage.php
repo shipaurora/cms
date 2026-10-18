@@ -16,7 +16,9 @@ use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\EditLocks;
 use Aurora\Support\PageRedirects;
+use Aurora\Support\WorkingCopies;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
@@ -41,6 +43,7 @@ class EditPage extends EditRecord
     use SavesFromHeader;
     use Translatable {
         Translatable::updatedActiveLocale as updatedTranslatableActiveLocale;
+        Translatable::fillForm as fillTranslatableForm;
         FollowsActiveLocale::updatedActiveLocale insteadof Translatable;
     }
 
@@ -65,9 +68,25 @@ class EditPage extends EditRecord
 
     public function getSubheading(): ?string
     {
-        return $this->record->isScheduled()
-            ? __('Scheduled for :date', ['date' => $this->record->published_at->isoFormat('LLL')])
-            : $this->record->status->getDescription();
+        return match (true) {
+            $this->record->hasWorkingCopy() => __('Live, with changes not on the website yet: saved :when by :name. Publish them to show them.', [
+                'when' => $this->record->working_copy_at?->diffForHumans(),
+                'name' => $this->record->workingCopyBy?->name ?? __('someone'),
+            ]),
+            $this->record->isScheduled() => __('Scheduled for :date', ['date' => $this->record->published_at->isoFormat('LLL')]),
+            $this->record->hasEnded() => __('Came down :when, at its unpublish date.', ['when' => $this->record->unpublish_at->diffForHumans()]),
+            default => $this->record->status->getDescription(),
+        };
+    }
+
+    /**
+     * The page as its working copy has it, when it has one: that's what's being edited.
+     */
+    protected function fillForm(): void
+    {
+        $this->record->applyWorkingCopy();
+
+        $this->fillTranslatableForm();
     }
 
     /**
@@ -82,7 +101,16 @@ class EditPage extends EditRecord
             return;
         }
 
-        parent::save($shouldRedirect, $shouldSendSavedNotification);
+        // A live page's new content goes into its working copy, not onto the website.
+        WorkingCopies::capture(fn () => parent::save($shouldRedirect, $shouldSendSavedNotification));
+    }
+
+    /**
+     * Saved into the working copy: say so, so nobody thinks it's on the website.
+     */
+    protected function getSavedNotificationTitle(): ?string
+    {
+        return $this->record->hasWorkingCopy() ? __('Saved. Not on the website until you publish the changes.') : parent::getSavedNotificationTitle();
     }
 
     public function keepOldAddressesAction(): Action
@@ -140,9 +168,29 @@ class EditPage extends EditRecord
         return PageRedirects::changes($this->record, $slugs);
     }
 
+    /**
+     * Someone else is editing the page: say so, instead of saving over their work.
+     */
+    protected function beforeSave(): void
+    {
+        if (EditLocks::heldByOther($this->record)) {
+            Notification::make()
+                ->title(__(':name is editing this page', ['name' => EditLocks::holder($this->record)['name']]))
+                ->body(__('Your changes weren’t saved. Take over editing to save them.'))
+                ->danger()
+                ->send();
+
+            $this->halt();
+        }
+    }
+
     protected function afterSave(): void
     {
         PageRedirects::keep($this->record, $this->redirectsToKeep);
+
+        // The page kept its live content; what's edited (and shown on switching language) is
+        // the working copy.
+        $this->record->applyWorkingCopy();
 
         // The history below the form lists the version this save made.
         $this->dispatch('page-saved');
@@ -212,7 +260,25 @@ class EditPage extends EditRecord
                 ->label(__('Preview'))
                 ->icon('phosphor-eye')
                 ->color('gray')
-                ->url(fn (): string => $this->record->isLive() ? $this->record->url() : $this->record->previewUrl(), shouldOpenInNewTab: true),
+                // The live page, unless it has changes not on the website yet: those, as they'll look.
+                ->url(fn (): string => $this->record->isLive() && ! $this->record->hasWorkingCopy() ? $this->record->url() : $this->record->previewUrl(), shouldOpenInNewTab: true),
+            Action::make('publishChanges')
+                ->label(__('Publish changes'))
+                ->icon('phosphor-rocket-launch')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->hasWorkingCopy() && auth()->user()->can('publish', $this->record))
+                ->requiresConfirmation()
+                ->modalIcon('phosphor-rocket-launch')
+                ->modalHeading(__('Publish the changes?'))
+                ->modalDescription(__('The website shows the page as it is here, straight away.'))
+                ->modalSubmitActionLabel(__('Publish changes'))
+                ->action(function (): void {
+                    $this->record->publishWorkingCopy();
+                    $this->fillForm();
+                    $this->rememberData();
+                    $this->dispatch('page-saved');
+                    Notification::make()->title(__('Changes published'))->body($this->record->url())->success()->send();
+                }),
             Action::make('publish')
                 ->label(__('Publish'))
                 ->icon('phosphor-rocket-launch')
@@ -236,6 +302,22 @@ class EditPage extends EditRecord
                     Notification::make()->title(__('Sent for review'))->success()->send();
                 }),
             ActionGroup::make([
+                Action::make('discardChanges')
+                    ->label(__('Discard unpublished changes'))
+                    ->icon('phosphor-arrow-counter-clockwise')
+                    ->color('danger')
+                    ->visible(fn (): bool => $this->record->hasWorkingCopy() && auth()->user()->can('update', $this->record))
+                    ->requiresConfirmation()
+                    ->modalHeading(__('Discard the changes?'))
+                    ->modalDescription(__('The page goes back to how it is on the website. The changes can’t be brought back.'))
+                    ->modalSubmitActionLabel(__('Discard changes'))
+                    ->action(function (): void {
+                        $this->record->discardWorkingCopy();
+                        $this->record->refresh();
+                        $this->fillForm();
+                        $this->rememberData();
+                        Notification::make()->title(__('Changes discarded'))->success()->send();
+                    }),
                 DuplicatePageAction::make(),
                 // Search: what it knows about the page, and a box to try searches with.
                 SearchIndexAction::make(),

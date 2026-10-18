@@ -3,6 +3,10 @@
 namespace Aurora\Observers;
 
 use Aurora\Enums\PageStatus;
+use Aurora\Events\PageDeleted;
+use Aurora\Events\PagePublished;
+use Aurora\Events\PageSaved;
+use Aurora\Events\PageUnpublished;
 use Aurora\Models\AssetUsage;
 use Aurora\Models\Page;
 use Aurora\Models\Redirect;
@@ -11,8 +15,10 @@ use Aurora\Support\AssetLibrary;
 use Aurora\Support\CmsNotifications;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\EditLocks;
 use Aurora\Support\PageSearch;
 use Aurora\Support\RevisionContext;
+use Aurora\Support\WorkingCopies;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -28,6 +34,14 @@ class PageObserver
 
     public function saving(Page $page): void
     {
+        // Someone else is editing it (Aurora\Support\EditLocks): their work would be overwritten.
+        if (auth()->check() && $page->exists && EditLocks::heldByOther($page)) {
+            throw ValidationException::withMessages(['page' => __(':name is editing this page right now. Try again when they’re done, or take over.', ['name' => EditLocks::holder($page)['name']])]);
+        }
+
+        // A live page's new content waits in its working copy (when people or AI tools save it).
+        WorkingCopies::intercept($page);
+
         // What it says, for search: kept with the page, so the database can search it.
         $indexed = PageSearch::indexed($page);
         $page->search_text = $indexed['search_text'];
@@ -70,6 +84,10 @@ class PageObserver
             $page->published_at = now();
         }
 
+        if ($page->unpublish_at !== null && $page->isDirty('unpublish_at', 'published_at') && $page->published_at !== null && $page->unpublish_at->lte($page->published_at)) {
+            throw ValidationException::withMessages(['unpublish_at' => __('The unpublish date must come after the publish date.')]);
+        }
+
         $this->guardHomepage($page);
         $this->guardParent($page);
 
@@ -104,6 +122,13 @@ class PageObserver
      */
     protected function guardHomepage(Page $page): void
     {
+        // The homepage stays: it can't be set to come down by itself.
+        if ($page->is_homepage && $page->unpublish_at !== null && $page->isDirty('is_homepage', 'unpublish_at')) {
+            throw ValidationException::withMessages([
+                'unpublish_at' => __('The homepage can’t have an unpublish date. Make another page the homepage first.'),
+            ]);
+        }
+
         if (! $page->isDirty('is_homepage')) {
             return;
         }
@@ -125,6 +150,16 @@ class PageObserver
     /**
      * Back from the trash after another page became the homepage: an ordinary page again.
      */
+    /**
+     * Moved to the trash: for the app's listeners and webhooks.
+     */
+    public function deleted(Page $page): void
+    {
+        if (! $page->isForceDeleting()) {
+            PageDeleted::dispatch($page);
+        }
+    }
+
     public function restored(Page $page): void
     {
         if ($page->is_homepage && Page::query()->homepage()->whereKeyNot($page->getKey())->exists()) {
@@ -134,6 +169,18 @@ class PageObserver
 
     public function saved(Page $page): void
     {
+        // For the app's listeners and webhooks (Aurora\Events). A save that only kept a live
+        // page's changes for later isn't its going live.
+        PageSaved::dispatch($page);
+
+        if ($page->wasChanged('status') || $page->wasRecentlyCreated) {
+            if ($page->status === PageStatus::Published) {
+                PagePublished::dispatch($page);
+            } elseif (($page->getPrevious()['status'] ?? null) === PageStatus::Published->value) {
+                PageUnpublished::dispatch($page);
+            }
+        }
+
         if ($page->is_homepage && $page->wasChanged('is_homepage') || ($page->wasRecentlyCreated && $page->is_homepage)) {
             // Also one in the trash, so restoring it doesn't bring back a second homepage.
             Page::withTrashed()->whereKeyNot($page->getKey())->where('is_homepage', true)->update(['is_homepage' => false]);

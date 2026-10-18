@@ -34,11 +34,13 @@ class UpdatePage extends CmsTool
             'layout' => $schema->string()->enum(Layout::cached()->pluck('handle')->all())->description('The layout\'s handle, see list_layouts.'),
             'status' => $schema->string()->enum(['draft', 'review', 'published']),
             'published_at' => $schema->string()->description('ISO 8601 date-time. A future date with status "published" schedules the page.'),
+            'unpublish_at' => $schema->string()->description('ISO 8601 date-time when the live page comes down by itself (a campaign, a job ad). Empty string to keep it live. Not for the homepage.'),
             'is_homepage' => $schema->boolean(),
             'meta_title' => $schema->string(),
             'meta_description' => $schema->string(),
             'og_image' => $schema->string()->description('Share image path, see list_images.'),
             'noindex' => $schema->boolean(),
+            'members_only' => $schema->boolean()->description('Only people signed in to the website can see the page.'),
             'exclude_from_search' => $schema->boolean()->description('Leave the page out of the site’s own search index. Needs the "Manage search" permission.'),
         ];
     }
@@ -53,12 +55,17 @@ class UpdatePage extends CmsTool
             'slug' => ['sometimes', 'string', 'max:120', 'alpha_dash', fn (string $attribute, mixed $value, Closure $fail) => Page::slugIsAvailable((string) $value, except: $page->id) ? null : $fail('Another page already has this address.')],
             'status' => ['sometimes', 'in:draft,review,published'],
             'published_at' => ['sometimes', 'nullable', 'date'],
+            'unpublish_at' => ['sometimes', 'nullable', 'date'],
         ]);
 
-        $attributes = Arr::only($request->all(), ['title', 'slug', 'excerpt', 'status', 'published_at', 'is_homepage', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search']);
+        $attributes = Arr::only($request->all(), ['title', 'slug', 'excerpt', 'status', 'published_at', 'unpublish_at', 'is_homepage', 'meta_title', 'meta_description', 'og_image', 'noindex', 'members_only', 'exclude_from_search']);
 
         if (array_key_exists('exclude_from_search', $attributes) && ! $user->can('manage-search Page')) {
             return Response::error('Leaving a page out of the search index needs the "Manage search" permission.');
+        }
+
+        if (($attributes['unpublish_at'] ?? null) === '') {
+            $attributes['unpublish_at'] = null;
         }
 
         if ($request->has('layout')) {

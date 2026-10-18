@@ -11,6 +11,7 @@ use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\Permissions;
 use Aurora\Support\RevisionContext;
+use Aurora\Support\WorkingCopies;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -76,7 +77,8 @@ abstract class CmsTool extends Tool
 
         try {
             // Everything the tool reads and writes is on that site (CurrentSite).
-            $response = CurrentSite::using($site, fn (): Response => RevisionContext::as($channel->revisionSource(), null, fn (): Response => $this->run($request, $user)));
+            // A live page's new content goes into its working copy, for someone to publish.
+            $response = CurrentSite::using($site, fn (): Response => RevisionContext::as($channel->revisionSource(), null, fn (): Response => WorkingCopies::capture(fn (): Response => $this->run($request, $user))));
             $succeeded = ! $response->isError();
 
             return $response;
@@ -173,7 +175,7 @@ abstract class CmsTool extends Tool
         RevisionContext::as(AiChannel::current()->revisionSource(), $summary, fn () => $page->fill($attributes)->save());
         $this->did($summary, $page);
 
-        return $page->refresh();
+        return $page->refresh()->applyWorkingCopy();
     }
 
     protected function findPage(Request $request, string $key = 'page'): Page
@@ -201,6 +203,9 @@ abstract class CmsTool extends Tool
 
         Gate::authorize('view', $page);
         $this->subject = $page;
+
+        // With its unpublished changes: what the AI reads and changes is the working copy.
+        $page->applyWorkingCopy();
 
         return $page;
     }

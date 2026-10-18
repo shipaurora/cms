@@ -77,6 +77,13 @@ class ListPages extends ListRecords
                 ->badge($query()->where('status', PageStatus::Published)->where('published_at', '>', now())->count() ?: null)
                 ->badgeColor('info')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', PageStatus::Published)->where('published_at', '>', now())),
+            // Came down by themselves (their unpublish date passed): only once there are some.
+            'ended' => Tab::make(__('Ended'))
+                ->icon('phosphor-calendar-x')
+                ->badge($ended = $query()->ended()->count() ?: null)
+                ->badgeColor('gray')
+                ->visible($ended !== null)
+                ->modifyQueryUsing(fn (Builder $query) => $query->ended()),
             'review' => Tab::make(PageStatus::Review->getLabel())
                 ->icon(PageStatus::Review->getIcon())
                 ->badge($query()->where('status', PageStatus::Review)->count() ?: null)

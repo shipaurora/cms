@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View as ViewFacade;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -90,9 +91,12 @@ class PageController
             app()->setLocale($locale);
         }
 
+        // A revision, as it was; else the page as it will look, with its unpublished changes.
         if ($request->filled('revision')) {
             $revision = PageRevision::query()->whereBelongsTo($page)->findOrFail($request->string('revision'));
             $page->forceFill(Page::attributesFromSnapshot($revision->snapshot));
+        } else {
+            $page->applyWorkingCopy();
         }
 
         // Drawn with another layout, as the layout picker shows it.
@@ -105,7 +109,7 @@ class PageController
 
     public function sitemap(): Response
     {
-        $pages = Page::query()->live()->where('noindex', false)->whereNull('password')->latest('updated_at')->get();
+        $pages = Page::query()->live()->where('noindex', false)->whereNull('password')->where('members_only', false)->latest('updated_at')->get();
 
         return response()
             ->view('aurora::sitemap', ['pages' => $pages])
@@ -136,6 +140,11 @@ class PageController
             return response()->view('aurora::page-password', ['page' => $page])->header('Cache-Control', 'no-store, private');
         }
 
+        // Only for people signed in to the website: the others are asked to sign in.
+        if (! $signed && $page->members_only && auth()->guest()) {
+            return response()->view('aurora::page-sign-in', ['page' => $page, 'signInUrl' => Route::has('login') ? route('login') : null], 403)->header('Cache-Control', 'no-store, private');
+        }
+
         $response = response()->view(Layouts::viewFor($page), [
             'page' => $page,
             'layout' => $page->layoutOrDefault(),
@@ -143,8 +152,8 @@ class PageController
             'embedded' => $embedded,
         ]);
 
-        // Unlocked for this visitor only: no shared cache may keep it.
-        return $page->isPasswordProtected() ? $response->header('Cache-Control', 'no-store, private') : $response;
+        // For this visitor only: no shared cache may keep it.
+        return $page->isRestricted() ? $response->header('Cache-Control', 'no-store, private') : $response;
     }
 
     protected function redirectOrFail(Request $request): RedirectResponse

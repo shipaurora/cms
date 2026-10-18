@@ -4,12 +4,14 @@ namespace Aurora\Models;
 
 use Aurora\Database\Factories\PageFactory;
 use Aurora\Enums\PageStatus;
+use Aurora\Events\PagePublished;
 use Aurora\Models\Concerns\BelongsToSite;
 use Aurora\Observers\PageObserver;
 use Aurora\Support\BlockTranslations;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\PageSearch;
+use Aurora\Support\WorkingCopies;
 use CarlJanzell\FilamentPageBuilder\Concerns\HasBlocks;
 use CarlJanzell\FilamentPageBuilder\Support\BlockTree;
 use Closure;
@@ -24,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Laravel\Scout\Engines\DatabaseEngine;
@@ -72,6 +75,7 @@ class Page extends Model implements MenuPanelable
         'status' => 'draft',
         'noindex' => false,
         'exclude_from_search' => false,
+        'members_only' => false,
     ];
 
     protected function casts(): array
@@ -82,10 +86,14 @@ class Page extends Model implements MenuPanelable
             'locales' => 'array',
             'status' => PageStatus::class,
             'published_at' => 'datetime',
+            'unpublish_at' => 'datetime',
+            'working_copy' => 'array',
+            'working_copy_at' => 'datetime',
             'indexed_at' => 'datetime',
             'is_homepage' => 'boolean',
             'noindex' => 'boolean',
             'exclude_from_search' => 'boolean',
+            'members_only' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -266,13 +274,33 @@ class Page extends Model implements MenuPanelable
     /* ── Scopes ────────────────────────────────────────── */
 
     /**
-     * Pages a visitor may see: published, and the publish date has arrived.
+     * Pages a visitor may see: published, the publish date has arrived, and the unpublish
+     * date (if any) hasn't.
      */
     #[Scope]
     protected function live(Builder $query): void
     {
         $query->where('status', PageStatus::Published)
-            ->where(fn (Builder $query) => $query->whereNull('published_at')->orWhere('published_at', '<=', now()));
+            ->where(fn (Builder $query) => $query->whereNull('published_at')->orWhere('published_at', '<=', now()))
+            ->where(fn (Builder $query) => $query->whereNull('unpublish_at')->orWhere('unpublish_at', '>', now()));
+    }
+
+    /**
+     * Live pages anyone may see: not behind a password or sign-in (the content API, search).
+     */
+    #[Scope]
+    protected function public(Builder $query): void
+    {
+        $query->live()->whereNull('password')->where('members_only', false);
+    }
+
+    /**
+     * Published pages whose unpublish date has passed.
+     */
+    #[Scope]
+    protected function ended(Builder $query): void
+    {
+        $query->where('status', PageStatus::Published)->where('unpublish_at', '<=', now());
     }
 
     #[Scope]
@@ -298,7 +326,16 @@ class Page extends Model implements MenuPanelable
     public function isLive(): bool
     {
         return $this->status === PageStatus::Published
-            && ($this->published_at === null || $this->published_at->isPast());
+            && ($this->published_at === null || $this->published_at->isPast())
+            && ! $this->hasEnded();
+    }
+
+    /**
+     * Published, but its unpublish date has passed: it came down by itself.
+     */
+    public function hasEnded(): bool
+    {
+        return $this->status === PageStatus::Published && $this->unpublish_at !== null && ! $this->unpublish_at->isFuture();
     }
 
     public function isScheduled(): bool
@@ -307,11 +344,74 @@ class Page extends Model implements MenuPanelable
     }
 
     /**
+     * Changes to the live page that aren't on the website yet (Aurora\Support\WorkingCopies).
+     */
+    public function hasWorkingCopy(): bool
+    {
+        return filled($this->working_copy);
+    }
+
+    /**
+     * The page as its working copy has it, here only (not saved): what the form, the canvas,
+     * previews and AI tools show and change.
+     */
+    public function applyWorkingCopy(): static
+    {
+        if (! $this->hasWorkingCopy()) {
+            return $this;
+        }
+
+        foreach (Arr::only(static::attributesFromSnapshot([...$this->toSnapshot(), ...$this->working_copy]), WorkingCopies::KEYS) as $key => $value) {
+            // Translated text holds every language at once.
+            $this->isTranslatableAttribute($key) ? $this->setTranslations($key, (array) $value) : $this->setAttribute($key, $value);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Put the changes on the website: the working copy becomes the page.
+     */
+    public function publishWorkingCopy(): void
+    {
+        WorkingCopies::bypass(function (): void {
+            $this->refresh()->applyWorkingCopy()->forceFill(['working_copy' => null, 'working_copy_by_id' => null, 'working_copy_at' => null])->save();
+        });
+
+        PagePublished::dispatch($this);
+    }
+
+    /**
+     * Let the changes go: the page stays as it is on the website.
+     */
+    public function discardWorkingCopy(): void
+    {
+        WorkingCopies::bypass(fn () => $this->forceFill(['working_copy' => null, 'working_copy_by_id' => null, 'working_copy_at' => null])->saveQuietly());
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function workingCopyBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'working_copy_by_id');
+    }
+
+    /**
      * Visitors type a password to see it (Aurora\Support\PagePassword).
      */
     public function isPasswordProtected(): bool
     {
         return filled($this->password);
+    }
+
+    /**
+     * Not for everyone: behind a password, or only for people signed in. Such a page stays out
+     * of search, the sitemap and the page cache, and search engines are asked to skip it.
+     */
+    public function isRestricted(): bool
+    {
+        return $this->isPasswordProtected() || $this->members_only;
     }
 
     /* ── Languages ─────────────────────────────────────── */
@@ -435,7 +535,7 @@ class Page extends Model implements MenuPanelable
      */
     public function shouldBeSearchable(): bool
     {
-        return $this->isLive() && ! $this->noindex && ! $this->exclude_from_search && ! $this->isPasswordProtected() && ! $this->trashed();
+        return $this->isLive() && ! $this->noindex && ! $this->exclude_from_search && ! $this->isRestricted() && ! $this->trashed();
     }
 
     /**
@@ -446,7 +546,7 @@ class Page extends Model implements MenuPanelable
     public static function searchSite(string $terms, bool $liveOnly = true): \Laravel\Scout\Builder
     {
         // Every page of the site (drafts too, with the database engine) for the admin's search tester.
-        $search = static::search($terms)->query(fn (Builder $query) => $query->when($liveOnly, fn (Builder $query) => $query->live()->where('noindex', false)->where('exclude_from_search', false)->whereNull('password')));
+        $search = static::search($terms)->query(fn (Builder $query) => $query->when($liveOnly, fn (Builder $query) => $query->live()->where('noindex', false)->where('exclude_from_search', false)->whereNull('password')->where('members_only', false)));
 
         return $search->model->searchableUsing() instanceof DatabaseEngine
             ? $search

@@ -1,6 +1,6 @@
 {{-- Aurora's copy of the page builder's editor (carljanzell/filament-page-builder), the same but
-     for a block's card in the block list: its icon beside its name, and its picture (look for
-     "Aurora:"). --}}
+     for who else is editing the page, and a block's card in the block list: its icon beside its
+     name, and its picture (look for "Aurora:"). --}}
 <x-filament-panels::page>
     <div
         class="fpb"
@@ -11,6 +11,9 @@
         data-fpb-i18n="{{ json_encode($this->canvasStrings(), JSON_UNESCAPED_UNICODE) }}"
         wire:key="fpb-{{ $this->getRecord()->getKey() }}"
     >
+        {{-- Aurora: who else is editing the page (Aurora\Support\EditLocks), over the canvas. --}}
+        <livewire:edit-lock :record="$this->getRecord()" />
+
         <header class="fpb-chrome">
             <div class="fpb-chrome-start">
                 @if ($exitUrl = $this->exitUrl())

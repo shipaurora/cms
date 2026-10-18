@@ -26,6 +26,8 @@ return new class extends Migration
             $table->json('locales')->nullable();
             $table->string('status')->default('draft')->index();
             $table->timestamp('published_at')->nullable()->index();
+            // When a live page comes down by itself (a campaign, a job ad).
+            $table->timestamp('unpublish_at')->nullable()->index();
             // Null: the default layout.
             $table->foreignUuid('layout_id')->nullable()->constrained()->nullOnDelete();
             $table->boolean('is_homepage')->default(false)->index();
@@ -37,8 +39,14 @@ return new class extends Migration
             $table->boolean('exclude_from_search')->default(false);
             // Hashed: visitors type it to see the page (Aurora\Support\PagePassword).
             $table->string('password')->nullable();
+            // Only for people who are signed in to the website.
+            $table->boolean('members_only')->default(false);
             $table->longText('search_text')->nullable();
             $table->timestamp('indexed_at')->nullable();
+            // Changes to the live page not on the website yet (Aurora\Support\WorkingCopies).
+            $table->json('working_copy')->nullable();
+            $table->foreignUuid('working_copy_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('working_copy_at')->nullable();
             $table->foreignUuid('author_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignUuid('last_edited_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->softDeletes();

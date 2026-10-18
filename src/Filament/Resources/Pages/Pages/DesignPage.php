@@ -8,8 +8,10 @@ use Aurora\Enums\RevisionSource;
 use Aurora\Filament\Resources\Pages\Concerns\TranslatesBlocks;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Support\BlockTranslations;
+use Aurora\Support\EditLocks;
 use Aurora\Support\Layouts;
 use Aurora\Support\RevisionContext;
+use Aurora\Support\WorkingCopies;
 use CarlJanzell\FilamentPageBuilder\Filament\Pages\DesignPage as BaseDesignPage;
 use CarlJanzell\FilamentPageBuilder\Support\EmbedUrl;
 use Filament\Actions\Action;
@@ -52,7 +54,18 @@ class DesignPage extends BaseDesignPage
     {
         parent::mount($record);
 
+        $this->useWorkingCopy();
         $this->loadTranslation();
+    }
+
+    /**
+     * A live page with changes not on the website yet: the canvas shows (and edits) those.
+     */
+    protected function useWorkingCopy(): void
+    {
+        if ($this->getRecord()->hasWorkingCopy()) {
+            $this->blocks = $this->prepareBlocks($this->getRecord()->applyWorkingCopy()->{$this->blocksAttribute()} ?? []);
+        }
     }
 
     /**
@@ -147,13 +160,29 @@ class DesignPage extends BaseDesignPage
 
     public function save(): void
     {
-        if ($this->isTranslating()) {
-            $this->saveTranslation();
+        // Someone else is editing the page: say so, instead of saving over their work.
+        if (EditLocks::heldByOther($this->getRecord())) {
+            Notification::make()
+                ->title(__(':name is editing this page', ['name' => EditLocks::holder($this->getRecord())['name']]))
+                ->body(__('Your changes weren’t saved. Take over editing to save them.'))
+                ->danger()
+                ->send();
 
             return;
         }
 
-        RevisionContext::as(RevisionSource::Canvas, null, fn () => parent::save());
+        // A live page's new content goes into its working copy, not onto the website.
+        WorkingCopies::capture(function (): void {
+            if ($this->isTranslating()) {
+                $this->saveTranslation();
+
+                return;
+            }
+
+            RevisionContext::as(RevisionSource::Canvas, null, fn () => parent::save());
+        });
+
+        $this->getRecord()->applyWorkingCopy();
     }
 
     /**
@@ -168,7 +197,7 @@ class DesignPage extends BaseDesignPage
             return;
         }
 
-        $this->getRecord()->refresh();
+        $this->getRecord()->refresh()->applyWorkingCopy();
 
         $this->blocks = $this->prepareBlocks($this->getRecord()->{$this->blocksAttribute()} ?? []);
         $this->loadedUpdatedAt = optional($this->getRecord()->updated_at)->toJSON();
