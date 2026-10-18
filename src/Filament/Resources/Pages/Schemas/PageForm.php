@@ -11,6 +11,7 @@ use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\SeoChecks;
 use Aurora\Support\UserBadge;
 use Closure;
 use Filament\Actions\Action;
@@ -196,6 +197,10 @@ class PageForm
                 Tab::make(__('Search engines'))
                     ->icon('phosphor-magnifying-glass')
                     ->schema([
+                        // What would help the page in search results, as it's saved.
+                        View::make('aurora::filament.pages.seo-checks')
+                            ->visible(fn (?Page $record): bool => $record !== null)
+                            ->viewData(fn (?Page $record): array => ['issues' => $record ? SeoChecks::for($record->applyWorkingCopy()) : []]),
                         View::make('aurora::filament.pages.serp-preview')
                             ->viewData(fn (Get $get, ?Page $record): array => [
                                 'title' => filled($get('meta_title')) ? $get('meta_title') : $get('title'),
@@ -285,6 +290,18 @@ class PageForm
                         : __('Leave empty to publish immediately.'))
                     ->live()
                     ->visible(fn (Get $get): bool => $get('status') === PageStatus::Published || $get('status') === PageStatus::Published->value),
+                // A campaign or job ad that comes down by itself. Not the homepage: it stays.
+                DateTimePicker::make('unpublish_at')
+                    ->label(__('Unpublish date'))
+                    ->native(false)
+                    ->seconds(false)
+                    ->prefixIcon('phosphor-calendar-x')
+                    ->after('published_at')
+                    ->helperText(fn (Get $get): string => filled($get('unpublish_at'))
+                        ? __('The page comes down by itself at this time.')
+                        : __('Leave empty to keep it live.'))
+                    ->live()
+                    ->visible(fn (Get $get): bool => ($get('status') === PageStatus::Published || $get('status') === PageStatus::Published->value) && ! $get('is_homepage')),
                 Toggle::make('is_homepage')
                     ->label(__('Use as homepage'))
                     // The site's first page is its homepage.
@@ -332,6 +349,9 @@ class PageForm
     protected static function passwordFields(): array
     {
         return [
+            Toggle::make('members_only')
+                ->label(__('Only for signed-in people'))
+                ->helperText(__('Visitors who aren’t signed in are asked to sign in. Left out of search and the sitemap.')),
             Toggle::make('password_protected')
                 ->label(__('Password protected'))
                 ->dehydrated(false)
