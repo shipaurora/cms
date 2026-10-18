@@ -14,7 +14,8 @@ const show = (item) => {
         return hide()
     }
 
-    if (! card) {
+    // Made again after the admin moved to another page (SPA mode swaps the page's body).
+    if (! card?.isConnected) {
         card = document.createElement('div')
         card.className = 'cms-block-preview'
         card.setAttribute('aria-hidden', 'true')

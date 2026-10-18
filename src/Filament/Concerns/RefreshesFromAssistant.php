@@ -14,7 +14,7 @@ trait RefreshesFromAssistant
     #[On('cms-copilot-refresh')]
     public function refreshFromAssistant(): void
     {
-        if ($this->formHasUnsavedEdits()) {
+        if ($this->hasUnsavedChanges()) {
             return;
         }
 
@@ -24,16 +24,8 @@ trait RefreshesFromAssistant
     }
 
     /**
-     * The same check Filament uses for its leave-the-page warning.
+     * Whether the form holds unsaved edits: ConfirmsLeaving's check, the same one Filament's
+     * leave-the-page warning makes.
      */
-    protected function formHasUnsavedEdits(): bool
-    {
-        if (! isset($this->savedDataHash)) {
-            return false;
-        }
-
-        $hash = md5((string) str(json_encode($this->data ?? [], JSON_UNESCAPED_UNICODE))->replace('\\', ''));
-
-        return $hash !== $this->savedDataHash;
-    }
+    abstract public function hasUnsavedChanges(): bool;
 }

@@ -42,7 +42,7 @@ trait ConfirmsLeaving
                     ->label(__('Discard changes'))
                     ->color('gray')
                     ->cancelParentActions()
-                    ->action(fn () => $this->redirect(static::leavingTo($arguments['url'] ?? null))),
+                    ->action(fn () => $this->redirect(static::leavingTo($arguments['url'] ?? null), navigate: true)),
             ])
             ->action(function (array $arguments): void {
                 match (true) {
@@ -56,7 +56,7 @@ trait ConfirmsLeaving
                     return;
                 }
 
-                $this->redirect(static::leavingTo($arguments['url'] ?? null));
+                $this->redirect(static::leavingTo($arguments['url'] ?? null), navigate: true);
             });
     }
 
