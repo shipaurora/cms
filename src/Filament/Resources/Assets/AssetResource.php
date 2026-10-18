@@ -31,6 +31,7 @@ use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -108,6 +109,17 @@ class AssetResource extends Resource
                 Group::make()->columnSpan(['lg' => 2])->schema([
                     Section::make()
                         ->schema([View::make('aurora::filament.assets.preview')]),
+                    // Where crops keep the subject: for images that are cropped (not SVG and the like).
+                    Section::make(__('Focal point'))
+                        ->icon('phosphor-crosshair')
+                        ->collapsible()
+                        ->collapsed(fn (?Asset $record): bool => blank($record?->focal_point))
+                        ->visible(fn (?Asset $record): bool => in_array($record?->mime_type, Asset::RASTER_MIME_TYPES, true))
+                        ->schema([
+                            ViewField::make('focal_point')
+                                ->hiddenLabel()
+                                ->view('aurora::filament.assets.focal-point'),
+                        ]),
                     Section::make(__('Description'))
                         ->icon('phosphor-chat-text')
                         ->description(fn (): string => count(ContentLocale::all()) > 1

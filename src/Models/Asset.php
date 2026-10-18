@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\Conversions\Conversion;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media as SpatieMedia;
@@ -34,7 +35,7 @@ use Spatie\Translatable\HasTranslations;
  * Blocks store an asset's id rather than a file path, so replacing the file or fixing
  * its alt text updates every page that uses it.
  */
-#[Fillable(['title', 'disk', 'access', 'mime_type', 'alt', 'caption', 'folder_id', 'credit', 'uploaded_by_id'])]
+#[Fillable(['title', 'disk', 'access', 'mime_type', 'alt', 'caption', 'folder_id', 'credit', 'uploaded_by_id', 'focal_point'])]
 class Asset extends Model implements HasMedia
 {
     use HasTranslations, HasUuids, InteractsWithMedia, SoftDeletes;
@@ -46,6 +47,13 @@ class Asset extends Model implements HasMedia
      * @var array<int, string>
      */
     public array $translatable = ['alt', 'caption'];
+
+    protected function casts(): array
+    {
+        return [
+            'focal_point' => 'array',
+        ];
+    }
 
     public function getLocale(): string
     {
@@ -99,17 +107,34 @@ class Asset extends Model implements HasMedia
         // Already encoded at the quality we want: the WebP optimizer would encode them again at its
         // slowest setting (seconds per image) for no gain. Built in: the library's thumbnail and the
         // share image. The rest are the formats set up under Media library › Formats.
-        $this->addMediaConversion('thumb')->fit(Fit::Crop, 480, 360)->format('webp')->quality(80)->nonOptimized();
+        $this->crop($this->addMediaConversion('thumb'), 480, 360)->format('webp')->quality(80)->nonOptimized();
 
         foreach (ImageFormat::cached() as $format) {
-            $this->addMediaConversion($format->handle)
-                ->fit($format->crops() ? Fit::Crop : Fit::Max, $format->width, $format->height ?? $format->width * 2)
+            $conversion = $this->addMediaConversion($format->handle);
+
+            ($format->crops() ? $this->crop($conversion, $format->width, $format->height) : $conversion->fit(Fit::Max, $format->width, $format->width * 2))
                 ->format($format->file_format->value)
                 ->quality($format->quality)
                 ->nonOptimized();
         }
 
-        $this->addMediaConversion('og')->fit(Fit::Crop, 1200, 630)->format('jpg')->quality(85);
+        $this->crop($this->addMediaConversion('og'), 1200, 630)->format('jpg')->quality(85);
+    }
+
+    /**
+     * Cropped to exactly this size, around the focal point when the image has one (so the
+     * subject stays in), else from the middle.
+     */
+    protected function crop(Conversion $conversion, int $width, int $height): Conversion
+    {
+        ['width' => $originalWidth, 'height' => $originalHeight] = $this->dimensions();
+        $focal = $this->focal_point;
+
+        if (! is_array($focal) || ! $originalWidth || ! $originalHeight) {
+            return $conversion->fit(Fit::Crop, $width, $height);
+        }
+
+        return $conversion->focalCropAndResize($width, $height, (int) round($focal['x'] * $originalWidth), (int) round($focal['y'] * $originalHeight));
     }
 
     /**

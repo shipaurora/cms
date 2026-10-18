@@ -30,6 +30,8 @@ return new class extends Migration
             $table->json('caption')->nullable();
             $table->foreignUuid('folder_id')->nullable()->constrained('asset_folders')->nullOnDelete();
             $table->string('credit')->nullable();
+            // Where cropped sizes keep the subject: x and y as fractions of the image (0 to 1).
+            $table->json('focal_point')->nullable();
             $table->string('access')->default('inherit');
             $table->foreignUuid('uploaded_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

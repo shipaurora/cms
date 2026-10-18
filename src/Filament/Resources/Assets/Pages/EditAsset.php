@@ -13,6 +13,7 @@ use Aurora\Filament\Resources\Assets\AssetResource;
 use Aurora\Models\Asset;
 use Aurora\Support\AssetLibrary;
 use Aurora\Support\ContentLocale;
+use Aurora\Support\ImageFormats;
 use Aurora\Support\Renditions;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -114,5 +115,15 @@ class EditAsset extends EditRecord
                     : __('It is not used anywhere.')),
             $this->headerSaveButton(),
         ];
+    }
+
+    /**
+     * A new focal point: the cropped sizes are made again around it.
+     */
+    protected function afterSave(): void
+    {
+        if ($this->record->wasChanged('focal_point')) {
+            ImageFormats::regenerateImage($this->record);
+        }
     }
 }
