@@ -338,12 +338,15 @@ class Page extends Model implements MenuPanelable
 
     /**
      * The language the page is written in: its blocks hold this language's text, and the
-     * other languages are translations of it. The default site language when the page is
-     * in it, otherwise the page's first language.
+     * other languages are translations of it.
+     *
+     * It stays the language the blocks were written in when the website's default
+     * language changes. Following the new default would read that translation as the
+     * blocks themselves, and every language would show the original text.
      */
     public function primaryLocale(): string
     {
-        return $this->isAvailableIn(ContentLocale::default()) ? ContentLocale::default() : $this->availableLocales()[0];
+        return ContentLocale::authoredIn($this->availableLocales(), array_keys($this->block_translations ?? []));
     }
 
     /**

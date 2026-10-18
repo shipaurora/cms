@@ -23,6 +23,12 @@ class SetSiteFromTenant
             CurrentSite::set($tenant);
         }
 
+        // The preferred language ran before the site was known. Apply it again so someone
+        // who hasn't picked one gets this site's language.
+        if ($request->user() !== null) {
+            UsePreferredLocale::apply();
+        }
+
         return $next($request);
     }
 }

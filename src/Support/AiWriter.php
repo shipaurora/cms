@@ -45,9 +45,9 @@ class AiWriter implements Agent
      */
     public static function write(string $field, ?string $current = null, array $context = [], ?string $instruction = null, ?int $maxLength = null, array $images = [], ?string $language = null): string
     {
-        $code = filled($language) ? $language : Locale::defaultCode();
+        $code = filled($language) ? $language : ContentLocale::default();
         $language = Locale::options()[$code] ?? $code;
-        $isWebsiteLanguage = $code === Locale::defaultCode();
+        $isWebsiteLanguage = $code === ContentLocale::default();
 
         $prompt = implode("\n\n", array_filter([
             "Write the text for the field \"{$field}\".",

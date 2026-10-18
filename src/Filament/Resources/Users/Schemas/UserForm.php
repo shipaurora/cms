@@ -7,6 +7,7 @@ use Aurora\Models\Locale;
 use Aurora\Models\Role;
 use Aurora\Models\Site;
 use Aurora\Models\User;
+use Aurora\Support\ContentLocale;
 use Aurora\Support\Passkeys;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\CheckboxList;
@@ -49,7 +50,7 @@ class UserForm
                                 ->label(__('Preferred language'))
                                 ->helperText(__('The language of the admin panel for this person.'))
                                 ->options(fn (): array => Locale::options())
-                                ->placeholder(fn (): string => __('Site default (').(Locale::options()[Locale::defaultCode()] ?? Locale::defaultCode()).')')
+                                ->placeholder(fn (): string => __('Site default (:language)', ['language' => Locale::options()[ContentLocale::default()] ?? ContentLocale::default()]))
                                 ->prefixIcon('phosphor-translate')
                                 ->in(fn (): array => array_keys(Locale::options()))
                                 ->columnSpanFull(),

@@ -91,6 +91,37 @@ class ContentLocale
     }
 
     /**
+     * The language a record's own text is written in.
+     *
+     * Other languages keep only their differences, so the written language is the one
+     * with no translation of its own. When nothing is translated yet, several languages
+     * qualify and it is the default site language (if the record is in it). A default
+     * that already has a translation does not qualify: changing the website's default
+     * language must not make that translation the record itself, or every language
+     * reads as the original text.
+     *
+     * @param  array<int, string>  $available
+     * @param  array<int, string>  $translated  languages that have their own text
+     */
+    public static function authoredIn(array $available, array $translated): string
+    {
+        $available = array_values(array_filter($available, fn (string $code): bool => $code !== ''));
+        $sources = array_values(array_diff($available, array_intersect($available, $translated)));
+
+        if (count($sources) === 1) {
+            return $sources[0];
+        }
+
+        $default = static::default();
+
+        if (in_array($default, $sources, true)) {
+            return $default;
+        }
+
+        return $sources[0] ?? $available[0] ?? $default;
+    }
+
+    /**
      * The start of the website's addresses in a language: nothing for the default, /en for English.
      */
     public static function prefix(?string $code = null): string

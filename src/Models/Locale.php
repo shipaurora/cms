@@ -3,6 +3,7 @@
 namespace Aurora\Models;
 
 use Aurora\Database\Factories\LocaleFactory;
+use Aurora\Support\ContentLocale;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,8 +15,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 /**
- * A language the CMS is available in. The default one is the website's language and the
- * fallback for every label; people can pick any active one for the admin panel.
+ * A language the CMS is available in. The default one is the CMS language: labels are
+ * written in it, and a site uses it until that site chooses its own. People can pick any
+ * active one for the admin panel.
  */
 #[Fillable(['code', 'name', 'prefix', 'is_default', 'is_active', 'sort'])]
 class Locale extends Model
@@ -55,15 +57,15 @@ class Locale extends Model
                 $locale->is_active = true;
             }
 
-            // Unticking the default would leave the website without one: pick another instead.
+            // Unticking the default would leave the CMS without one: pick another instead.
             if (! $locale->is_default && $locale->getOriginal('is_default')) {
-                throw ValidationException::withMessages(['is_default' => __('There is always a default site language. Make another language the default instead.')]);
+                throw ValidationException::withMessages(['is_default' => __('There is always a CMS language. Make another one the CMS language instead.')]);
             }
         });
 
         static::deleting(function (Locale $locale): void {
             if ($locale->is_default) {
-                throw ValidationException::withMessages(['is_default' => __('The default site language can’t be removed. Make another language the default first.')]);
+                throw ValidationException::withMessages(['is_default' => __('The CMS language can’t be removed. Make another one the CMS language first.')]);
             }
         });
 
@@ -146,13 +148,14 @@ class Locale extends Model
             in_array($prefix, Page::RESERVED_SLUGS, true) => __('This address is reserved by the application.'),
             ! $againstExisting => null,
             in_array($prefix, array_values(array_diff_key(static::prefixes(), [(string) $code => true])), true) => __('Another language already uses this prefix.'),
-            ! Page::slugIsAvailable($prefix, static::defaultCode()) => __('A page already has this address.'),
+            ! Page::slugIsAvailable($prefix, ContentLocale::default()) => __('A page already has this address.'),
             default => null,
         };
     }
 
     /**
-     * The website's language.
+     * The CMS language: labels are written in it, and a site uses it until that site
+     * chooses its own (ContentLocale::default()).
      */
     public static function defaultCode(): string
     {

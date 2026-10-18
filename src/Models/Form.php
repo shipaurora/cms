@@ -75,15 +75,32 @@ class Form extends Model
     }
 
     /**
+     * The language the fields are written in. Other languages keep only their text
+     * (field_translations), the same way a page's blocks do.
+     */
+    public function sourceLocale(): string
+    {
+        return ContentLocale::authoredIn(array_keys(ContentLocale::all()), array_keys($this->field_translations ?? []));
+    }
+
+    /**
+     * Same as a page's own language: the language the fields are written in.
+     */
+    public function primaryLocale(): string
+    {
+        return $this->sourceLocale();
+    }
+
+    /**
      * Fields as flat definitions, each with a stable input name, with their text in a
-     * language (the content language by default; untranslated text stays the default's).
+     * language (the content language by default; untranslated text stays the written language's).
      *
      * @return array<int, array{type: string, name: string, label: string, required: bool, data: array<string, mixed>}>
      */
     public function definitions(?string $locale = null): array
     {
         $locale ??= ContentLocale::current();
-        $translations = ContentLocale::isDefault($locale) ? [] : ($this->field_translations[$locale] ?? []);
+        $translations = $locale === $this->sourceLocale() ? [] : ($this->field_translations[$locale] ?? []);
 
         return collect($this->fields ?? [])
             ->filter(fn (mixed $field): bool => is_array($field) && is_string($field['type'] ?? null))

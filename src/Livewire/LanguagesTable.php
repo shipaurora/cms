@@ -6,6 +6,7 @@ use Aurora\Filament\Pages\SiteSettings;
 use Aurora\Filament\Resources\LanguageLines\LanguageLineResource;
 use Aurora\Models\Locale;
 use Aurora\Models\User;
+use Aurora\Support\ContentLocale;
 use Aurora\Support\TableHeading;
 use Aurora\Support\TranslationProgress;
 use Closure;
@@ -35,9 +36,10 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 /**
- * Settings → Languages: the languages the site and the admin panel are available in. The
- * starred one is the website's language; anyone can pick any available one for the admin
- * panel in their profile. "Translate" opens that language's labels.
+ * Settings → Languages: the languages the CMS is available in. The starred one is the CMS
+ * language (labels are written in it, and a site uses it until that site chooses its own,
+ * under Sites). Anyone can pick any available one for the admin panel in their profile.
+ * "Translate" opens that language's labels.
  */
 class LanguagesTable extends Component implements HasActions, HasSchemas, HasTable
 {
@@ -55,7 +57,7 @@ class LanguagesTable extends Component implements HasActions, HasSchemas, HasTab
         return $table
             ->query(Locale::query())
             ->heading(TableHeading::make('phosphor-translate', __('Languages')))
-            ->description(__('The starred language is the default site language; pages can be translated into the others. Everyone can pick any available language for the admin panel in their profile.'))
+            ->description(__('The starred language is the CMS language. Sites that have not chosen one use it, and labels are written in it. Choose a site’s own language under Sites. Everyone can pick any available language for the admin panel in their profile.'))
             ->defaultSort('is_default', 'desc')
             ->reorderable('sort')
             ->paginated(false)
@@ -63,13 +65,13 @@ class LanguagesTable extends Component implements HasActions, HasSchemas, HasTab
                 TextColumn::make('name')
                     ->label(__('Language'))
                     ->weight(FontWeight::SemiBold)
-                    ->description(fn (Locale $record): string => $record->is_default ? $record->code : $record->code.' · /'.Locale::prefixFor($record->code)),
+                    ->description(fn (Locale $record): string => $record->code.($record->code === ContentLocale::default() ? '' : ' · /'.Locale::prefixFor($record->code))),
                 IconColumn::make('is_default')->label(__('Default'))->boolean()->trueIcon('phosphor-check')->falseIcon(null),
                 // Switched on and off right here; the default language is always on.
                 ToggleColumn::make('is_active')
                     ->label(__('Available'))
                     ->disabled(fn (Locale $record): bool => $record->is_default)
-                    ->tooltip(fn (Locale $record): ?string => $record->is_default ? __('The default site language is always available.') : null),
+                    ->tooltip(fn (Locale $record): ?string => $record->is_default ? __('The CMS language is always available.') : null),
                 TextColumn::make('progress')
                     ->label(__('Translated'))
                     ->state(fn (Locale $record): string => TranslationProgress::percentage($record->code).'%')
@@ -146,14 +148,14 @@ class LanguagesTable extends Component implements HasActions, HasSchemas, HasTab
                         $fail($problem);
                     }
                 })
-                ->helperText(__('The website’s addresses in this language start with it, as in /nb/about-us. The default site language has none. Changing it changes every address in the language.')),
+                ->helperText(__('The website’s addresses in this language start with it, as in /nb/about-us. A site’s default language has none. Changing it changes every address in the language.')),
             Toggle::make('is_active')
                 ->label(__('Available'))
                 ->helperText(__('People can choose it for the admin panel.'))
                 ->default(true),
             Toggle::make('is_default')
-                ->label(__('Default site language'))
-                ->helperText(__('The language visitors see, and the fallback for labels not translated yet.')),
+                ->label(__('CMS language'))
+                ->helperText(__('Sites that have not chosen a language use this one, and labels are written in it.')),
         ];
     }
 
@@ -172,7 +174,7 @@ class LanguagesTable extends Component implements HasActions, HasSchemas, HasTab
     public function peopleUsing(): array
     {
         return User::query()->pluck('locale')
-            ->map(fn (?string $code): string => Locale::isActiveCode($code) ? $code : Locale::defaultCode())
+            ->map(fn (?string $code): string => Locale::isActiveCode($code) ? $code : ContentLocale::default())
             ->countBy()
             ->all();
     }

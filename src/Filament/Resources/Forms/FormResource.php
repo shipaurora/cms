@@ -75,13 +75,13 @@ class FormResource extends Resource
             ->columns(3)
             ->components([
                 Group::make()->columnSpan(['lg' => 2])->schema([
-                    // The fields are the same in every language: built in the default site
-                    // language, shown only there. Hidden in the browser rather than by Filament,
-                    // so switching languages keeps them in the form.
+                    // The fields are the same in every language: built in the language they
+                    // were written in, shown only there. Hidden in the browser rather than by
+                    // Filament, so switching languages keeps them in the form.
                     Section::make(__('Fields'))
                         ->icon('phosphor-rows')
                         ->description(__('What people fill in. Drag to reorder.'))
-                        ->extraAttributes(fn (): array => ['x-show' => static::inLanguage(ContentLocale::default())])
+                        ->extraAttributes(fn (?Form $record): array => ['x-show' => static::inLanguage(static::writtenIn($record))])
                         ->disabled(fn (): bool => ! $canBuild())
                         ->schema([
                             Builder::make('fields')
@@ -98,11 +98,11 @@ class FormResource extends Resource
                     // In another language: the fields' text, one language at a time.
                     Section::make(__('Field text'))
                         ->icon('phosphor-translate')
-                        ->description(fn (): string => __('The fields are the same in every language; translate their text here. Empty boxes show the :language text.', ['language' => ContentLocale::all()[ContentLocale::default()] ?? '']))
-                        ->visible(fn (?Form $record): bool => $record !== null && ContentLocale::translations() !== [])
-                        ->extraAttributes(fn (): array => ['x-show' => '! ('.static::inLanguage(ContentLocale::default()).')', 'x-cloak' => true])
+                        ->description(fn (?Form $record): string => __('The fields are the same in every language; translate their text here. Empty boxes show the :language text.', ['language' => ContentLocale::all()[static::writtenIn($record)] ?? '']))
+                        ->visible(fn (?Form $record): bool => $record !== null && static::otherLanguages($record) !== [])
+                        ->extraAttributes(fn (?Form $record): array => ['x-show' => '! ('.static::inLanguage(static::writtenIn($record)).')', 'x-cloak' => true])
                         ->disabled(fn (): bool => ! $canBuild())
-                        ->schema(fn (?Form $record): array => $record === null ? [] : collect(ContentLocale::translations())
+                        ->schema(fn (?Form $record): array => $record === null ? [] : collect(static::otherLanguages($record))
                             ->map(fn (string $name, string $code): Group => Group::make(FormFields::translationSchema($record, $code))
                                 ->extraAttributes(['x-show' => static::inLanguage($code), 'x-cloak' => true]))
                             ->values()
@@ -119,15 +119,15 @@ class FormResource extends Resource
                             TextInput::make('submit_label')
                                 ->label(__('Button label'))
                                 ->default('Send')
-                                ->required(fn ($livewire): bool => static::isDefaultLanguage($livewire))
-                                ->placeholder(fn (?Form $record): ?string => $record?->getTranslation('submit_label', ContentLocale::default(), false))
+                                ->required(fn ($livewire): bool => static::isWrittenLanguage($livewire))
+                                ->placeholder(fn (?Form $record): ?string => $record?->getTranslation('submit_label', static::writtenIn($record), false))
                                 ->maxLength(40),
                         ]),
                     Section::make(__('After sending'))
                         ->icon('phosphor-seal-check')
                         ->disabled(fn (): bool => ! $canBuild())
                         ->schema([
-                            Textarea::make('success_message')->label(__('Thank-you message'))->rows(3)->placeholder(fn (?Form $record): string => $record?->getTranslation('success_message', ContentLocale::default(), false) ?: __('Thanks! We will reply within one working day.')),
+                            Textarea::make('success_message')->label(__('Thank-you message'))->rows(3)->placeholder(fn (?Form $record): string => $record?->getTranslation('success_message', static::writtenIn($record), false) ?: __('Thanks! We will reply within one working day.')),
                             Select::make('redirect_page_id')
                                 ->label(__('Or go to a page'))
                                 ->options(fn (): array => Page::options())
@@ -148,11 +148,31 @@ class FormResource extends Resource
     }
 
     /**
-     * Whether the edit page shows the default site language (the language switcher's choice).
+     * The language the form's fields are written in (the default site language, for a new form).
      */
-    protected static function isDefaultLanguage(mixed $livewire): bool
+    protected static function writtenIn(?Form $record): string
     {
-        return ($livewire->activeLocale ?? ContentLocale::default()) === ContentLocale::default();
+        return $record?->sourceLocale() ?? ContentLocale::default();
+    }
+
+    /**
+     * Languages besides the one the fields are written in.
+     *
+     * @return array<string, string>
+     */
+    protected static function otherLanguages(Form $form): array
+    {
+        return array_diff_key(ContentLocale::all(), [$form->sourceLocale() => true]);
+    }
+
+    /**
+     * Whether the edit page shows the language the fields are written in.
+     */
+    protected static function isWrittenLanguage(mixed $livewire): bool
+    {
+        $record = $livewire->record ?? null;
+
+        return ($livewire->activeLocale ?? ContentLocale::default()) === static::writtenIn($record instanceof Form ? $record : null);
     }
 
     /**

@@ -113,13 +113,13 @@ class FormFields
 
     /**
      * Inputs for a form's field text in another language, one group per field, with the
-     * default site language's text as placeholders. Stored as field_translations.{locale}.
+     * written language's text as placeholders. Stored as field_translations.{locale}.
      *
      * @return array<int, mixed>
      */
     public static function translationSchema(Form $form, string $locale): array
     {
-        return collect($form->definitions(ContentLocale::default()))->map(function (array $field) use ($locale): Fieldset {
+        return collect($form->definitions($form->sourceLocale()))->map(function (array $field) use ($locale): Fieldset {
             $path = "field_translations.{$locale}.{$field['name']}";
             $data = $field['data'];
 
