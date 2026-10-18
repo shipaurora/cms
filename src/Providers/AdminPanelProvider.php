@@ -285,6 +285,7 @@ class AdminPanelProvider extends PanelProvider
                 UsePreferredLocale::class,
             ], isPersistent: true)
             // Settings → Security: no passkey, no admin (until one is added).
-            ->authMiddleware([RequirePasskey::class]);
+            ->authMiddleware([RequirePasskey::class])
+            ->spa();
     }
 }
