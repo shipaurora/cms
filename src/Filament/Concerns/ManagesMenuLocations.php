@@ -164,7 +164,7 @@ trait ManagesMenuLocations
         if ($index >= 0) {
             $this->cacheSchema("mountedActionSchema{$index}", fn (): ?Schema => $this->getMountedActionSchema($index));
         } else {
-            unset($this->cachedSchemas['form']);
+            $this->rebuildForm();
         }
     }
 }

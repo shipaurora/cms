@@ -6,16 +6,16 @@ use Closure;
 use Filament\Schemas\Components\Tabs\Tab;
 
 /**
- * Settings a website adds for its own templates (its header, footer …), each a section of
- * the Settings page next to the CMS's own (its side menu lists them). Registered from a service provider; the tab's fields are saved with the
+ * Settings a website adds for its own templates (its header, footer …): a tab in one of the
+ * Settings pages (Website, Templates …), or a page of its own in Settings' side menu. Registered from a service provider; the tab's fields are saved with the
  * other settings, on the site being edited when their key is listed in $siteKeys.
  *
- *     SettingsTabs::register('footer', fn (): Tab => Tab::make(__('Footer'))->schema([...]), siteKeys: ['footer_note']);
+ *     SettingsTabs::register('footer', fn (): Tab => Tab::make(__('Footer'))->schema([...]), siteKeys: ['footer_note'], page: 'website');
  */
 class SettingsTabs
 {
     /**
-     * @var array<string, array{tab: Closure(): Tab, siteKeys: array<int, string>}>
+     * @var array<string, array{tab: Closure(): Tab, siteKeys: array<int, string>, page: ?string}>
      */
     protected static array $tabs = [];
 
@@ -24,10 +24,22 @@ class SettingsTabs
      *
      * @param  Closure(): Tab  $tab  Built when the Settings page is, so labels are in the reader's language.
      * @param  array<int, string>  $siteKeys  The tab's top-level setting keys that each site keeps for itself.
+     * @param  string|null  $page  The Settings page it joins as a tab ('website', 'templates' …), or
+     *                             null for a page of its own.
      */
-    public static function register(string $key, Closure $tab, array $siteKeys = []): void
+    public static function register(string $key, Closure $tab, array $siteKeys = [], ?string $page = null): void
     {
-        static::$tabs[$key] = ['tab' => $tab, 'siteKeys' => $siteKeys];
+        static::$tabs[$key] = ['tab' => $tab, 'siteKeys' => $siteKeys, 'page' => $page];
+    }
+
+    /**
+     * The Settings page each tab joins (null: one of its own), by key.
+     *
+     * @return array<string, ?string>
+     */
+    public static function pages(): array
+    {
+        return array_map(fn (array $registered): ?string => $registered['page'], static::$tabs);
     }
 
     /**

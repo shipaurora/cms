@@ -8,6 +8,7 @@ use Aurora\Filament\Concerns\ManagesBlockPreviews;
 use Aurora\Filament\Concerns\ManagesImageFormats;
 use Aurora\Filament\Concerns\ManagesLayouts;
 use Aurora\Filament\Concerns\ManagesMenuLocations;
+use Aurora\Filament\Concerns\ManagesWebhooks;
 use Aurora\Filament\Concerns\TranslatesPageLabels;
 use Aurora\Filament\Forms\Components\AssetPicker;
 use Aurora\Filament\Pages\Auth\SetUpRequiredPasskey;
@@ -18,16 +19,26 @@ use Aurora\Livewire\LanguagesTable;
 use Aurora\Livewire\SitesTable;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
+use Aurora\Support\ContentApi;
 use Aurora\Support\Copilot;
+use Aurora\Support\PageCache;
 use Aurora\Support\Passkeys;
+use Aurora\Support\SeoChecks;
 use Aurora\Support\SettingsTabs;
+use Aurora\Support\SystemInfo;
+use Aurora\Support\Themes;
+use Aurora\Support\WebsiteAccess;
+use Aurora\Support\WordPressImport;
 use BackedEnum;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ViewField;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\HasUnsavedDataChangesAlert;
@@ -39,6 +50,7 @@ use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -46,7 +58,13 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
+use InvalidArgumentException;
 use Livewire\Attributes\Url;
+use Throwable;
 use UnitEnum;
 
 /**
@@ -64,6 +82,7 @@ class SiteSettings extends Page implements HasSchemas
     use ManagesImageFormats;
     use ManagesLayouts;
     use ManagesMenuLocations;
+    use ManagesWebhooks;
     use TranslatesPageLabels;
 
     protected static string|BackedEnum|null $navigationIcon = 'phosphor-gear';
@@ -127,7 +146,7 @@ class SiteSettings extends Page implements HasSchemas
      */
     public static function languagesUrl(): string
     {
-        return static::getUrl(['tab' => 'languages']);
+        return static::getUrl(['tab' => 'languages-sites', 'section' => 'languages']);
     }
 
     public static function canAccess(): bool
@@ -151,7 +170,30 @@ class SiteSettings extends Page implements HasSchemas
     }
 
     /**
-     * The sections this person may open, for the command palette and global search.
+     * The pages of Settings, in the side menu's order: each a few tabs that belong together,
+     * by key. A tab a package or site adds (SettingsTabs::register()) joins the page it names,
+     * or gets a page of its own after Website. "saves": whether the page has a Save button
+     * (the others save as they're changed, in dialogs of their own).
+     *
+     * @var array<string, array{label: string, icon: string, tabs: array<int, string>, saves: bool}>
+     */
+    protected const PAGES = [
+        'website' => ['label' => 'Website', 'icon' => 'phosphor-browser', 'tabs' => ['branding'], 'saves' => true],
+        'templates' => ['label' => 'Templates', 'icon' => 'phosphor-layout', 'tabs' => ['layouts', 'blocks', 'menu-locations'], 'saves' => false],
+        'media' => ['label' => 'Media', 'icon' => 'phosphor-image', 'tabs' => ['image-formats'], 'saves' => false],
+        'languages-sites' => ['label' => 'Languages & sites', 'icon' => 'phosphor-translate', 'tabs' => ['languages', 'sites'], 'saves' => false],
+        'search-seo' => ['label' => 'Search & SEO', 'icon' => 'phosphor-magnifying-glass', 'tabs' => ['search', 'seo'], 'saves' => false],
+        'performance' => ['label' => 'Performance', 'icon' => 'phosphor-lightning', 'tabs' => ['page-cache'], 'saves' => true],
+        'integrations' => ['label' => 'Integrations', 'icon' => 'phosphor-plugs-connected', 'tabs' => ['api', 'webhooks'], 'saves' => true],
+        'security' => ['label' => 'Security', 'icon' => 'phosphor-shield-check', 'tabs' => ['sign-in', 'access'], 'saves' => true],
+        'appearance' => ['label' => 'Appearance', 'icon' => 'phosphor-paint-brush-broad', 'tabs' => ['admin-theme'], 'saves' => true],
+        'ai' => ['label' => 'AI Assistant', 'icon' => 'phosphor-sparkle', 'tabs' => ['ai-assistant'], 'saves' => true],
+        'system' => ['label' => 'System', 'icon' => 'phosphor-wrench', 'tabs' => ['maintenance', 'import', 'system-info'], 'saves' => false],
+    ];
+
+    /**
+     * Each tab this person may open, for the command palette and global search: straight to
+     * its page with it open.
      *
      * @return array<int, array{label: string, icon: ?string, url: string}>
      */
@@ -161,53 +203,95 @@ class SiteSettings extends Page implements HasSchemas
             return [];
         }
 
-        return collect((new static)->getSubNavigation())
-            ->map(fn (NavigationItem $item): array => ['label' => (string) $item->getLabel(), 'icon' => $item->getIcon(), 'url' => (string) $item->getUrl()])
+        $settings = new static;
+
+        return collect($settings->pages())
+            ->flatMap(fn (array $page, string $pageKey): array => array_map(fn (string $tab): array => [
+                'label' => (string) $settings->sections()[$tab]->getLabel(),
+                'icon' => $settings->sections()[$tab]->getIcon(),
+                'url' => static::getUrl(count($page['tabs']) > 1 ? ['tab' => $pageKey, 'section' => $tab] : ['tab' => $pageKey]),
+            ], $page['tabs']))
+            ->values()
             ->all();
     }
 
     /**
-     * The section open: one of those the person may see, the first when none (or another) is asked for.
+     * The page open: the one asked for, else the first this person may see.
      */
     public function sectionKey(): string
     {
-        return array_key_exists((string) $this->tab, $this->sections()) ? (string) $this->tab : (string) array_key_first($this->sections());
+        return array_key_exists((string) $this->tab, $this->pages()) ? (string) $this->tab : (string) array_key_first($this->pages());
     }
 
     /**
-     * Each section in the side menu, linking to the page with it open.
+     * Each page in the side menu.
      *
      * @return array<int, NavigationItem>
      */
     public function getSubNavigation(): array
     {
-        return collect($this->sections())
-            ->values()
-            ->map(fn (Tab $section, int $index): NavigationItem => NavigationItem::make((string) $section->getLabel())
-                ->icon($section->getIcon())
-                ->url(static::getUrl(['tab' => array_keys($this->sections())[$index]]))
-                ->isActiveWhen(fn (): bool => $this->sectionKey() === array_keys($this->sections())[$index])
+        return collect($this->pages())
+            ->keys()
+            ->map(fn (string $key, int $index): NavigationItem => NavigationItem::make($this->pages()[$key]['label'])
+                ->icon($this->pages()[$key]['icon'])
+                ->url(static::getUrl(['tab' => $key]))
+                ->isActiveWhen(fn (): bool => $this->sectionKey() === $key)
                 ->sort($index))
             ->all();
     }
 
     public function form(Schema $schema): Schema
     {
-        $section = $this->sections()[$this->sectionKey()];
+        $tabs = $this->pages()[$this->sectionKey()]['tabs'];
 
-        // Just the open section's fields: saving saves those.
+        // One tab: its fields as the page. Several: a tab each, the open one in the address
+        // (?section=blocks).
+        $content = count($tabs) === 1
+            ? Group::make($this->sections()[$tabs[0]]->getDefaultChildComponents())->columns($this->sections()[$tabs[0]]->getColumns())
+            : Tabs::make($this->pages()[$this->sectionKey()]['label'])
+                ->key('section')
+                ->contained(false)
+                ->persistTabInQueryString('section')
+                ->tabs(array_map(fn (string $key): Tab => $this->sections()[$key]->key($key), $tabs));
+
+        // Just the open page's fields: saving saves those.
         return $schema
             ->statePath('data')
-            ->components([
-                Group::make($section->getDefaultChildComponents())
-                    ->columns($section->getColumns()),
-            ]);
+            ->components([$content]);
     }
 
     /**
-     * The sections the person may open, by the key in the address (?tab=branding), in the
-     * side menu's order: the CMS's own, with the website's (its header, footer …) after
-     * Branding.
+     * The pages this person may open, with their tabs, by key.
+     *
+     * @return array<string, array{label: string, icon: string, tabs: array<int, string>, saves: bool}>
+     */
+    protected function pages(): array
+    {
+        $sections = $this->sections();
+        $pages = array_map(fn (array $page): array => [...$page, 'label' => __($page['label'])], static::PAGES);
+
+        // A package's or site's own tabs: in the page they name, else a page of their own.
+        $own = [];
+
+        foreach (SettingsTabs::pages() as $key => $page) {
+            if ($page !== null && isset($pages[$page])) {
+                $pages[$page]['tabs'][] = $key;
+            } elseif (isset($sections[$key])) {
+                $own[$key] = ['label' => (string) $sections[$key]->getLabel(), 'icon' => (string) ($sections[$key]->getIcon() ?? 'phosphor-gear'), 'tabs' => [$key], 'saves' => true];
+            }
+        }
+
+        $pages = [...array_slice($pages, 0, 1, true), ...$own, ...array_slice($pages, 1, null, true)];
+
+        return array_filter(
+            array_map(fn (array $page): array => [...$page, 'tabs' => array_values(array_filter($page['tabs'], fn (string $tab): bool => isset($sections[$tab])))], $pages),
+            fn (array $page): bool => $page['tabs'] !== [],
+        );
+    }
+
+    /**
+     * The tabs this person may open, by key: the CMS's own and those packages and sites add.
+     * Which page each is on: PAGES.
      *
      * @return array<string, Tab>
      */
@@ -303,7 +387,94 @@ class SiteSettings extends Page implements HasSchemas
                             ->viewData(fn (): array => SearchPagesAction::results(trim($this->searchQuery))),
                     ]),
             ]) : null,
-            'security' => Tab::make(__('Security'))->icon('phosphor-shield-check')->columns(3)->schema([
+            // Live pages that could do better in search (Aurora\Support\SeoChecks).
+            'seo' => Tab::make(__('SEO report'))->icon('phosphor-chart-line-up')->schema([
+                Section::make(__('SEO report'))
+                    ->icon('phosphor-chart-line-up')
+                    ->description(__('Live pages that could do better in search results, and what would help. Open a page to fix it.'))
+                    ->schema([
+                        View::make('aurora::filament.pages.seo-report')->viewData(fn (): array => ['rows' => SeoChecks::report()]),
+                    ]),
+            ]),
+            // Pages kept ready-made for visitors (Aurora\Support\PageCache).
+            'page-cache' => Tab::make(__('Page cache'))->icon('phosphor-lightning')->schema([
+                Section::make(__('Page cache'))
+                    ->icon('phosphor-lightning')
+                    ->description(__('Visitors get pages ready-made instead of drawn on every visit, so the website is fast. Any change in the CMS clears it straight away.'))
+                    ->headerActions([
+                        Action::make('clearPageCache')
+                            ->label(__('Clear page cache'))
+                            ->icon('phosphor-broom')
+                            ->color('gray')
+                            ->action(function (): void {
+                                PageCache::flush();
+                                Notification::make()->title(__('Page cache cleared'))->success()->send();
+                            }),
+                    ])
+                    ->columns(2)
+                    ->schema([
+                        Toggle::make(PageCache::SETTING.'.enabled')
+                            ->label(__('Keep pages ready-made'))
+                            ->helperText(__('Only for visitors who aren’t signed in. Pages with a form, previews and password-protected pages are always drawn fresh.'))
+                            ->live()
+                            ->columnSpanFull(),
+                        TextInput::make(PageCache::SETTING.'.minutes')
+                            ->label(__('Keep each page for'))
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(1440)
+                            ->default(60)
+                            ->suffix(__('minutes'))
+                            ->helperText(__('A safety net: changes in the CMS clear it anyway, and scheduled pages go live on time.'))
+                            ->visible(fn (Get $get): bool => (bool) $get(PageCache::SETTING.'.enabled')),
+                    ]),
+            ]),
+            // Pages, menus and settings as JSON, for a separate frontend or app (Aurora\Support\ContentApi).
+            'api' => Tab::make(__('Content API'))->icon('phosphor-brackets-curly')->schema([
+                Section::make(__('Content API'))
+                    ->icon('phosphor-brackets-curly')
+                    ->description(__('Read the website’s live pages, menus and settings as JSON, for a frontend built apart from Laravel, an app or another service. It only shows what visitors may see.'))
+                    ->headerActions([
+                        Action::make('newContentApiKey')
+                            ->label(fn (): string => ContentApi::hasKey() ? __('New key') : __('Create a key'))
+                            ->icon('phosphor-key')
+                            ->color('gray')
+                            ->requiresConfirmation(fn (): bool => ContentApi::hasKey())
+                            ->modalDescription(__('The old key stops working straight away.'))
+                            ->action(function (): void {
+                                Notification::make()
+                                    ->title(__('Your new key'))
+                                    ->body(new HtmlString(__('Copy it now: it isn’t shown again.').'<br><code class="select-all font-mono">'.e(ContentApi::newKey()).'</code>'))
+                                    ->persistent()
+                                    ->success()
+                                    ->send();
+                            }),
+                    ])
+                    ->schema([
+                        Toggle::make(ContentApi::SETTING.'.enabled')
+                            ->label(__('Switch on the content API'))
+                            ->live(),
+                        Toggle::make(ContentApi::SETTING.'.requires_key')
+                            ->label(__('Only with the key'))
+                            ->default(true)
+                            ->helperText(fn (): string => ContentApi::hasKey()
+                                ? __('Send it as Authorization: Bearer <key>.')
+                                : __('Create a key with the button above, and send it as Authorization: Bearer <key>.'))
+                            ->visible(fn (Get $get): bool => (bool) $get(ContentApi::SETTING.'.enabled')),
+                        View::make('aurora::filament.pages.content-api-endpoints')
+                            ->viewData(fn (): array => ['base' => url(ContentApi::PREFIX)])
+                            ->visible(fn (Get $get): bool => (bool) $get(ContentApi::SETTING.'.enabled')),
+                    ]),
+            ]),
+            // Other systems told what happens to the content (Aurora\Support\Webhooks).
+            'webhooks' => Tab::make(__('Webhooks'))->icon('phosphor-plugs-connected')->schema([
+                Section::make(__('Webhooks'))
+                    ->icon('phosphor-plugs-connected')
+                    ->description(__('Tell other systems when pages change or a form is sent: a search service, a CDN to clear, Zapier or Make.'))
+                    ->schema(fn (): array => $this->webhookRows()),
+            ]),
+            'sign-in' => Tab::make(__('Sign-in'))->icon('phosphor-shield-check')->columns(3)->schema([
                 Section::make(__('Two-factor sign-in'))
                     ->icon('phosphor-shield-check')
                     ->description(__('Besides their password, people enter a code from an authenticator app on their phone, like Google Authenticator, 1Password or Authy. Everyone adds their apps on their own profile.'))
@@ -331,6 +502,53 @@ class SiteSettings extends Page implements HasSchemas
 
                                 return trans_choice('{0} Everyone has a passkey.|{1} :count person has no passkey yet: they are asked to add one the next time they open the admin panel.|[2,*] :count people have no passkey yet: they are asked to add one the next time they open the admin panel.', $without);
                             }),
+                    ]),
+            ]),
+            // The website open only to some addresses, for this site (Aurora\Support\WebsiteAccess).
+            'access' => Tab::make(__('Website access'))->icon('phosphor-lock-key')->schema([
+                Section::make(__('Website access'))
+                    ->icon('phosphor-lock-key')
+                    ->description(__('Open this website only to some addresses while it isn’t ready, such as a staging site or an office network. People signed in to the CMS always get in.'))
+                    ->schema([
+                        Toggle::make(WebsiteAccess::SETTING.'.restricted')
+                            ->label(__('Only let in these addresses'))
+                            ->helperText(__('Everyone else sees a page saying the website isn’t open yet.'))
+                            ->live(),
+                        Textarea::make(WebsiteAccess::SETTING.'.addresses')
+                            ->label(__('Addresses'))
+                            ->placeholder("203.0.113.7\n192.168.0.0/24")
+                            ->rows(4)
+                            ->extraInputAttributes(['class' => 'font-mono text-sm'])
+                            ->helperText(fn (): string => __('One address or range per line. Yours is :ip.', ['ip' => request()->ip()]))
+                            ->hintAction(
+                                Action::make('addMyAddress')
+                                    ->label(__('Add my address'))
+                                    ->icon('phosphor-plus')
+                                    ->action(fn (Get $get, Set $set) => $set(WebsiteAccess::SETTING.'.addresses', trim(trim((string) $get(WebsiteAccess::SETTING.'.addresses'))."\n".request()->ip()))),
+                            )
+                            ->rule(fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                                foreach (array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $value))) as $address) {
+                                    if (! WebsiteAccess::isValidAddress($address)) {
+                                        $fail(__('“:address” isn’t an IP address or range.', ['address' => $address]));
+                                    }
+                                }
+                            })
+                            ->visible(fn (Get $get): bool => (bool) $get(WebsiteAccess::SETTING.'.restricted')),
+                    ]),
+            ]),
+            // The admin's look, for everyone (Aurora\Support\Themes).
+            'admin-theme' => Tab::make(__('Admin theme'))->icon('phosphor-paint-brush-broad')->schema([
+                Section::make(__('Admin theme'))
+                    ->icon('phosphor-paint-brush-broad')
+                    ->description(__('How the admin looks, for everyone who works in it. Packages and the website can add their own.'))
+                    ->schema([
+                        ViewField::make(Themes::SETTING)
+                            ->hiddenLabel()
+                            ->view('aurora::filament.pages.theme-picker')
+                            ->viewData(['themes' => Themes::all()])
+                            ->default(fn (): ?string => Themes::active())
+                            ->formatStateUsing(fn (?string $state): ?string => $state ?? Themes::active())
+                            ->in(fn (): array => array_keys(Themes::all())),
                     ]),
             ]),
             'ai-assistant' => Tab::make(__('AI Assistant'))->icon('phosphor-sparkle')->columns(3)->schema([
@@ -430,7 +648,107 @@ class SiteSettings extends Page implements HasSchemas
                             ),
                     ]),
             ]),
+
+            // Keeping the CMS in good shape (Settings › System).
+            'maintenance' => Tab::make(__('Maintenance'))->icon('phosphor-broom')->schema([
+                Section::make(__('Maintenance'))
+                    ->icon('phosphor-broom')
+                    ->description(__('Things that fix most “why isn’t it showing” moments. None of them change content.'))
+                    ->schema([
+                        Actions::make([
+                            Action::make('clearCaches')
+                                ->label(__('Clear caches'))
+                                ->icon('phosphor-broom')
+                                ->color('gray')
+                                ->requiresConfirmation()
+                                ->modalDescription(__('The page cache, the app’s cache and its compiled views are made again as they’re needed. The first visits are a little slower.'))
+                                ->action(function (): void {
+                                    PageCache::flush();
+                                    Artisan::call('cache:clear');
+                                    Artisan::call('view:clear');
+                                    Notification::make()->title(__('Caches cleared'))->success()->send();
+                                }),
+                            Action::make('sendTestEmail')
+                                ->label(__('Send a test email'))
+                                ->icon('phosphor-envelope-simple')
+                                ->color('gray')
+                                ->action(function (): void {
+                                    try {
+                                        Mail::raw(__('This is a test email from :site. If you read this, email works.', ['site' => Setting::get('site_name', config('app.name'))]), fn ($message) => $message->to(auth()->user()->email)->subject(__('Test email')));
+                                        Notification::make()->title(__('Sent to :email', ['email' => auth()->user()->email]))->body(__('If it doesn’t arrive, check the mail settings in .env.'))->success()->send();
+                                    } catch (Throwable $exception) {
+                                        Notification::make()->title(__('The email couldn’t be sent'))->body($exception->getMessage())->danger()->send();
+                                    }
+                                }),
+                            ReindexAllAction::make()->name('reindexAllFromSystem'),
+                        ])->key('maintenance-actions'),
+                    ]),
+            ]),
+            // Moving a WordPress site in (Aurora\Support\WordPressImport).
+            'import' => Tab::make(__('Import'))->icon('phosphor-download-simple')->schema([
+                Section::make(__('Import from WordPress'))
+                    ->icon('phosphor-download-simple')
+                    ->description(__('Bring a WordPress site in: its pages, its blog posts (under a Blog page), its images and its menus. Export it in WordPress under Tools › Export, “All content”.'))
+                    ->schema([
+                        Actions::make([
+                            Action::make('importWordPress')
+                                ->label(__('Import a WordPress export'))
+                                ->icon('phosphor-upload-simple')
+                                ->modalHeading(__('Import from WordPress'))
+                                ->modalDescription(__('Pages come in as they are in WordPress: published or draft. Large sites import faster with php artisan aurora:import-wordpress.'))
+                                ->modalSubmitActionLabel(__('Import'))
+                                ->schema([
+                                    FileUpload::make('file')
+                                        ->label(__('Export file'))
+                                        ->acceptedFileTypes(['text/xml', 'application/xml', 'application/rss+xml'])
+                                        ->disk('local')
+                                        ->directory('wordpress-imports')
+                                        ->maxSize(51200)
+                                        ->required(),
+                                    Toggle::make('posts')->label(__('Blog posts too'))->default(true),
+                                    Toggle::make('media')->label(__('Download the images into the media library'))->default(true),
+                                ])
+                                ->action(function (array $data): void {
+                                    $path = Storage::disk('local')->path($data['file']);
+                                    @set_time_limit(600);
+
+                                    try {
+                                        $result = (new WordPressImport(withPosts: (bool) $data['posts'], withMedia: (bool) $data['media']))->import($path);
+                                        Notification::make()
+                                            ->title(__('Imported from WordPress'))
+                                            ->body(__(':pages pages, :posts posts, :images images and :menus menus.', ['pages' => $result['pages'], 'posts' => $result['posts'], 'images' => $result['images'], 'menus' => $result['menus']]).($result['skipped'] !== [] ? ' '.trans_choice(':count file couldn’t be downloaded.|:count files couldn’t be downloaded.', count($result['skipped'])) : ''))
+                                            ->success()
+                                            ->persistent()
+                                            ->send();
+                                    } catch (InvalidArgumentException $exception) {
+                                        Notification::make()->title(__('That file can’t be imported'))->body($exception->getMessage())->danger()->send();
+                                    } finally {
+                                        Storage::disk('local')->delete($data['file']);
+                                    }
+                                }),
+                        ])->key('import-actions'),
+                    ]),
+            ]),
+            // What the CMS runs on (Aurora\Support\SystemInfo).
+            'system-info' => Tab::make(__('System info'))->icon('phosphor-info')->schema([
+                Section::make(__('System info'))
+                    ->icon('phosphor-info')
+                    ->description(__('What the CMS runs on, and what needs looking at.'))
+                    ->schema([
+                        View::make('aurora::filament.pages.system-info')->viewData(fn (): array => ['rows' => SystemInfo::rows()]),
+                    ]),
+            ]),
         ]));
+    }
+
+    /**
+     * Build the open page again (its tabs, and the lists in them), so a change made in one of
+     * its dialogs shows straight away.
+     */
+    protected function rebuildForm(): void
+    {
+        $this->sections = null;
+        unset($this->cachedSchemas['form']);
     }
 
     protected function getHeaderActions(): array
@@ -440,8 +758,8 @@ class SiteSettings extends Page implements HasSchemas
                 ->label(__('Save settings'))
                 ->action(fn () => $this->save())
                 ->keyBindings(['mod+s'])
-                // Sections that save as they're changed, through their own dialogs.
-                ->visible(fn (): bool => ! in_array($this->sectionKey(), ['layouts', 'image-formats', 'menu-locations', 'blocks', 'languages', 'sites', 'search'], true)),
+                // Pages whose tabs save as they're changed, through their own dialogs, have none.
+                ->visible(fn (): bool => $this->pages()[$this->sectionKey()]['saves']),
         ];
     }
 
@@ -458,6 +776,7 @@ class SiteSettings extends Page implements HasSchemas
     public function save(): void
     {
         $wasOn = Copilot::isConfigured();
+        $themeBefore = Themes::active();
 
         Setting::put($this->form->getState());
 
@@ -477,6 +796,13 @@ class SiteSettings extends Page implements HasSchemas
         $this->rememberData();
 
         Notification::make()->title(__('Settings saved'))->body(__('The website is already using them.'))->success()->send();
+
+        // Another theme: its stylesheet is in the page's head, so the page is loaded again.
+        if (array_key_exists(Themes::SETTING, $this->data ?? []) && $themeBefore !== Themes::active()) {
+            $this->redirect(static::getUrl(['tab' => 'appearance']));
+
+            return;
+        }
 
         // The assistant's chat bubble is part of the page layout: reload so it appears (or goes) now.
         if (Copilot::isConfigured() !== $wasOn) {

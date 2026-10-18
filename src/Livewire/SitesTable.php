@@ -187,7 +187,7 @@ class SitesTable extends Component implements HasActions, HasSchemas, HasTable
     protected function afterSaving(Site $site): void
     {
         if ($site->is(Filament::getTenant()) && $site->wasChanged(['handle', 'domain'])) {
-            $this->redirect(SiteSettings::getUrl(['tab' => 'sites'], tenant: $site));
+            $this->redirect(SiteSettings::getUrl(['tab' => 'languages-sites', 'section' => 'sites'], tenant: $site));
 
             return;
         }

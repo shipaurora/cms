@@ -86,7 +86,7 @@ trait ManagesBlockPreviews
             ])
             ->action(function (array $data) use ($block): void {
                 $this->putBlockPreview($block::type(), $data['screenshot']);
-                unset($this->cachedSchemas['form']);
+                $this->rebuildForm();
 
                 Notification::make()->title(__('Screenshot saved'))->success()->send();
             });
@@ -111,7 +111,7 @@ trait ManagesBlockPreviews
             ->modalSubmitActionLabel(__('Remove'))
             ->action(function () use ($block): void {
                 $this->putBlockPreview($block::type(), null);
-                unset($this->cachedSchemas['form']);
+                $this->rebuildForm();
 
                 Notification::make()->title(__('Screenshot removed'))->success()->send();
             });
