@@ -3,6 +3,7 @@
 namespace Aurora\Http\Controllers;
 
 use Aurora\Enums\SubmissionStatus;
+use Aurora\Events\FormSubmitted as FormSubmittedEvent;
 use Aurora\Models\Form;
 use Aurora\Models\FormSubmission;
 use Aurora\Models\Page;
@@ -36,7 +37,8 @@ class FormSubmissionController
         ContentLocale::set(is_string($locale = $request->input('_locale')) ? $locale : null);
         app()->setLocale(ContentLocale::current());
 
-        $fields = $form->definitions();
+        // Only the fields that were showing, for the answers given.
+        $fields = FormFields::visible($form->definitions(), $request->all());
         $bag = 'form_'.$form->id;
         $anchor = '#form-'.$form->id;
 
@@ -77,6 +79,7 @@ class FormSubmissionController
         // The people who read submissions hear about it in the admin; spam stays quiet.
         if (! $looksLikeSpam) {
             CmsNotifications::formSubmitted($submission);
+            FormSubmittedEvent::dispatch($submission);
         }
 
         if (! $looksLikeSpam && filled($form->notify)) {
