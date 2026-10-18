@@ -13,6 +13,7 @@ use Aurora\Filament\Pages\Auth\PasskeyTwoFactorChallenge;
 use Aurora\Filament\Pages\Auth\SetUpRequiredPasskey;
 use Aurora\Filament\Pages\Dashboard;
 use Aurora\Filament\Resources\Menus\MenuResource;
+use Aurora\Filament\Resources\Pages\Pages\EditPage;
 use Aurora\Filament\Resources\Users\UserResource;
 use Aurora\Http\Controllers\SidebarPreferenceController;
 use Aurora\Http\Controllers\ThemePreferenceController;
@@ -34,6 +35,7 @@ use Aurora\Support\Copilot;
 use Aurora\Support\CopilotTools;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\PaletteCommands;
+use Aurora\Support\Themes;
 use CarlJanzell\FilamentPageBuilder\FilamentPageBuilderPlugin;
 use Datlechin\FilamentMenuBuilder\MenuPanel\ModelMenuPanel;
 use Datlechin\FilamentMenuBuilder\MenuPanel\StaticMenuPanel;
@@ -48,6 +50,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Theme;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
 use Filament\View\PanelsRenderHook;
@@ -58,8 +61,10 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin;
+use Livewire\Livewire;
 use MarcelWeidum\Passkeys\PasskeysPlugin;
 use Usamamuneerchaudhary\CommandPalette\FilamentCommandPalettePlugin;
 use Usamamuneerchaudhary\CommandPalette\Support\Providers\ActionCommandProvider;
@@ -68,18 +73,6 @@ use Usamamuneerchaudhary\CommandPalette\Support\Providers\NavigationCommandProvi
 
 class AdminPanelProvider extends PanelProvider
 {
-    /**
-     * The admin's look: a theme a package registers with Filament, by its id ("aurora", from
-     * aurora/aurora, unless another is named), or a Vite entry the site builds itself
-     * (a path ending in .css).
-     */
-    public static function useTheme(Panel $panel, ?string $theme): Panel
-    {
-        $theme = filled($theme) ? $theme : 'aurora';
-
-        return str_ends_with($theme, '.css') ? $panel->viteTheme($theme) : $panel->theme($theme);
-    }
-
     public function panel(Panel $panel): Panel
     {
         // Sites: the admin works on one at a time, at /admin/{site}/…. There is always the
@@ -150,7 +143,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->font('Inter')
             // Aurora's theme (aurora/aurora), another theme package's, or the site's own build.
-            ->tap(fn (Panel $panel) => static::useTheme($panel, config('aurora.theme')))
+            // The theme chosen under Settings › Appearance (Aurora\Support\Themes), worked out as
+            // each page is drawn.
+            ->theme(Theme::make('aurora-active')->html(fn (): HtmlString => new HtmlString(Themes::html())))
             // Dark by default; each person's own choice is saved on their account (see below).
             ->defaultThemeMode(ThemeMode::Dark)
             ->sidebarCollapsibleOnDesktop()
@@ -267,6 +262,8 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::BODY_END, fn (): string => PasskeyPrompt::shouldOffer() ? Blade::render('<livewire:passkey-prompt />') : '')
             // Extra fonts, the admin's scripts and what they need (resources/views/filament/head.blade.php).
             ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => view('aurora::filament.head')->render())
+            // Who else is editing the page (Aurora\Support\EditLocks), on its edit form.
+            ->renderHook(PanelsRenderHook::PAGE_START, fn (): string => Blade::render('<livewire:edit-lock :record="$record" />', ['record' => Livewire::current()->getRecord()]), scopes: EditPage::class)
             ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn (): string => view('aurora::filament.demo-login')->render())
             ->middleware([
                 EncryptCookies::class,

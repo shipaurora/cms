@@ -7,6 +7,7 @@ use Aurora\Http\Controllers\BrandImageController;
 use Aurora\Http\Controllers\DemoLoginController;
 use Aurora\Http\Controllers\FormSubmissionController;
 use Aurora\Http\Controllers\SubmissionFileController;
+use Aurora\Http\Controllers\ThemePreviewController;
 use Aurora\Http\Controllers\UnlockPageController;
 use Illuminate\Support\Facades\Route;
 use Spatie\LaravelPasskeys\Http\Controllers\GeneratePasskeyAuthenticationOptionsController;
@@ -33,6 +34,9 @@ Route::middleware('web')->group(function (): void {
 
     // A file sent through a form: for signed-in people who may see submissions, by signed link.
     Route::get('submission-files/{media}', SubmissionFileController::class)->middleware(['auth', 'signed'])->whereUuid('media')->name('submission-files.show');
+
+    // A theme's picture, for choosing it under Settings › Appearance.
+    Route::get('aurora/themes/{theme}/preview', ThemePreviewController::class)->middleware('auth')->where('theme', '[a-z0-9-]+')->name('aurora.themes.preview');
 
     // A media library file's lasting address: links to it survive the file being replaced.
     Route::get('files/{asset}', AssetFileController::class)->whereUuid('asset')->name('files.show');

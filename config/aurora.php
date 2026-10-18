@@ -49,11 +49,9 @@ return [
     | Admin theme
     |--------------------------------------------------------------------------
     |
-    | The admin's look. Empty: Aurora's theme (aurora/aurora). The id of
-    | another theme a package registers with Filament, for a custom look. Or a
-    | Vite entry (ending in .css) for the site's own build on Aurora's
-    | (resources/css/index.css) with its design tokens and blocks, so the
-    | visual editor shows them styled.
+    | The admin's look until one is chosen under Settings › Appearance: the id
+    | of a theme in Aurora's registry (Aurora\Support\Themes::register()).
+    | Empty: Aurora's own (aurora/aurora).
     |
     */
 
