@@ -2,15 +2,19 @@
 
 namespace Aurora\Support;
 
+use Aurora\Enums\ApiScope;
 use Aurora\Enums\AssetType;
 use Aurora\Models\Asset;
 use Aurora\Models\Menu;
 use Aurora\Models\MenuItem;
 use Aurora\Models\Page;
+use Closure;
+use GraphQL\Error\UserError;
 use GraphQL\Type\Definition\CustomScalarType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
+use Illuminate\Http\Request;
 
 /**
  * The GraphQL API's schema (Aurora\Support\PublicApi): the same pages, menus and settings
@@ -29,6 +33,21 @@ class GraphqlSchema
     public static function get(): Schema
     {
         return static::$schema ??= static::build();
+    }
+
+    /**
+     * A query the request's API key needs a scope for (Aurora\Enums\ApiScope): the request
+     * is the query's context (GraphqlController).
+     */
+    protected static function scoped(ApiScope $scope, Closure $resolve): Closure
+    {
+        return function (mixed $root, array $args, mixed $request) use ($scope, $resolve): mixed {
+            if ($request instanceof Request && ! PublicApi::permits($request, $scope)) {
+                throw new UserError("This API key can't do this: it needs the \"{$scope->value}\" scope.");
+            }
+
+            return $resolve($root, $args);
+        };
     }
 
     protected static function build(): Schema
@@ -98,7 +117,7 @@ class GraphqlSchema
                 'layout' => ['type' => Type::string(), 'description' => 'The layout\'s handle.', 'resolve' => fn (Page $page): ?string => $page->layoutOrDefault()?->handle],
                 'locales' => ['type' => Type::nonNull(Type::listOf(Type::nonNull(Type::string()))), 'resolve' => fn (Page $page): array => $page->availableLocales()],
                 'seo' => ['type' => Type::nonNull($seo), 'resolve' => fn (Page $page): Page => $page],
-                'blocks' => ['type' => Type::nonNull($json), 'description' => 'The page\'s blocks, nested: each with its type, data and children. Ids in the data come as what they point at: a file, a page, a form, a shared section\'s blocks.', 'resolve' => fn (Page $page): array => ApiContent::blocks(BlockTreeBuilder::nest($page->localizedBlocks()))],
+                'blocks' => ['type' => Type::nonNull($json), 'description' => 'The page\'s blocks, nested: each with its type, data and children. Ids in the data come as what they point at: a file, a page, a form.', 'resolve' => fn (Page $page): array => ApiContent::blocks(BlockTreeBuilder::nest($page->localizedBlocks()))],
             ],
         ]);
 
@@ -113,6 +132,25 @@ class GraphqlSchema
         ]);
 
         // Its children are menu items too: the fields are read once the type exists.
+        $searchResult = new ObjectType([
+            'name' => 'SearchResult',
+            'fields' => [
+                'page' => ['type' => Type::nonNull($page)],
+                'snippet' => ['type' => Type::string(), 'description' => 'A few words of the page around where it matched.'],
+                'score' => ['type' => Type::float(), 'description' => 'How well it matched (higher is better), when the search says.'],
+            ],
+        ]);
+
+        $searchResults = new ObjectType([
+            'name' => 'SearchResults',
+            'fields' => [
+                'items' => ['type' => Type::nonNull(Type::listOf(Type::nonNull($searchResult)))],
+                'total' => ['type' => Type::nonNull(Type::int())],
+                'currentPage' => ['type' => Type::nonNull(Type::int())],
+                'lastPage' => ['type' => Type::nonNull(Type::int())],
+            ],
+        ]);
+
         $menuItem = new ObjectType([
             'name' => 'MenuItem',
             'fields' => function () use (&$menuItem): array {
@@ -146,14 +184,14 @@ class GraphqlSchema
                             'perPage' => ['type' => Type::int(), 'defaultValue' => 50, 'description' => 'At most '.self::MAX_PER_PAGE.'.'],
                             'parent' => ['type' => Type::id(), 'description' => 'Only the pages under this one; "" for the top level.'],
                         ],
-                        'resolve' => function (mixed $root, array $args): array {
+                        'resolve' => static::scoped(ApiScope::PagesList, function (mixed $root, array $args): array {
                             $pages = Page::query()->public()->when(array_key_exists('parent', $args), fn ($query) => $query->where('parent_id', $args['parent'] ?: null))->latest('updated_at')->paginate(
                                 perPage: max(1, min(self::MAX_PER_PAGE, $args['perPage'])),
                                 page: max(1, $args['page']),
                             );
 
                             return ['items' => $pages->items(), 'total' => $pages->total(), 'currentPage' => $pages->currentPage(), 'lastPage' => $pages->lastPage()];
-                        },
+                        }),
                     ],
                     'page' => [
                         'type' => $page,
@@ -162,32 +200,58 @@ class GraphqlSchema
                             'id' => ['type' => Type::id()],
                             'path' => ['type' => Type::string()],
                         ],
-                        'resolve' => fn (mixed $root, array $args): ?Page => match (true) {
+                        'resolve' => static::scoped(ApiScope::PagesRead, fn (mixed $root, array $args): ?Page => match (true) {
                             isset($args['id']) => Page::query()->public()->find($args['id']),
                             isset($args['path']) => PublicApi::pageAt($args['path']),
                             default => null,
-                        },
+                        }),
+                    ],
+                    'search' => [
+                        'type' => Type::nonNull($searchResults),
+                        'description' => 'The pages a search finds, as the website\'s own search finds them, most relevant first.',
+                        'args' => [
+                            'query' => ['type' => Type::nonNull(Type::string())],
+                            'page' => ['type' => Type::int(), 'defaultValue' => 1],
+                            'perPage' => ['type' => Type::int(), 'defaultValue' => 20, 'description' => 'At most '.self::MAX_PER_PAGE.'.'],
+                        ],
+                        'resolve' => static::scoped(ApiScope::Search, function (mixed $root, array $args): array {
+                            $terms = trim($args['query']);
+
+                            if (mb_strlen($terms) < 2) {
+                                throw new UserError('Search for at least 2 characters.');
+                            }
+
+                            $pages = Page::searchSite(mb_substr($terms, 0, 200))->paginate(max(1, min(self::MAX_PER_PAGE, $args['perPage'])), 'page', max(1, $args['page']));
+                            $scores = PageSearch::scores(array_map(fn (Page $page): string => $page->getKey(), $pages->items()), $terms);
+
+                            return [
+                                'items' => array_map(fn (Page $page): array => ['page' => $page, 'snippet' => ApiContent::snippet($page, $terms), 'score' => $scores[$page->id] ?? null], $pages->items()),
+                                'total' => $pages->total(),
+                                'currentPage' => $pages->currentPage(),
+                                'lastPage' => $pages->lastPage(),
+                            ];
+                        }),
                     ],
                     'menu' => [
                         'type' => $menu,
                         'description' => 'The menu in a menu location, such as header.',
                         'args' => ['location' => ['type' => Type::nonNull(Type::string())]],
-                        'resolve' => fn (mixed $root, array $args): ?array => ($model = Menu::location($args['location'])) === null
+                        'resolve' => static::scoped(ApiScope::MenusRead, fn (mixed $root, array $args): ?array => ($model = Menu::location($args['location'])) === null
                             ? null
-                            : ['name' => $model->name, 'location' => $args['location'], 'model' => $model],
+                            : ['name' => $model->name, 'location' => $args['location'], 'model' => $model]),
                     ],
                     'settings' => [
                         'type' => Type::nonNull($json),
                         'description' => 'The website\'s settings anyone may see: its name, tagline, colours and the settings its blocks and layouts make public.',
-                        'resolve' => fn (): array => ApiContent::settings(),
+                        'resolve' => static::scoped(ApiScope::SettingsRead, fn (): array => ApiContent::settings()),
                     ],
                     'media' => [
                         'type' => $media,
                         'description' => 'One file the website\'s visible content uses.',
                         'args' => ['id' => ['type' => Type::nonNull(Type::id())]],
-                        'resolve' => fn (mixed $root, array $args): ?array => in_array($args['id'], ApiContent::publicAssetIds(), true)
+                        'resolve' => static::scoped(ApiScope::MediaRead, fn (mixed $root, array $args): ?array => in_array($args['id'], ApiContent::publicAssetIds(), true)
                             ? ApiContent::asset(Asset::query()->findOrFail($args['id']))
-                            : null,
+                            : null),
                     ],
                     'mediaList' => [
                         'type' => Type::nonNull($mediaList),
@@ -197,7 +261,7 @@ class GraphqlSchema
                             'perPage' => ['type' => Type::int(), 'defaultValue' => 50, 'description' => 'At most '.self::MAX_PER_PAGE.'.'],
                             'type' => ['type' => Type::string(), 'description' => 'One kind: image, video, audio, pdf, document …'],
                         ],
-                        'resolve' => function (mixed $root, array $args): array {
+                        'resolve' => static::scoped(ApiScope::MediaRead, function (mixed $root, array $args): array {
                             $assets = Asset::query()
                                 ->whereIn('id', ApiContent::publicAssetIds())
                                 ->when(AssetType::tryFrom((string) ($args['type'] ?? '')), fn ($query, AssetType $type) => $type->scope($query))
@@ -205,7 +269,7 @@ class GraphqlSchema
                                 ->paginate(perPage: max(1, min(self::MAX_PER_PAGE, $args['perPage'])), page: max(1, $args['page']));
 
                             return ['items' => array_map(fn (Asset $asset): array => ApiContent::asset($asset), $assets->items()), 'total' => $assets->total(), 'currentPage' => $assets->currentPage(), 'lastPage' => $assets->lastPage()];
-                        },
+                        }),
                     ],
                 ],
             ]),

@@ -12,6 +12,7 @@
         'GET /media/{id}' => __('One of those files.'),
         'GET /menus/{location}' => __('The menu in a menu location, such as header.'),
         'GET /settings' => __('The website’s name, colours and the settings its blocks make public.'),
+        'GET /search?q=pricing' => __('The pages a search finds, as the website’s own search finds them, with a few words around each match.'),
     ];
 
     $example = <<<'GRAPHQL'

@@ -2,12 +2,15 @@
 
 namespace Aurora\Livewire;
 
+use Aurora\Enums\ApiScope;
 use Aurora\Models\ApiKey;
 use Aurora\Support\TableHeading;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
@@ -57,6 +60,13 @@ class ApiKeysTable extends Component implements HasActions, HasSchemas, HasTable
                     ->label(__('Name'))
                     ->weight(FontWeight::SemiBold)
                     ->description(fn (ApiKey $record): string => $record->hint.'…'),
+                TextColumn::make('scopes')
+                    ->label(__('May'))
+                    ->state(fn (ApiKey $record): string => count($record->scopes ?? []) === count(ApiScope::cases())
+                        ? __('Everything')
+                        : collect($record->scopes ?? [])->map(fn (string $scope): ?string => ApiScope::tryFrom($scope)?->getLabel())->filter()->implode(', '))
+                    ->placeholder(__('Nothing'))
+                    ->wrap(),
                 TextColumn::make('created_at')
                     ->label(__('Made'))
                     ->since()
@@ -68,6 +78,10 @@ class ApiKeysTable extends Component implements HasActions, HasSchemas, HasTable
             ])
             ->headerActions([$this->createAction()])
             ->recordActions([
+                EditAction::make()
+                    ->modalHeading(__('Edit API key'))
+                    ->modalWidth('md')
+                    ->schema(fn (): array => $this->fields()),
                 DeleteAction::make()
                     ->label(__('Revoke'))
                     ->icon('phosphor-trash')
@@ -88,20 +102,37 @@ class ApiKeysTable extends Component implements HasActions, HasSchemas, HasTable
             ->modalIcon('phosphor-key')
             ->modalWidth('md')
             ->modalSubmitActionLabel(__('Create key'))
-            ->schema([
-                TextInput::make('name')
-                    ->label(__('Name'))
-                    ->placeholder(__('e.g. Website frontend'))
-                    ->helperText(__('What uses it, so you know which key to revoke later.'))
-                    ->required()
-                    ->maxLength(120)
-                    ->autofocus(),
-            ])
+            ->schema(fn (): array => $this->fields())
+            ->fillForm(['scopes' => ApiScope::all()])
             ->action(function (array $data): void {
-                [, $key] = ApiKey::issue($data['name'], auth()->user());
+                [, $key] = ApiKey::issue($data['name'], auth()->user(), $data['scopes']);
 
                 $this->replaceMountedAction('showApiKey', ['name' => $data['name'], 'key' => $key]);
             });
+    }
+
+    /**
+     * A key's name and what it may do.
+     *
+     * @return array<int, mixed>
+     */
+    protected function fields(): array
+    {
+        return [
+            TextInput::make('name')
+                ->label(__('Name'))
+                ->placeholder(__('e.g. Website frontend'))
+                ->helperText(__('What uses it, so you know which key to revoke later.'))
+                ->required()
+                ->maxLength(120)
+                ->autofocus(),
+            CheckboxList::make('scopes')
+                ->label(__('What it may do'))
+                ->helperText(__('Only what the app needs: a request for anything else is turned away.'))
+                ->options(ApiScope::class)
+                ->descriptions(collect(ApiScope::cases())->mapWithKeys(fn (ApiScope $scope): array => [$scope->value => $scope->getDescription()])->all())
+                ->required(),
+        ];
     }
 
     /**

@@ -2,14 +2,12 @@
 
 namespace Aurora\Support;
 
-use Aurora\Blocks\SharedSectionBlock;
 use Aurora\Filament\Forms\Components\AssetPicker;
 use Aurora\Filament\Forms\Components\PagePicker;
 use Aurora\Models\Asset;
 use Aurora\Models\Form;
 use Aurora\Models\Page;
 use Aurora\Models\Setting;
-use Aurora\Models\SharedSection;
 use CarlJanzell\FilamentPageBuilder\BlockRegistries;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
@@ -26,8 +24,7 @@ use Throwable;
  * Content as the website's APIs give it (Aurora\Support\PublicApi): structured, so an app can
  * draw it without knowing the CMS. What a block or setting stores as an id comes out as what
  * it points at, worked out from its fields: a file (its addresses, sizes and alt text), a
- * page (its title and address, only if anyone may see it), a form (its fields), a shared
- * section (its blocks). Rich text comes out as the website's cleaned HTML.
+ * page (its title and address, only if anyone may see it), a form (its fields). Rich text comes out as the website's cleaned HTML.
  *
  * Only what visitors may see: never a page behind a password or sign-in, a form's
  * notification addresses, a file's place in the library or who uploaded it, or a setting
@@ -50,13 +47,6 @@ class ApiContent
     protected static array $blockKinds = [];
 
     /**
-     * Shared sections being worked out, so one inside itself stops.
-     *
-     * @var array<int, string>
-     */
-    protected static array $sections = [];
-
-    /**
      * @param  array<int, array<string, mixed>>  $blocks  Nested (BlockTreeBuilder::nest()).
      * @return array<int, array<string, mixed>>
      */
@@ -75,10 +65,6 @@ class ApiContent
         $data = is_array($block['data'] ?? null) ? $block['data'] : [];
 
         $block['data'] = static::resolve($data, static::blockKinds($type));
-
-        if ($type === SharedSectionBlock::type()) {
-            $block['data']['shared_section'] = static::sharedSection($data['shared_section_id'] ?? null);
-        }
 
         if (is_array($block['children'] ?? null)) {
             $block['children'] = array_is_list($block['children'])
@@ -209,8 +195,27 @@ class ApiContent
     }
 
     /**
-     * The files content anyone may see uses: on live public pages (and the shared sections
-     * they place), and in the settings the APIs show. Other files in the library aren't
+     * A few words of a page around where a search matched (the text the search index holds),
+     * or the start of it when no word is found as written.
+     */
+    public static function snippet(Page $page, string $terms, int $length = 200): ?string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', PageSearch::textIn($page, ContentLocale::current())) ?? '');
+
+        if ($text === '') {
+            return null;
+        }
+
+        $words = array_filter(preg_split('/\s+/u', trim($terms)) ?: [], fn (string $word): bool => mb_strlen($word) > 1);
+        $at = collect($words)->map(fn (string $word): int|false => mb_stripos($text, $word))->filter(fn (int|false $at): bool => $at !== false)->min() ?? 0;
+        $start = max(0, $at - intdiv($length, 3));
+
+        return ($start > 0 ? '…' : '').trim(mb_substr($text, $start, $length)).($start + $length < mb_strlen($text) ? '…' : '');
+    }
+
+    /**
+     * The files content anyone may see uses: on live public pages and in the settings the
+     * APIs show. Other files in the library aren't
      * listed or shown. Worked out once until the content changes (PageCache::remember()).
      *
      * @return array<int, string>
@@ -221,13 +226,7 @@ class ApiContent
             $pages = Page::query()->public()->get(['id', 'blocks', 'block_translations', 'og_image']);
             $content = $pages->map(fn (Page $page): array => [$page->blocks, $page->block_translations, $page->og_image])->all();
 
-            $sections = SharedSection::query()
-                ->whereIn('id', static::uuids($content))
-                ->get(['blocks', 'block_translations'])
-                ->map(fn (SharedSection $section): array => [$section->blocks, $section->block_translations])
-                ->all();
-
-            return AssetLibrary::referencedIds([$content, $sections, Arr::only(Setting::forCurrentSite(), PublicApi::publicSettings())]);
+            return AssetLibrary::referencedIds([$content, Arr::only(Setting::forCurrentSite(), PublicApi::publicSettings())]);
         }));
     }
 
@@ -269,26 +268,6 @@ class ApiContent
         $url = fn (mixed $path): ?string => is_string($path) && $path !== '' ? (Str::startsWith($path, ['http://', 'https://']) ? $path : Storage::disk($disk)->url($path)) : null;
 
         return is_array($value) ? array_values(array_filter(array_map($url, $value))) : $url($value);
-    }
-
-    /**
-     * @return array{id: string, name: string, blocks: array<int, array<string, mixed>>}|null
-     */
-    protected static function sharedSection(mixed $id): ?array
-    {
-        $section = is_string($id) && Str::isUuid($id) ? SharedSection::query()->find($id) : null;
-
-        if ($section === null || in_array($section->id, static::$sections, true)) {
-            return null;
-        }
-
-        static::$sections[] = $section->id;
-
-        try {
-            return ['id' => $section->id, 'name' => $section->name, 'blocks' => static::blocks(BlockTreeBuilder::nest($section->localizedBlocks()))];
-        } finally {
-            array_pop(static::$sections);
-        }
     }
 
     /**
@@ -352,17 +331,5 @@ class ApiContent
             $field instanceof Repeater => ['list' => rescue(fn (): array => static::kinds($field->getDefaultChildComponents()), [], report: false)],
             default => null,
         };
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    protected static function uuids(mixed $value): array
-    {
-        if (is_string($value)) {
-            return Str::isUuid($value) ? [$value] : [];
-        }
-
-        return is_array($value) ? array_values(array_unique(array_merge([], ...array_map(fn (mixed $child): array => static::uuids($child), array_values($value))))) : [];
     }
 }

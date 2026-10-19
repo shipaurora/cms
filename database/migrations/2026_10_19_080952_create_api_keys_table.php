@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('key_hash', 64)->unique();
             // Its first characters, to tell keys apart ("aurora_Xk3f…").
             $table->string('hint', 20);
+            // What it may do (Aurora\Enums\ApiScope values).
+            $table->json('scopes');
             $table->foreignUuid('created_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('last_used_at')->nullable();
             $table->timestamps();

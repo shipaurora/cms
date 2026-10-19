@@ -2,6 +2,7 @@
 
 namespace Aurora\Database\Factories;
 
+use Aurora\Enums\ApiScope;
 use Aurora\Models\ApiKey;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -24,6 +25,7 @@ class ApiKeyFactory extends Factory
             'name' => fake()->words(2, true),
             'key_hash' => ApiKey::hash($key),
             'hint' => Str::limit($key, 11, ''),
+            'scopes' => ApiScope::all(),
         ];
     }
 }

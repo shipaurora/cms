@@ -32,6 +32,8 @@ class GraphqlController
         $result = GraphQL::executeQuery(
             schema: GraphqlSchema::get(),
             source: $query,
+            // For each query's scope (GraphqlSchema::scoped()).
+            contextValue: $request,
             variableValues: is_array($variables) ? $variables : null,
             operationName: is_string($operation = $request->input('operationName')) ? $operation : null,
             validationRules: [...DocumentValidator::allRules(), new QueryDepth(self::MAX_DEPTH)],

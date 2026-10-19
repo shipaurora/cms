@@ -3,6 +3,7 @@
 namespace Aurora\Support;
 
 use Aurora\Enums\Api;
+use Aurora\Enums\ApiScope;
 use Aurora\Models\ApiKey;
 use Aurora\Models\Page;
 use Aurora\Models\Setting;
@@ -21,6 +22,11 @@ class PublicApi
     public const REST_PREFIX = 'api/aurora/v1';
 
     public const GRAPHQL_PATH = 'api/aurora/graphql';
+
+    /**
+     * The request attribute holding the key it was let in with, for its scopes.
+     */
+    public const KEY = 'aurora.api-key';
 
     public static function enabled(Api $api): bool
     {
@@ -50,12 +56,25 @@ class PublicApi
             return false;
         }
 
+        $request->attributes->set(self::KEY, $key);
+
         // When it was last used, to a minute: enough to tell a key in use from a forgotten one.
         if ($key->last_used_at === null || $key->last_used_at->lt(now()->subMinute())) {
             $key->forceFill(['last_used_at' => now()])->saveQuietly();
         }
 
         return true;
+    }
+
+    /**
+     * Whether the request may do this: always on an API that needs no key, else only when
+     * its key was given this scope.
+     */
+    public static function permits(Request $request, ApiScope $scope): bool
+    {
+        $key = $request->attributes->get(self::KEY);
+
+        return ! $key instanceof ApiKey || $key->allows($scope);
     }
 
     /**
