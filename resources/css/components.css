@@ -1881,6 +1881,16 @@ html:has(.fpb) {
     object-position: top left;
 }
 
+/* A theme with a picture per mode: the one for the mode the admin is in. */
+.cms-theme-preview-dark,
+.dark .cms-theme-preview-light {
+    display: none;
+}
+
+.dark .cms-theme-preview-dark {
+    display: block;
+}
+
 /* The same chip as the Preview button, with Phosphor's bold arrow in front. */
 .fpb .fpb-back::before {
     content: '';

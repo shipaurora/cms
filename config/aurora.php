@@ -36,9 +36,9 @@ return [
     | Demo mode
     |--------------------------------------------------------------------------
     |
-    | One-click sign-in as the seeded demo accounts, shown on the admin login
-    | page (php artisan aurora:install --demo can turn it on). For presenting
-    | the demo only: never enable this on a public site.
+    | One-click sign-in as the accounts the website registers with
+    | Aurora\Support\Demo::register(), shown on the admin login page. For
+    | presenting a site only: never enable this on a public site.
     |
     */
 
@@ -51,7 +51,7 @@ return [
     |
     | The admin's look until one is chosen under Settings › Appearance: the id
     | of a theme in Aurora's registry (Aurora\Support\Themes::register()).
-    | Empty: Aurora's own (aurora/aurora).
+    | Empty: Borealis, Aurora's own (aurora/borealis).
     |
     */
 

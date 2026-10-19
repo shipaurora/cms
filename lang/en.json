@@ -2049,5 +2049,11 @@
     "What it may do": "What it may do",
     "Only what the app needs: a request for anything else is turned away.": "Only what the app needs: a request for anything else is turned away.",
     "Scopes": "Scopes",
-    "The pages a search finds, as the website’s own search finds them, with a few words around each match.": "The pages a search finds, as the website’s own search finds them, with a few words around each match."
+    "The pages a search finds, as the website’s own search finds them, with a few words around each match.": "The pages a search finds, as the website’s own search finds them, with a few words around each match.",
+    "Docs": "Docs",
+    "Docs menu": "Docs menu",
+    "Logo": "Logo",
+    "No blocks of the website’s own yet": "No blocks of the website’s own yet",
+    "Editors build pages from the built-in blocks for now. Blocks made for this website are listed here once its code has them: make one with php artisan aurora:make-block.": "Editors build pages from the built-in blocks for now. Blocks made for this website are listed here once its code has them: make one with php artisan aurora:make-block.",
+    "How to make a block": "How to make a block"
 }

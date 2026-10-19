@@ -190,7 +190,7 @@ class SiteSettings extends Page implements HasSchemas
         'security' => ['label' => 'Security', 'icon' => 'phosphor-shield-check', 'tabs' => ['sign-in', 'access', 'api-keys'], 'saves' => true],
         'appearance' => ['label' => 'Appearance', 'icon' => 'phosphor-paint-brush-broad', 'tabs' => ['admin-theme'], 'saves' => true],
         'ai' => ['label' => 'AI Assistant', 'icon' => 'phosphor-sparkle', 'tabs' => ['ai-assistant'], 'saves' => true],
-        'system' => ['label' => 'System', 'icon' => 'phosphor-wrench', 'tabs' => ['maintenance', 'import', 'system-info'], 'saves' => false],
+        'system' => ['label' => 'System', 'icon' => 'phosphor-wrench', 'tabs' => ['system-info', 'maintenance', 'import'], 'saves' => false],
     ];
 
     /**

@@ -7,8 +7,8 @@ use Aurora\Models\Page;
 
 /**
  * Page layouts and the views that draw them. A layout names any Blade view: Aurora's own
- * (aurora::layouts.standard, .landing and .minimal, published to the site on install to make
- * them its own) or one of the site's. Each gets $page, $layout, $preview and $embedded.
+ * (aurora::layouts.standard and .blank, published to the site on install to make them its
+ * own) or one of the site's. Each gets $page, $layout, $preview and $embedded.
  */
 class Layouts
 {

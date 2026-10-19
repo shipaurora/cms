@@ -8,15 +8,17 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * A theme's picture, for choosing it under Settings › Appearance: straight from the package
- * or site that registered it, nothing to publish.
+ * or site that registered it, nothing to publish. In light or dark mode, for a theme that has
+ * a picture of each.
  */
 class ThemePreviewController
 {
-    public function __invoke(string $theme): BinaryFileResponse
+    public function __invoke(string $theme, ?string $mode = null): BinaryFileResponse
     {
         Gate::authorize('manage-settings');
 
-        $file = Themes::all()[$theme]['preview'] ?? null;
+        $previews = Themes::all()[$theme]['previews'] ?? [];
+        $file = $previews[$mode] ?? reset($previews) ?: null;
 
         abort_unless(is_string($file) && is_file($file), 404);
 

@@ -9,6 +9,7 @@ use Aurora\Console\Commands\ImportTranslations;
 use Aurora\Console\Commands\ImportWordPress;
 use Aurora\Console\Commands\InstallCms;
 use Aurora\Console\Commands\MakeBlock;
+use Aurora\Console\Commands\MakeUser;
 use Aurora\Console\Commands\SyncTranslations;
 use Aurora\Enums\AssetType;
 use Aurora\Events\ContentEvent;
@@ -170,7 +171,7 @@ class AuroraServiceProvider extends ServiceProvider
             // install) and the password page.
             $this->publishes([__DIR__.'/../../resources/views/layouts' => Layouts::path()], 'aurora-layouts');
             $this->publishes(collect(['page-password', 'page-sign-in', 'site-closed'])->mapWithKeys(fn (string $view): array => [__DIR__."/../../resources/views/{$view}.blade.php" => resource_path("views/vendor/aurora/{$view}.blade.php")])->all(), 'aurora-views');
-            $this->commands([InstallCms::class, MakeBlock::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class, ImportWordPress::class]);
+            $this->commands([InstallCms::class, MakeUser::class, MakeBlock::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class, ImportWordPress::class]);
         }
 
         // Livewire components used by tag (<livewire:…>); the app's own namespace is found by itself.
@@ -181,7 +182,7 @@ class AuroraServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
         // Aurora's prebuilt admin scripts (npm run build:aurora), published by filament:assets.
-        // Its admin theme comes from aurora/aurora.
+        // Its admin theme comes from aurora/borealis.
         FilamentAsset::register([
             // The image editor's styles (Cropper.js), which come with the scripts.
             Css::make('image-editor', Aurora::path('resources/dist/aurora.css')),

@@ -80,6 +80,21 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     }
 
     /**
+     * One type for a person in every polymorphic row (their roles, their tokens…): the app's
+     * own user model when it extends this one. Otherwise someone created through Aurora's
+     * model (the installer, make:aurora-user, the admin) would have roles the app's model,
+     * the one that signs in, never sees.
+     */
+    public function getMorphClass(): string
+    {
+        $model = config('auth.providers.users.model');
+
+        return is_string($model) && $model !== static::class && is_subclass_of($model, self::class)
+            ? (new $model)->getMorphClass()
+            : parent::getMorphClass();
+    }
+
+    /**
      * Spatie's relation, through a pivot model that refuses unsafe removals.
      */
     public function roles(): BelongsToMany

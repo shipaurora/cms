@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('handle')->unique();
             $table->string('description')->nullable();
             $table->string('icon')->nullable();
-            // The Blade view it draws pages with ("aurora::layouts.landing", "layouts.campaign").
+            // The Blade view it draws pages with ("aurora::layouts.standard", "layouts.campaign").
             $table->string('view');
             // Pages without a layout of their own use this one.
             $table->boolean('is_default')->default(false);
@@ -28,7 +28,9 @@ return new class extends Migration
         });
 
         // The layouts every site starts with, drawn by Aurora's own views (published to the
-        // site on install, to make them its own).
+        // site on install, to make them its own): standard, the default; landing page, its
+        // header over the first block; minimal, the logo alone; and blank, the page alone. A
+        // site adds its own.
         $now = now();
 
         DB::table('layouts')->insert(array_map(fn (array $layout, int $sort): array => [
@@ -43,7 +45,8 @@ return new class extends Migration
             ['name' => 'Standard', 'handle' => 'standard', 'icon' => 'phosphor-app-window', 'description' => 'Header, menu and footer.'],
             ['name' => 'Landing page', 'handle' => 'landing', 'icon' => 'phosphor-sparkle', 'description' => 'Transparent header floating over the first block.'],
             ['name' => 'Minimal', 'handle' => 'minimal', 'icon' => 'phosphor-squares-four', 'description' => 'Logo only, no menu or footer. Great for campaigns.'],
-        ], [1, 2, 3]));
+            ['name' => 'Blank', 'handle' => 'blank', 'icon' => 'phosphor-square', 'description' => 'The page alone: no header, menu or footer.'],
+        ], [1, 2, 3, 4]));
     }
 
     public function down(): void

@@ -1,6 +1,6 @@
 ---
 name: aurora-development
-description: Build a website on Aurora CMS (aurora/cms): create and register page blocks, add the website's own settings tabs, write the page view the editor and the site share, and use Aurora's models and helpers without depending on what Aurora is built on.
+description: "Build a website on Aurora CMS (aurora/cms): create and register page blocks, add the website's own settings tabs, write the page layouts the editor and the site share, and use Aurora's models and helpers without depending on what Aurora is built on."
 metadata:
   author: Aurora
 ---
@@ -43,11 +43,11 @@ Read them in templates with `Aurora\Models\Setting::get('footer_note')`.
 
 ## Page layouts
 
-Each page is drawn by its layout (`Aurora\Models\Layout`, set up under Pages › More › Layouts), which names a Blade view. Aurora's own are `aurora::layouts.standard`, `aurora::layouts.landing` and `aurora::layouts.minimal`, published to `resources/views/vendor/aurora/layouts` on install (or with `php artisan vendor:publish --tag=aurora-layouts`) to make them the site's. A layout view gets `$page` (an `Aurora\Models\Page`), `$layout`, `$preview` and `$embedded` (true inside the visual editor). Its blocks render through `<x-aurora::blocks :page="$page" />`; keep the markup around them in the view. For a new layout, write a view anywhere in the app (`layouts.campaign`) and add a layout naming it in the Layouts dialog.
+Each page is drawn by its layout (`Aurora\Models\Layout`, set up under Pages › More › Layouts), which names a Blade view. Aurora ships two, `aurora::layouts.standard` (the default: header, menu and footer) and `aurora::layouts.blank` (the page alone), published to `resources/views/vendor/aurora/layouts` on install (or with `php artisan vendor:publish --tag=aurora-layouts`) to make them the site's. A layout view gets `$page` (an `Aurora\Models\Page`), `$layout`, `$preview` and `$embedded` (true inside the visual editor). Its blocks render through `<x-aurora::blocks :page="$page" />`; keep the markup around them in the view. For a new layout, write a view anywhere in the app (`layouts.campaign`) and add a layout naming it in the Layouts dialog.
 
 ## The admin theme
 
-Aurora's admin comes with a prebuilt theme (`aurora/aurora`); run `php artisan filament:assets` after installing or updating Aurora. A different look for the CMS is a theme package of its own: it registers a Filament theme (`FilamentAsset::register([Theme::make('acme', …)])`), and `config('aurora.theme')` names its id. The admin theme is only the CMS's look: the visual editor shows blocks in the website's own stylesheet (`config('aurora.website_css')`, default `resources/css/app.css`), found through Vite and scoped to the canvas, so nothing needs compiling for it. Style the page itself through `:root`, `html` and `body` in that stylesheet rather than classes on `<body>`, so the canvas gets it too.
+Aurora's admin comes with a prebuilt theme, Borealis (`aurora/borealis`); run `php artisan filament:assets` after installing or updating Aurora. A different look for the CMS is a theme package of its own: it registers a Filament theme (`FilamentAsset::register([Theme::make('acme', …)])`), and `config('aurora.theme')` names its id. The admin theme is only the CMS's look: the visual editor shows blocks in the website's own stylesheet (`config('aurora.website_css')`, default `resources/css/app.css`), found through Vite and scoped to the canvas, so nothing needs compiling for it. Style the page itself through `:root`, `html` and `body` in that stylesheet rather than classes on `<body>`, so the canvas gets it too.
 
 ## Search
 
@@ -56,5 +56,5 @@ Pages are searchable with Laravel Scout, out of the box: on save, Aurora keeps w
 ## Configuration and commands
 
 - Publish the config with `php artisan vendor:publish --tag=aurora-config`: the CMS name (`AURORA_NAME`), demo mode (`AURORA_DEMO_LOGIN`) and `translations_path`.
-- `php artisan aurora:install` sets up the CMS (database, roles, a first admin; `--demo` for the demo content).
+- `php artisan aurora:install` sets up the CMS (database, roles, a first admin), then offers to run the website's own seeders (`database/seeders/DatabaseSeeder`; `--seed` runs them without asking). A website's own content, such as its first homepage, belongs in those seeders, never in Aurora. For demo mode's one-click sign-in (`AURORA_DEMO_LOGIN`), a website registers its accounts from a service provider: `Aurora\Support\Demo::register([['name' => …, 'email' => …, 'role' => …]])`; only those accounts are offered.
 - `php artisan aurora:import-translations` loads labels into the admin's Translations screen; `aurora:sync-translations` adds new labels from the code; `aurora:export-translations` writes edited labels back to the lang files.

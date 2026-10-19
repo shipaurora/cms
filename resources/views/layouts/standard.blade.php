@@ -24,6 +24,8 @@
     @if ($page->noindex || $page->isRestricted() || $preview || $embedded)
         <meta name="robots" content="noindex">
     @endif
+    {{-- The blocks' own layout (columns, spacers, buttons): the page builder's stylesheet. --}}
+    <x-page-builder::styles />
     @include('aurora::partials.brand-palette')
     <style>
         body { margin: 0; font-family: system-ui, sans-serif; color: #18181b; }

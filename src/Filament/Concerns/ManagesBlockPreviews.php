@@ -2,6 +2,7 @@
 
 namespace Aurora\Filament\Concerns;
 
+use Aurora\Aurora;
 use Aurora\Blocks\Block;
 use Aurora\Blocks\Blocks;
 use Aurora\Models\Setting;
@@ -10,6 +11,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\EmptyState;
 use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Icon;
@@ -33,6 +35,23 @@ trait ManagesBlockPreviews
     protected function blockRows(): array
     {
         $uploaded = Setting::get(Blocks::PREVIEWS_SETTING) ?? [];
+
+        // The page builder's own blocks (heading, text, image …) aren't listed: only the website's.
+        if (Blocks::all() === []) {
+            return [
+                EmptyState::make(__('No blocks of the website’s own yet'))
+                    ->description(__('Editors build pages from the built-in blocks for now. Blocks made for this website are listed here once its code has them: make one with php artisan aurora:make-block.'))
+                    ->icon('phosphor-squares-four')
+                    ->footer([
+                        Action::make('howToMakeABlock')
+                            ->label(__('How to make a block'))
+                            ->icon('phosphor-book-open')
+                            ->color('gray')
+                            ->url(Aurora::docs('blocks'), shouldOpenInNewTab: true),
+                    ])
+                    ->contained(false),
+            ];
+        }
 
         return [
             Group::make(collect(Blocks::all())->values()->map(fn (string $block): Flex => Flex::make([

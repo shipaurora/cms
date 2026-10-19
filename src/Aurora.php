@@ -8,6 +8,19 @@ namespace Aurora;
  */
 class Aurora
 {
+    /**
+     * Where Aurora's documentation is: a placeholder until it has an address.
+     */
+    public const DOCS_URL = '#';
+
+    /**
+     * A section of the documentation, for links from the admin ("blocks" for making blocks).
+     */
+    public static function docs(string $section = ''): string
+    {
+        return self::DOCS_URL === '#' || $section === '' ? self::DOCS_URL : rtrim(self::DOCS_URL, '/').'/'.$section;
+    }
+
     public static function path(string $path = ''): string
     {
         return dirname(__DIR__).($path === '' ? '' : '/'.ltrim($path, '/'));

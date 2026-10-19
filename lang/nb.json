@@ -2049,5 +2049,11 @@
     "What it may do": "Hva den kan gjøre",
     "Only what the app needs: a request for anything else is turned away.": "Bare det appen trenger: forespørsler om noe annet avvises.",
     "Scopes": "Tilganger",
-    "The pages a search finds, as the website’s own search finds them, with a few words around each match.": "Sidene et søk finner, slik nettstedets eget søk finner dem, med noen ord rundt hvert treff."
+    "The pages a search finds, as the website’s own search finds them, with a few words around each match.": "Sidene et søk finner, slik nettstedets eget søk finner dem, med noen ord rundt hvert treff.",
+    "Docs": "Dokumentasjon",
+    "Docs menu": "Dokumentasjonsmeny",
+    "Logo": "Logo",
+    "No blocks of the website’s own yet": "Nettstedet har ingen egne blokker ennå",
+    "Editors build pages from the built-in blocks for now. Blocks made for this website are listed here once its code has them: make one with php artisan aurora:make-block.": "Redaktørene bygger sider av de innebygde blokkene inntil videre. Blokker laget for dette nettstedet vises her når koden har dem: lag en med php artisan aurora:make-block.",
+    "How to make a block": "Slik lager du en blokk"
 }

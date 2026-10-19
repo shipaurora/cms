@@ -17,6 +17,13 @@ class TranslationLoader extends TranslationLoaderManager
 {
     public function load($locale, $group, $namespace = null): array
     {
+        // A sentence used as a label with a dot in it ("Saved. Publish it when ready.") is
+        // looked for as a lang file's group when the JSON files don't have it. No file is
+        // named like that: nothing to find, and nothing to cache under the whole sentence.
+        if (preg_match('/\s/', (string) $group)) {
+            return [];
+        }
+
         if ($namespace === null || $namespace === '*') {
             return parent::load($locale, $group, $namespace);
         }

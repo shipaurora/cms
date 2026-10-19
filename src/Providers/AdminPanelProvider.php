@@ -93,6 +93,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // "Forgot password?" on the sign-in page: a link by email to choose a new one.
+            ->passwordReset()
             // Two-factor sign-in with authenticator apps, any number per person (your profile).
             // "Required" here only sets up the set-up page and its middleware; whether anyone is
             // sent there is Settings → Security, checked per request (RequireTwoFactorSignIn).
@@ -142,7 +144,7 @@ class AdminPanelProvider extends PanelProvider
                 'violet' => Color::Violet,
             ])
             ->font('Inter')
-            // Aurora's theme (aurora/aurora), another theme package's, or the site's own build.
+            // Borealis (aurora/borealis), another theme package's, or the site's own build.
             // The theme chosen under Settings › Appearance (Aurora\Support\Themes), worked out as
             // each page is drawn.
             ->theme(Theme::make('aurora-active')->html(fn (): HtmlString => new HtmlString(Themes::html())))

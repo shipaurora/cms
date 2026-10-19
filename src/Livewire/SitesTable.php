@@ -113,7 +113,7 @@ class SitesTable extends Component implements HasActions, HasSchemas, HasTable
         return [
             // Stored like people's avatars, not in the media library.
             FileUpload::make('avatar')
-                ->label(__('Avatar'))
+                ->label(__('Logo'))
                 ->avatar()
                 ->imageEditor()
                 ->disk('public')

@@ -1,6 +1,7 @@
-{{-- Settings › Appearance: the registered themes as cards with their pictures (Aurora\Support\Themes). --}}
+{{-- Settings › Appearance: the registered themes as cards with their pictures (Aurora\Support\Themes):
+     a theme with a picture per mode shows the one for the mode the person is in. --}}
 @php
-    /** @var array<string, array{id: string, name: string, description: ?string, preview: ?string, modes: array<int, string>}> $themes */
+    /** @var array<string, array{id: string, name: string, description: ?string, previews: array<string, string>, modes: array<int, string>}> $themes */
     $statePath = $getStatePath();
 @endphp
 
@@ -9,8 +10,16 @@
         @foreach ($themes as $theme)
             <label class="cms-layout-picker-option" wire:key="{{ $statePath }}.{{ $theme['id'] }}">
                 <input type="radio" name="{{ $getId() }}" value="{{ $theme['id'] }}" {{ $applyStateBindingModifiers('wire:model') }}="{{ $statePath }}" class="sr-only" />
-                @if ($theme['preview'] && is_file($theme['preview']))
-                    <span class="cms-layout-thumb cms-layout-thumb-ready"><img src="{{ route('aurora.themes.preview', $theme['id']) }}" alt="" class="cms-theme-preview"></span>
+                @if ($theme['previews'] !== [])
+                    <span class="cms-layout-thumb cms-layout-thumb-ready">
+                        @if (count(array_unique($theme['previews'])) > 1)
+                            @foreach ($theme['previews'] as $mode => $file)
+                                <img src="{{ route('aurora.themes.preview', [$theme['id'], $mode]) }}" alt="" class="cms-theme-preview cms-theme-preview-{{ $mode }}">
+                            @endforeach
+                        @else
+                            <img src="{{ route('aurora.themes.preview', $theme['id']) }}" alt="" class="cms-theme-preview">
+                        @endif
+                    </span>
                 @else
                     <span class="cms-layout-thumb cms-layout-thumb-empty"><x-filament::icon icon="phosphor-paint-brush-broad" class="size-8" /></span>
                 @endif

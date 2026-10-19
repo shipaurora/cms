@@ -44,25 +44,20 @@ class PageController
         }
 
         // A subpage's address ends with its own (/docs/getting-started): the page is found by
-        // that, and the rest must be where it sits now. An old one (a parent renamed, the page
-        // moved) sends the visitor to the page's address.
-        $parents = Str::contains($slug, '/') ? '/'.Str::beforeLast($slug, '/') : '';
+        // that, and the rest must be its address now. An old one (a parent renamed, the page
+        // moved, the page's address in another language) sends the visitor to the page's address.
         $slug = Str::afterLast($slug, '/');
-        $locale = ContentLocale::current();
 
-        $page = Page::query()->whereSlug($slug)->first();
-
-        // Not translated yet: the page's address in the default site language.
-        if ($page === null && ($page = Page::query()->whereSlug($slug, ContentLocale::default())->first()) !== null) {
-            $locale = ContentLocale::default();
-        }
+        // Not translated yet: found by its address in the default site language.
+        $page = Page::query()->whereSlug($slug)->first() ?? Page::query()->whereSlug($slug, ContentLocale::default())->first();
 
         if ($page?->is_homepage) {
             return redirect($page->path(), 301);
         }
 
         if ($page !== null && ($page->isLive() || Gate::allows('update', $page))) {
-            if ($parents !== $page->parentPath($locale)) {
+            // Not in this language at all: "Page not found" (render() says so), never a redirect.
+            if ($page->isAvailableIn(ContentLocale::current()) && '/'.trim(rawurldecode($request->path()), '/') !== $page->path()) {
                 // A redirect someone set up for exactly this address still wins.
                 return $this->storedRedirect($request) ?? redirect($page->path(), 301);
             }

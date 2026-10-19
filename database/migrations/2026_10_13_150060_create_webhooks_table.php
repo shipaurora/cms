@@ -14,8 +14,9 @@ return new class extends Migration
             $table->string('url');
             // The events it's sent ("page.published"), by name.
             $table->json('events');
-            // Signs each request, so the receiver can tell it came from here.
-            $table->string('secret');
+            // Signs each request, so the receiver can tell it came from here (stored encrypted,
+            // which is longer than a string column holds).
+            $table->text('secret');
             $table->boolean('is_active')->default(true);
             $table->unsignedSmallInteger('last_status')->nullable();
             $table->string('last_error')->nullable();

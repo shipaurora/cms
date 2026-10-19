@@ -2,10 +2,12 @@
 
 namespace Aurora\Support;
 
+use Illuminate\Foundation\Vite;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\HtmlString;
 use Throwable;
 
 /**
@@ -41,6 +43,18 @@ class CanvasStyles
         $version = static::version();
 
         return $version === null ? null : route('aurora.canvas-styles', ['v' => $version]);
+    }
+
+    /**
+     * The website's fonts from Laravel's Vite font loading (fonts in vite.config.js, @vite's
+     * Vite::fonts() in the layout's head), which its stylesheet doesn't carry: the canvas
+     * needs them too. Nothing for a site that loads fonts some other way.
+     */
+    public static function fonts(): HtmlString
+    {
+        $vite = app(Vite::class);
+
+        return method_exists($vite, 'fonts') ? rescue(fn (): HtmlString => $vite->fonts(), new HtmlString(''), report: false) : new HtmlString('');
     }
 
     /**

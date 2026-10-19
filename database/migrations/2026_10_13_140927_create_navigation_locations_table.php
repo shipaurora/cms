@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // The ones every site starts with: what Aurora's layouts and its block library's read.
+        // The ones every site starts with; a site adds its own under Settings › Templates.
         $now = now();
 
         DB::table('navigation_locations')->insert(array_map(fn (array $location, int $sort): array => [
@@ -34,8 +34,7 @@ return new class extends Migration
         ], [
             ['handle' => 'header', 'name' => 'Main navigation', 'description' => 'The menu in the header. One level of dropdowns.'],
             ['handle' => 'footer', 'name' => 'Footer', 'description' => 'Columns of links in the footer, under their headings.'],
-            ['handle' => 'legal', 'name' => 'Footer: legal links', 'description' => 'The small links at the very bottom.'],
-        ], [1, 2, 3]));
+        ], [1, 2]));
     }
 
     public function down(): void

@@ -2,8 +2,8 @@
 
 namespace Aurora\Http\Controllers;
 
-use Aurora\Database\Seeders\Demo\UserSeeder;
 use Aurora\Models\User;
+use Aurora\Support\Demo;
 use Aurora\Support\SafeUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,8 +18,8 @@ class DemoLoginController
 {
     public function __invoke(Request $request, string $email): RedirectResponse
     {
-        // Only the seeded demo accounts, and only while they're active.
-        abort_unless(in_array($email, array_column(UserSeeder::USERS, 1), true), 404);
+        // Only the website's demo accounts (Demo::register()), and only while they're active.
+        abort_unless(Demo::isAccount($email), 404);
         $user = User::query()->where('email', $email)->where('is_active', true)->firstOrFail();
 
         Auth::login($user, remember: true);

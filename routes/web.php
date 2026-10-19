@@ -40,7 +40,7 @@ Route::middleware('web')->group(function (): void {
     Route::get('aurora/canvas.css', CanvasStylesController::class)->middleware('auth')->name('aurora.canvas-styles');
 
     // A theme's picture, for choosing it under Settings › Appearance.
-    Route::get('aurora/themes/{theme}/preview', ThemePreviewController::class)->middleware('auth')->where('theme', '[a-z0-9-]+')->name('aurora.themes.preview');
+    Route::get('aurora/themes/{theme}/preview/{mode?}', ThemePreviewController::class)->middleware('auth')->where(['theme' => '[a-z0-9-]+', 'mode' => 'light|dark'])->name('aurora.themes.preview');
 
     // A media library file's lasting address: links to it survive the file being replaced.
     Route::get('files/{asset}', AssetFileController::class)->whereUuid('asset')->name('files.show');

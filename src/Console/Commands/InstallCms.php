@@ -3,7 +3,6 @@
 namespace Aurora\Console\Commands;
 
 use Aurora\Aurora;
-use Aurora\Database\Seeders\Demo\DemoSeeder;
 use Aurora\Database\Seeders\EssentialSeeder;
 use Aurora\Models\Locale;
 use Aurora\Models\Page;
@@ -25,8 +24,6 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
 #[Signature('aurora:install
-    {--demo : Seed the demo site (pages, media, forms, menus, demo accounts and Norwegian)}
-    {--demo-login : With the demo: turn on demo mode (one-click sign-in as the demo accounts) in .env}
     {--fresh : Drop every table and start over}
     {--force : Don\'t ask before dropping tables}
     {--site-name= : The site\'s name}
@@ -34,16 +31,18 @@ use function Laravel\Prompts\text;
     {--languages= : Other languages to translate the website into, comma separated, each with an optional address prefix (e.g. nb:no,sv)}
     {--name= : The admin\'s name}
     {--email= : The admin\'s email address}
-    {--password= : The admin\'s password}')]
-#[Description('Set up the CMS: app key, database, the content it needs (or the demo), labels and an admin account')]
+    {--password= : The admin\'s password}
+    {--seed : Then run the website\'s own seeders (database/seeders/DatabaseSeeder) without asking}')]
+#[Description('Set up the CMS: app key, database, the content it needs, labels and an admin account')]
 class InstallCms extends Command
 {
+    /**
+     * The website's own seeder, by Laravel's convention: what it seeds is the website's.
+     */
+    public const WEBSITE_SEEDER = 'Database\\Seeders\\DatabaseSeeder';
+
     public function handle(TranslationSync $sync): int
     {
-        // The demo content and demo mode only when asked for with their flags: never offered.
-        $demo = (bool) $this->option('demo');
-        $demoLogin = $demo && $this->option('demo-login');
-
         $fresh = (bool) $this->option('fresh');
 
         if ($fresh && ! $this->option('force') && ! confirm('Drop every table and start over? Everything in the database is deleted.', default: false)) {
@@ -60,29 +59,26 @@ class InstallCms extends Command
             );
         }
 
-        $siteName = $demo ? null : $this->siteName();
-        $language = $demo ? null : $this->language();
+        $siteName = $this->siteName();
+        $language = $this->language();
 
-        $otherLanguages = $demo ? [] : $this->otherLanguages((string) $language, againstExisting: ! $fresh);
+        // Prefixes are checked against the languages and pages already there, when there are any:
+        // a new database has no tables yet, and starting over they're going.
+        $otherLanguages = $language === false ? false : $this->otherLanguages($language, againstExisting: ! $fresh && $this->hasTable('pages'));
 
         if ($language === false || $otherLanguages === false) {
             return self::FAILURE;
         }
-        $admin = $this->adminDetails($demo);
+        $admin = $this->adminDetails();
 
         if ($admin === false) {
             return self::FAILURE;
         }
 
+        $seedWebsite = $this->seedsWebsite();
+
         if (! file_exists($this->laravel->environmentFilePath()) && file_exists(base_path('.env.example'))) {
             $this->components->task('Creating .env from .env.example', fn () => copy(base_path('.env.example'), $this->laravel->environmentFilePath()));
-        }
-
-        // Demo mode only when asked for this install: one left from an earlier demo goes.
-        if ($demoLogin) {
-            $this->components->task('Turning on demo mode in .env', fn () => $this->setEnvironmentValue('AURORA_DEMO_LOGIN', 'true'));
-        } elseif ($this->hasEnvironmentValue('AURORA_DEMO_LOGIN')) {
-            $this->components->task('Turning off demo mode in .env', fn () => $this->removeEnvironmentValue('AURORA_DEMO_LOGIN'));
         }
 
         if (blank(config('app.key'))) {
@@ -103,33 +99,25 @@ class InstallCms extends Command
         // The page layouts' views, to make the website's own (a site's edited copies are kept).
         $this->components->task('Publishing the page layouts', fn () => $this->callSilently('vendor:publish', ['--tag' => 'aurora-layouts']) === self::SUCCESS);
 
-        if ($demo && Page::withTrashed()->exists()) {
-            $this->components->warn('The site already has pages: skipping the demo content. Use --fresh to start over.');
-            $demo = false;
-            $this->components->task('Seeding what the CMS needs', fn () => $this->seed(EssentialSeeder::class));
-        } elseif ($demo) {
-            $this->components->task('Seeding the demo site', fn () => $this->seed(DemoSeeder::class));
-        } else {
-            $this->components->task('Seeding what the CMS needs', function () use ($siteName, $language, $otherLanguages): bool {
-                // The chosen language first: the essential seeder only adds English to a site without one.
-                Locale::query()->updateOrCreate(['code' => $language], ['name' => Locale::KNOWN[$language], 'is_default' => true, 'is_active' => true, 'sort' => 1]);
+        $this->components->task('Seeding what the CMS needs', function () use ($siteName, $language, $otherLanguages): bool {
+            // The chosen language first: the essential seeder only adds English to a site without one.
+            Locale::query()->updateOrCreate(['code' => $language], ['name' => Locale::KNOWN[$language], 'is_default' => true, 'is_active' => true, 'sort' => 1]);
 
-                foreach (array_keys($otherLanguages) as $index => $code) {
-                    Locale::query()->updateOrCreate(['code' => $code], ['name' => Locale::KNOWN[$code], 'prefix' => $otherLanguages[$code], 'is_active' => true, 'sort' => $index + 2]);
-                }
+            foreach (array_keys($otherLanguages) as $index => $code) {
+                Locale::query()->updateOrCreate(['code' => $code], ['name' => Locale::KNOWN[$code], 'prefix' => $otherLanguages[$code], 'is_active' => true, 'sort' => $index + 2]);
+            }
 
-                // No pages: the site starts empty (the demo content is --demo).
-                $result = $this->seed(EssentialSeeder::class);
-                Setting::put(['site_name' => $siteName]);
+            // No pages: the site starts empty. A website's own content is its own seeders'.
+            $result = $this->seed(EssentialSeeder::class);
+            Setting::put(['site_name' => $siteName]);
 
-                return $result;
-            });
-        }
+            return $result;
+        });
 
         // The default site (no domain: it answers on every address) is named after the website.
-        CurrentSite::default()?->update(['name' => $siteName ?? Setting::get('site_name')]);
+        CurrentSite::default()?->update(['name' => $siteName]);
 
-        // Every page in search from the start (the demo's, or those already there), on every site.
+        // Every page in search from the start (those already there), on every site.
         $this->components->task('Indexing pages for search', function (): bool {
             Page::query()->withoutGlobalScopes()->whereNull('deleted_at')->each(fn (Page $page) => $page->reindex());
 
@@ -151,82 +139,30 @@ class InstallCms extends Command
             $this->components->task('Linking public storage', fn () => $this->callSilently('storage:link') === self::SUCCESS);
         }
 
-        if ($admin !== null) {
-            $this->components->task("Creating the admin account for {$admin['email']}", function () use ($admin, $language): bool {
-                $user = User::query()->updateOrCreate(['email' => $admin['email']], array_filter([
-                    'name' => $admin['name'],
-                    'password' => $admin['password'],
-                    'is_active' => true,
-                    // The admin panel in the website's language, when the panel has it.
-                    'locale' => $language && collect(Aurora::langPaths())->contains(fn (string $lang): bool => is_file("{$lang}/{$language}.json")) ? $language : null,
-                ], fn (mixed $value): bool => $value !== null));
+        $this->components->task("Creating the admin account for {$admin['email']}", function () use ($admin, $language): bool {
+            $user = User::query()->updateOrCreate(['email' => $admin['email']], array_filter([
+                'name' => $admin['name'],
+                'password' => $admin['password'],
+                'is_active' => true,
+                // The admin panel in the website's language, when the panel has it.
+                'locale' => $language && collect(Aurora::langPaths())->contains(fn (string $lang): bool => is_file("{$lang}/{$language}.json")) ? $language : null,
+            ], fn (mixed $value): bool => $value !== null));
 
-                $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
-                $user->syncRoles([User::SUPER_ADMIN]);
+            $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
+            $user->syncRoles([User::SUPER_ADMIN]);
 
-                return true;
-            });
+            return true;
+        });
+
+        // The website's own content (its homepage, say), once the CMS and its admin are there.
+        if ($seedWebsite) {
+            $this->components->task('Seeding the website\'s content', fn () => $this->seed(self::WEBSITE_SEEDER));
         }
 
         $this->newLine();
         $this->components->info('The CMS is ready. Sign in at '.Filament::getPanel('admin')->getLoginUrl());
 
-        if ($demo) {
-            $this->components->bulletList(array_filter([
-                'Demo accounts: admin@, editor@, author@ and viewer@example.com, all with the password "password".',
-                $demoLogin ? 'Demo mode is on: the login page signs in as any of them with one click.' : null,
-            ]));
-        }
-
         return self::SUCCESS;
-    }
-
-    /**
-     * Set a value in .env: changed where the key is, added where it isn't. Cached
-     * configuration is cleared so the app reads it.
-     */
-    protected function setEnvironmentValue(string $key, string $value): bool
-    {
-        $path = $this->laravel->environmentFilePath();
-        $contents = file_exists($path) ? (string) file_get_contents($path) : '';
-        $line = "{$key}={$value}";
-
-        $contents = preg_match("/^{$key}=.*$/m", $contents)
-            ? preg_replace("/^{$key}=.*$/m", $line, $contents)
-            : rtrim($contents, "\n").($contents === '' ? '' : "\n\n").$line."\n";
-
-        file_put_contents($path, $contents);
-
-        if ($this->laravel->configurationIsCached()) {
-            $this->callSilently('config:clear');
-        }
-
-        return true;
-    }
-
-    protected function hasEnvironmentValue(string $key): bool
-    {
-        $path = $this->laravel->environmentFilePath();
-
-        return file_exists($path) && preg_match("/^{$key}=/m", (string) file_get_contents($path)) === 1;
-    }
-
-    /**
-     * Take a value out of .env (with the blank line setEnvironmentValue() put before it), and
-     * clear cached configuration so the app stops reading it.
-     */
-    protected function removeEnvironmentValue(string $key): bool
-    {
-        $path = $this->laravel->environmentFilePath();
-        $contents = (string) preg_replace('/^'.preg_quote($key, '/').'=.*(?:\r?\n|$)/m', '', (string) file_get_contents($path));
-
-        file_put_contents($path, rtrim((string) preg_replace('/\n{3,}/', "\n\n", $contents), "\n")."\n");
-
-        if ($this->laravel->configurationIsCached()) {
-            $this->callSilently('config:clear');
-        }
-
-        return true;
     }
 
     /**
@@ -235,9 +171,39 @@ class InstallCms extends Command
     protected function existingPageCount(): int
     {
         try {
-            return Schema::hasTable('pages') ? Page::withTrashed()->count() : 0;
+            return $this->hasTable('pages') ? Page::withTrashed()->count() : 0;
         } catch (Throwable) {
             return 0;
+        }
+    }
+
+    /**
+     * Whether to run the website's own seeders after setting up the CMS: with --seed, or when
+     * asked (yes unless said otherwise). Never without a DatabaseSeeder to run.
+     */
+    protected function seedsWebsite(): bool
+    {
+        if (! class_exists(self::WEBSITE_SEEDER)) {
+            return false;
+        }
+
+        return $this->option('seed') || ($this->input->isInteractive() && confirm(
+            'Run the website\'s own seeders too?',
+            default: true,
+            hint: 'database/seeders/DatabaseSeeder: the website\'s first content, such as its homepage.',
+        ));
+    }
+
+    /**
+     * Whether the database has a table yet (false before the first migration, or without a
+     * database to reach).
+     */
+    protected function hasTable(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (Throwable) {
+            return false;
         }
     }
 
@@ -337,12 +303,12 @@ class InstallCms extends Command
     }
 
     /**
-     * The admin account to create (or update, by email): null for none (the demo has its own
-     * accounts), false when the details are missing without a way to ask for them.
+     * The admin account to create (or update, by email): false when the details are missing
+     * without a way to ask for them.
      *
-     * @return array{name: string, email: string, password: string}|false|null
+     * @return array{name: string, email: string, password: string}|false
      */
-    protected function adminDetails(bool $demo): array|false|null
+    protected function adminDetails(): array|false
     {
         $given = array_filter(['name' => $this->option('name'), 'email' => $this->option('email'), 'password' => $this->option('password')]);
 
@@ -351,17 +317,9 @@ class InstallCms extends Command
                 return ['name' => $given['name'] ?? 'Admin', 'email' => $given['email'], 'password' => $given['password']];
             }
 
-            if ($demo) {
-                return null;
-            }
-
             $this->components->error('Pass --email and --password (and --name) to create the admin account.');
 
             return false;
-        }
-
-        if ($demo && ! isset($given['email']) && ! confirm('Create your own admin account too? The demo has its own accounts.', default: true)) {
-            return null;
         }
 
         $this->components->info('The admin account (a Super Admin)');
