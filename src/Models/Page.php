@@ -11,6 +11,7 @@ use Aurora\Support\BlockTranslations;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\PageSearch;
+use Aurora\Support\Search\ScopedBuilder;
 use Aurora\Support\WorkingCopies;
 use CarlJanzell\FilamentPageBuilder\Concerns\HasBlocks;
 use CarlJanzell\FilamentPageBuilder\Support\BlockTree;
@@ -548,18 +549,42 @@ class Page extends Model implements MenuPanelable
     }
 
     /**
-     * Search the site's live pages, as a website's search does:
-     * Page::searchSite('fjord')->paginate(10). In the current site (and language, with a
-     * search service), most relevant first.
+     * Search the pages visitors may see on the current site (the one the request's address is
+     * for), as a website's search does: Page::search('fjord')->paginate(10). Most relevant first,
+     * in the current language with a search service. Chain ->query() to eager load: it adds
+     * to these limits, never replaces them (ScopedBuilder).
+     *
+     * @param  string  $query
+     * @param  (Closure(mixed, string, array<string, mixed>): mixed)|null  $callback  The search service's own options.
+     * @return ScopedBuilder<static>
      */
-    public static function searchSite(string $terms, bool $liveOnly = true): \Laravel\Scout\Builder
+    public static function search($query = '', $callback = null): ScopedBuilder
     {
-        // Every page of the site (drafts too, with the database engine) for the admin's search tester.
-        $search = static::search($terms)->query(fn (Builder $query) => $query->when($liveOnly, fn (Builder $query) => $query->live()->where('noindex', false)->where('exclude_from_search', false)->whereNull('password')->where('members_only', false)));
+        return static::searchSite((string) $query, callback: $callback);
+    }
 
-        return $search->model->searchableUsing() instanceof DatabaseEngine
+    /**
+     * Search another site's pages than the request's, or every page of it, drafts too
+     * (liveOnly: false, the admin's search tester; with the database engine only, as a search
+     * service only holds live pages).
+     *
+     * @param  (Closure(mixed, string, array<string, mixed>): mixed)|null  $callback
+     * @return ScopedBuilder<static>
+     */
+    public static function searchSite(string $terms, ?Site $site = null, bool $liveOnly = true, ?Closure $callback = null): ScopedBuilder
+    {
+        $siteId = $site?->getKey() ?? CurrentSite::id();
+
+        $search = new ScopedBuilder(new static, $terms, $callback, static::usesSoftDelete() && config('scout.soft_delete', false));
+
+        $search->query(fn (Builder $query) => $query
+            ->when($site !== null, fn (Builder $query) => $query->withoutGlobalScope('site')->where($query->qualifyColumn('site_id'), $siteId))
+            ->when($liveOnly, fn (Builder $query) => $query->live()->where('noindex', false)->where('exclude_from_search', false)->whereNull('password')->where('members_only', false)));
+
+        // A search service holds every site's pages: ask it for this one's.
+        return $search->model->searchableUsing() instanceof DatabaseEngine || $siteId === null
             ? $search
-            : $search->where('site_id', CurrentSite::id());
+            : $search->where('site_id', $siteId);
     }
 
     /**

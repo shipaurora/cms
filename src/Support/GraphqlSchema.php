@@ -221,7 +221,7 @@ class GraphqlSchema
                                 throw new UserError('Search for at least 2 characters.');
                             }
 
-                            $pages = Page::searchSite(mb_substr($terms, 0, 200))->paginate(max(1, min(self::MAX_PER_PAGE, $args['perPage'])), 'page', max(1, $args['page']));
+                            $pages = Page::search(mb_substr($terms, 0, 200))->paginate(max(1, min(self::MAX_PER_PAGE, $args['perPage'])), 'page', max(1, $args['page']));
                             $scores = PageSearch::scores(array_map(fn (Page $page): string => $page->getKey(), $pages->items()), $terms);
 
                             return [

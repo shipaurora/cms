@@ -19,7 +19,7 @@ class SearchController
         $request->validate(['q' => ['required', 'string', 'min:2', 'max:200']]);
 
         $terms = $request->string('q')->toString();
-        $pages = Page::searchSite($terms)->paginate(20);
+        $pages = Page::search($terms)->paginate(20);
 
         // How well each matched, for the results to say.
         $request->attributes->set(SearchResultResource::SCORES, PageSearch::scores(array_map(fn (Page $page): string => $page->getKey(), $pages->items()), $terms));

@@ -67,7 +67,7 @@ class SearchIndexAction extends Action
         $result = null;
 
         if ($query !== '') {
-            $found = Page::searchSite($query)->take(100)->get()->modelKeys();
+            $found = Page::search($query)->take(100)->get()->modelKeys();
             $position = array_search($page->getKey(), $found, true);
             $result = ['found' => $position !== false, 'position' => $position === false ? null : $position + 1, 'total' => count($found)];
         }
