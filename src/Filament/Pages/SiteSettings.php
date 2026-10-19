@@ -22,6 +22,7 @@ use Aurora\Livewire\SitesTable;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
 use Aurora\Support\Copilot;
+use Aurora\Support\ImageDescriptions;
 use Aurora\Support\PageCache;
 use Aurora\Support\Passkeys;
 use Aurora\Support\SeoChecks;
@@ -558,6 +559,12 @@ class SiteSettings extends Page implements HasSchemas
                             ->afterStateHydrated(fn (Toggle $component) => $component->state(Copilot::isSwitchedOn()))
                             ->visible(fn (): bool => Copilot::isSetUp())
                             ->columnSpanFull(),
+                        Toggle::make(ImageDescriptions::SETTING)
+                            ->label(__('Write alt text for images automatically'))
+                            ->helperText(__('When an image is added to the media library, the assistant writes its alt text in the website’s language. Images already there without alt text get one too. Alt text someone wrote is never replaced.'))
+                            ->default(false)
+                            ->visible(fn (): bool => Copilot::isSetUp())
+                            ->columnSpanFull(),
                         Select::make('copilot.provider')
                             ->label(__('Provider'))
                             ->options(collect(Copilot::PROVIDERS)->map(fn (array $provider): string => $provider['label'])->all())
@@ -800,6 +807,7 @@ class SiteSettings extends Page implements HasSchemas
     public function save(): void
     {
         $wasOn = Copilot::isConfigured();
+        $wasDescribing = ImageDescriptions::isOn();
         $themeBefore = Themes::active();
 
         Setting::put($this->form->getState());
@@ -820,6 +828,15 @@ class SiteSettings extends Page implements HasSchemas
         $this->rememberData();
 
         Notification::make()->title(__('Settings saved'))->body(__('The website is already using them.'))->success()->send();
+
+        // Just switched on: the images already there without alt text get theirs too.
+        if (! $wasDescribing && ($queued = ImageDescriptions::queueMissing()) > 0) {
+            Notification::make()
+                ->title(trans_choice('Describing :count image|Describing :count images', $queued))
+                ->body(__('The assistant is writing alt text for the images that have none. It appears in the media library as each one is done.'))
+                ->info()
+                ->send();
+        }
 
         // Another theme: its stylesheet is in the page's head, so the page is loaded again.
         if (array_key_exists(Themes::SETTING, $this->data ?? []) && $themeBefore !== Themes::active()) {

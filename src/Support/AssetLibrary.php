@@ -50,7 +50,7 @@ class AssetLibrary
         $title = $attributes['title'] ?? Str::of(pathinfo($fileName, PATHINFO_FILENAME))->replace(['-', '_'], ' ')->squish()->ucfirst()->toString();
         $size = static::imageSize($localPath);
 
-        return DB::transaction(function () use ($attributes, $adder, $title, $size): Asset {
+        $asset = DB::transaction(function () use ($attributes, $adder, $title, $size): Asset {
             $asset = Asset::query()->create([
                 'uploaded_by_id' => auth()->id(),
                 ...Arr::only($attributes, ['alt', 'caption', 'credit', 'folder_id']),
@@ -67,6 +67,11 @@ class AssetLibrary
 
             return $asset->refresh();
         });
+
+        // Its alt text, by the AI assistant when it's set to.
+        ImageDescriptions::queue($asset);
+
+        return $asset;
     }
 
     /**
