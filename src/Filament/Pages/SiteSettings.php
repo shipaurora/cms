@@ -510,7 +510,7 @@ class SiteSettings extends Page implements HasSchemas
             'admin-theme' => Tab::make(__('Admin theme'))->icon('phosphor-paint-brush-broad')->schema([
                 Section::make(__('Admin theme'))
                     ->icon('phosphor-paint-brush-broad')
-                    ->description(__('How the admin looks, for everyone who works in it. Packages and the website can add their own.'))
+                    ->description(__('How the admin looks, for everyone who works in it. Theme packages can add their own.'))
                     ->schema([
                         ViewField::make(Themes::SETTING)
                             ->hiddenLabel()
@@ -712,11 +712,8 @@ class SiteSettings extends Page implements HasSchemas
     }
 
     /**
-     * Build the open page again (its tabs, and the lists in them), so a change made in one of
-     * its dialogs shows straight away.
-     */
-    /**
-     * One of the website's APIs (Aurora\Support\PublicApi): switched on, whether it needs a key, and how to call it.
+     * One of the website's APIs (Aurora\Support\PublicApi): switched on, whether it needs a
+     * key, and how to call it.
      */
     protected function apiTab(Api $api, string $description): Tab
     {
@@ -756,6 +753,10 @@ class SiteSettings extends Page implements HasSchemas
         ]);
     }
 
+    /**
+     * Build the open page again (its tabs, and the lists in them), so a change made in one of
+     * its dialogs shows straight away.
+     */
     protected function rebuildForm(): void
     {
         $this->sections = null;

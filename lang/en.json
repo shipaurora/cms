@@ -1929,7 +1929,6 @@
     "SEO report": "SEO report",
     "Live pages that could do better in search results, and what would help. Open a page to fix it.": "Live pages that could do better in search results, and what would help. Open a page to fix it.",
     "Admin theme": "Admin theme",
-    "How the admin looks, for everyone who works in it. Packages and the website can add their own.": "How the admin looks, for everyone who works in it. Packages and the website can add their own.",
     "Maintenance": "Maintenance",
     "Things that fix most “why isn’t it showing” moments. None of them change content.": "Things that fix most “why isn’t it showing” moments. None of them change content.",
     "Clear caches": "Clear caches",
@@ -2034,5 +2033,7 @@
     "Only what visitors may see: never drafts, pages behind a password or sign-in, files no page uses, or private settings.": "Only what visitors may see: never drafts, pages behind a password or sign-in, files no page uses, or private settings.",
     "Dark only": "Dark only",
     "Light only": "Light only",
-    "Light and dark: everyone picks theirs in the user menu": "Light and dark: everyone picks theirs in the user menu"
+    "Light and dark: everyone picks theirs in the user menu": "Light and dark: everyone picks theirs in the user menu",
+    "How the admin looks, for everyone who works in it. Theme packages can add their own.": "How the admin looks, for everyone who works in it. Theme packages can add their own.",
+    "Quiet and flat: neutral greys, thin lines and nothing that glows.": "Quiet and flat: neutral greys, thin lines and nothing that glows."
 }

@@ -1929,7 +1929,6 @@
     "SEO report": "SEO-rapport",
     "Live pages that could do better in search results, and what would help. Open a page to fix it.": "Publiserte sider som kunne gjort det bedre i søkeresultater, og hva som ville hjulpet. Åpne en side for å rette det.",
     "Admin theme": "Admin-tema",
-    "How the admin looks, for everyone who works in it. Packages and the website can add their own.": "Hvordan adminpanelet ser ut, for alle som jobber i det. Pakker og nettstedet kan legge til sine egne.",
     "Maintenance": "Vedlikehold",
     "Things that fix most “why isn’t it showing” moments. None of them change content.": "Ting som løser de fleste «hvorfor vises det ikke»-øyeblikk. Ingen av dem endrer innhold.",
     "Clear caches": "Tøm hurtigbuffere",
@@ -2034,5 +2033,7 @@
     "Only what visitors may see: never drafts, pages behind a password or sign-in, files no page uses, or private settings.": "Bare det besøkende har lov til å se: aldri utkast, sider bak passord eller innlogging, filer ingen side bruker, eller private innstillinger.",
     "Dark only": "Bare mørk",
     "Light only": "Bare lys",
-    "Light and dark: everyone picks theirs in the user menu": "Lys og mørk: alle velger sin egen i brukermenyen"
+    "Light and dark: everyone picks theirs in the user menu": "Lys og mørk: alle velger sin egen i brukermenyen",
+    "How the admin looks, for everyone who works in it. Theme packages can add their own.": "Hvordan adminpanelet ser ut, for alle som jobber i det. Temapakker kan legge til sine egne.",
+    "Quiet and flat: neutral greys, thin lines and nothing that glows.": "Rolig og flatt: nøytrale gråtoner, tynne linjer og ingenting som gløder."
 }
