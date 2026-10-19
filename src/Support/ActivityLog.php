@@ -17,7 +17,6 @@ use Aurora\Models\Page;
 use Aurora\Models\Redirect;
 use Aurora\Models\Role;
 use Aurora\Models\Setting;
-use Aurora\Models\SharedSection;
 use Aurora\Models\Site;
 use Aurora\Models\User;
 use Aurora\Models\Webhook;
@@ -38,7 +37,6 @@ class ActivityLog
      */
     public const MODELS = [
         Page::class => 'Page',
-        SharedSection::class => 'Shared section',
         Menu::class => 'Menu',
         MenuItem::class => 'Menu item',
         Form::class => 'Form',

@@ -4,7 +4,6 @@ namespace Aurora\Providers;
 
 use Aurora\Aurora;
 use Aurora\Blocks\Blocks;
-use Aurora\Blocks\SharedSectionBlock;
 use Aurora\Console\Commands\ExportTranslations;
 use Aurora\Console\Commands\ImportTranslations;
 use Aurora\Console\Commands\ImportWordPress;
@@ -41,7 +40,6 @@ use Aurora\Models\Permission;
 use Aurora\Models\Redirect;
 use Aurora\Models\Role;
 use Aurora\Models\Setting;
-use Aurora\Models\SharedSection;
 use Aurora\Models\Site;
 use Aurora\Models\User;
 use Aurora\Support\ActivityLog;
@@ -239,13 +237,10 @@ class AuroraServiceProvider extends ServiceProvider
 
         // The site's blocks in aurora.block_path, after those it registers itself (whose order
         // in the palette they keep).
-        // Then the CMS's own (a shared section), whatever block library the site uses.
         $this->app->booted(function (): void {
             if (filled($path = config('aurora.block_path'))) {
                 Blocks::discover($path, config('aurora.block_namespace'));
             }
-
-            Blocks::register([SharedSectionBlock::class]);
         });
 
         // Aurora's own versions of packages' Livewire components: registered once every
@@ -462,7 +457,7 @@ class AuroraServiceProvider extends ServiceProvider
      */
     protected function clearPageCacheOnChanges(): void
     {
-        $models = [Page::class, SharedSection::class, Menu::class, MenuItem::class, MenuLocation::class, NavigationLocation::class, Layout::class, Setting::class, Site::class, Locale::class, Form::class, Redirect::class, Asset::class, ImageFormat::class];
+        $models = [Page::class, Menu::class, MenuItem::class, MenuLocation::class, NavigationLocation::class, Layout::class, Setting::class, Site::class, Locale::class, Form::class, Redirect::class, Asset::class, ImageFormat::class];
 
         Event::listen(array_merge(...array_map(fn (string $model): array => ["eloquent.saved: {$model}", "eloquent.deleted: {$model}"], $models)), fn () => PageCache::flush());
     }
