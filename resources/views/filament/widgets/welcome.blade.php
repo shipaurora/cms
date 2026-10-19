@@ -1,6 +1,7 @@
+{{-- The dashboard's welcome card: its background is the theme's (.cms-welcome, .cms-welcome-grid). --}}
 <x-filament-widgets::widget>
-    <div class="relative overflow-hidden rounded-2xl bg-gray-950 p-6 text-white shadow-sm ring-1 ring-gray-950/5 md:p-8 dark:ring-white/10" style="background: radial-gradient(60% 120% at 0% 0%, rgb(124 58 237 / .55), transparent 70%), radial-gradient(40% 100% at 100% 0%, rgb(34 211 238 / .35), transparent 70%), #09090b">
-        <div class="pointer-events-none absolute inset-0 opacity-30" style="background-image: linear-gradient(to right, rgb(255 255 255 / .06) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / .06) 1px, transparent 1px); background-size: 40px 40px"></div>
+    <div class="cms-welcome relative overflow-hidden rounded-2xl bg-gray-950 p-6 text-white shadow-sm ring-1 ring-gray-950/5 md:p-8 dark:ring-white/10">
+        <div class="cms-welcome-grid pointer-events-none absolute inset-0 opacity-30"></div>
         <div class="relative flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
             <div>
                 <p class="text-sm font-medium text-white/60">{{ str(now()->translatedFormat(__('l, F j')))->ucfirst() }}</p>
