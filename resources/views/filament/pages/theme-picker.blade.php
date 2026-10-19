@@ -1,6 +1,6 @@
 {{-- Settings › Appearance: the registered themes as cards with their pictures (Aurora\Support\Themes). --}}
 @php
-    /** @var array<string, array{id: string, name: string, description: ?string, preview: ?string}> $themes */
+    /** @var array<string, array{id: string, name: string, description: ?string, preview: ?string, modes: array<int, string>}> $themes */
     $statePath = $getStatePath();
 @endphp
 
@@ -19,6 +19,11 @@
                     @if (filled($theme['description']))
                         <span class="cms-layout-picker-description">{{ __($theme['description']) }}</span>
                     @endif
+                    <span class="cms-layout-picker-description">{{ match ($theme['modes']) {
+                        ['dark'] => __('Dark only'),
+                        ['light'] => __('Light only'),
+                        default => __('Light and dark: everyone picks theirs in the user menu'),
+                    } }}</span>
                 </span>
             </label>
         @endforeach

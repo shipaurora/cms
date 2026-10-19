@@ -148,6 +148,10 @@ class AdminPanelProvider extends PanelProvider
             ->theme(Theme::make('aurora-active')->html(fn (): HtmlString => new HtmlString(Themes::html())))
             // Dark by default; each person's own choice is saved on their account (see below).
             ->defaultThemeMode(ThemeMode::Dark)
+            // Light and dark as the theme is made for them: the switch (user menu, ⌘K) only
+            // when it has both (Themes::register(modes:)).
+            ->darkMode(fn (): bool => in_array('dark', Themes::modes(), true), isForced: fn (): bool => Themes::modes() === ['dark'])
+            ->themeSwitcher(fn (): bool => Themes::switchesMode())
             ->sidebarCollapsibleOnDesktop()
             ->collapsedSidebarWidth('5.5rem')
             ->maxContentWidth(Width::SevenExtraLarge)
@@ -232,6 +236,8 @@ class AdminPanelProvider extends PanelProvider
                     ->maxResults(20)
                     // Enough that every kind of record (roles too) gets a turn after the pages and files.
                     ->recordSearch(true, 12)
+                    // Light, dark and system only when the theme has both.
+                    ->builtInCommands(fn (): array => ['theme' => Themes::switchesMode()])
                     ->publishViewsCommand(false),
                 // The in-panel AI copilot. Hidden for everyone until it is set up in Site settings
                 // (Copilot::isConfigured()), and only for people allowed to use the AI assistant.
@@ -248,7 +254,7 @@ class AdminPanelProvider extends PanelProvider
                 ? '<meta name="cms-theme-url" content="'.e(route('filament.admin.preferences.theme')).'">'
                     .'<meta name="cms-sidebar-url" content="'.e(route('filament.admin.preferences.sidebar')).'">'
                     .'<script>try {'
-                    .' localStorage.setItem(\'filament:theme:mode\', '.json_encode(auth()->user()->theme ?? ThemeMode::Dark->value).');'
+                    .' localStorage.setItem(\'filament:theme:mode\', '.json_encode(Themes::modeFor(auth()->user()->theme)).');'
                     .' localStorage.setItem(\'filament:sidebar:desktop_open\', '.json_encode(json_encode(! (auth()->user()->sidebar_collapsed ?? true))).');'
                     .' localStorage.setItem(\'filament:sidebar:open\', '.json_encode(json_encode(! (auth()->user()->sidebar_collapsed ?? true))).');'
                     .' } catch (e) {}</script>'
