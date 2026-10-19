@@ -33,20 +33,17 @@ class PublicApi
     }
 
     /**
-     * Whether this request may read the API: switched on, and with one of the API keys when a
-     * key is needed (Authorization: Bearer …, or ?key=…). The keys work for both APIs.
+     * Whether this request may read an API that's switched on: always, or with one of the API
+     * keys when one is needed (Authorization: Bearer …; never in the address, where it would
+     * end up in logs). The keys work for both APIs.
      */
     public static function allows(Api $api, Request $request): bool
     {
-        if (! static::enabled($api)) {
-            return false;
-        }
-
         if (! static::needsKey($api)) {
             return true;
         }
 
-        $given = (string) ($request->bearerToken() ?? $request->query('key', ''));
+        $given = (string) $request->bearerToken();
         $key = $given === '' ? null : ApiKey::query()->where('key_hash', ApiKey::hash($given))->first();
 
         if ($key === null) {

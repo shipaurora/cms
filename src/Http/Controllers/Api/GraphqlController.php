@@ -21,7 +21,9 @@ class GraphqlController
     public function __invoke(Request $request): JsonResponse
     {
         $query = $request->input('query');
+        // Sent as an object, or (GET) as a JSON string; anything else counts as none.
         $variables = $request->input('variables');
+        $variables = is_string($variables) ? json_decode($variables, true) : $variables;
 
         if (! is_string($query) || $query === '') {
             return response()->json(['errors' => [['message' => 'Send a GraphQL query as "query".']]], 400);
@@ -30,7 +32,7 @@ class GraphqlController
         $result = GraphQL::executeQuery(
             schema: GraphqlSchema::get(),
             source: $query,
-            variableValues: is_string($variables) ? json_decode($variables, true) : (is_array($variables) ? $variables : null),
+            variableValues: is_array($variables) ? $variables : null,
             operationName: is_string($operation = $request->input('operationName')) ? $operation : null,
             validationRules: [...DocumentValidator::allRules(), new QueryDepth(self::MAX_DEPTH)],
         );

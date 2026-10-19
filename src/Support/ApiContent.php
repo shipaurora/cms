@@ -160,13 +160,21 @@ class ApiContent
     }
 
     /**
-     * A page a field links to, when anyone may see it.
+     * A page a field links to, when anyone may see it (looked up once per request).
      *
      * @return array{id: string, title: string, path: string, url: string}|null
      */
     public static function page(mixed $id): ?array
     {
-        return is_string($id) ? (static::pages()[$id] ?? null) : null;
+        if (! is_string($id) || ! Str::isUuid($id)) {
+            return null;
+        }
+
+        return once(function () use ($id): ?array {
+            $page = Page::query()->public()->find($id, ['id', 'site_id', 'parent_id', 'title', 'slug', 'is_homepage', 'locales']);
+
+            return $page === null ? null : ['id' => $page->id, 'title' => $page->title, 'path' => $page->path(), 'url' => $page->url()];
+        });
     }
 
     /**
@@ -203,13 +211,13 @@ class ApiContent
     /**
      * The files content anyone may see uses: on live public pages (and the shared sections
      * they place), and in the settings the APIs show. Other files in the library aren't
-     * listed or shown.
+     * listed or shown. Worked out once until the content changes (PageCache::remember()).
      *
      * @return array<int, string>
      */
     public static function publicAssetIds(): array
     {
-        return once(function (): array {
+        return once(fn (): array => PageCache::remember('api-assets.'.CurrentSite::id(), function (): array {
             $pages = Page::query()->public()->get(['id', 'blocks', 'block_translations', 'og_image']);
             $content = $pages->map(fn (Page $page): array => [$page->blocks, $page->block_translations, $page->og_image])->all();
 
@@ -220,7 +228,7 @@ class ApiContent
                 ->all();
 
             return AssetLibrary::referencedIds([$content, $sections, Arr::only(Setting::forCurrentSite(), PublicApi::publicSettings())]);
-        });
+        }));
     }
 
     /**
@@ -281,21 +289,6 @@ class ApiContent
         } finally {
             array_pop(static::$sections);
         }
-    }
-
-    /**
-     * Every live page anyone may see, by id, in the language asked for.
-     *
-     * @return array<string, array{id: string, title: string, path: string, url: string}>
-     */
-    protected static function pages(): array
-    {
-        return once(fn (): array => Page::query()->public()->get()->mapWithKeys(fn (Page $page): array => [$page->id => [
-            'id' => $page->id,
-            'title' => $page->title,
-            'path' => $page->path(),
-            'url' => $page->url(),
-        ]])->all());
     }
 
     /**

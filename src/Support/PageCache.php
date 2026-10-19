@@ -4,6 +4,7 @@ namespace Aurora\Support;
 
 use Aurora\Models\Page;
 use Aurora\Models\Setting;
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -77,6 +78,18 @@ class PageCache
         ], (int) $seconds);
 
         $response->headers->set('X-Aurora-Cache', 'MISS');
+    }
+
+    /**
+     * Something worked out from the website's content (the files its pages use, say), kept like
+     * the pages: until anything they show changes, or the next scheduled publish or unpublish.
+     * Kept whether or not pages are, since it costs the same to work out.
+     */
+    public static function remember(string $key, Closure $value): mixed
+    {
+        $seconds = ($next = static::nextScheduledChange()) === null ? 86400 : min(86400, max(1, now()->diffInSeconds($next)));
+
+        return Cache::remember('aurora.content.'.Cache::get(self::VERSION, 0).'.'.$key, (int) $seconds, $value);
     }
 
     /**
