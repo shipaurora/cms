@@ -1,0 +1,2462 @@
+/*
+ * The CMS's own admin components (canvas, inspector, media library, settings screens …), the
+ * same in every admin theme: layout and behaviour, in Filament's colours and the theme's
+ * --font-* tokens. Every admin build imports this before its theme's styles, so a theme
+ * changes a component by styling the same class again; it never copies these rules.
+ */
+
+/*
+ * The visual editor's canvas renders the site's real blocks. Give it the site's fonts and
+ * text colour so it reads as the page, not as the admin panel around it.
+ */
+.fpb-canvas {
+    font-family: var(--font-body);
+    color: var(--ink-muted);
+    --fpb-canvas-bg: #fff;
+}
+
+.fpb-canvas h1,
+.fpb-canvas h2,
+.fpb-canvas h3,
+.fpb-canvas h4 {
+    font-family: var(--font-display);
+}
+
+/* The per-block image editor previews tone changes on the cropper's images. */
+.cropper-container img {
+    filter: var(--editor-filter, none);
+}
+
+/* The canvas switches pointer events off inside blocks so a click selects the block; empty
+   image placeholders take them back, so clicking one opens the media picker directly. */
+.fpb-block-body [data-fpb-picker] {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* Embeds on the canvas take link drops (see the embed view override): the drop zone needs
+   pointer events back, and the overlay sits above the iframe, which would swallow them. */
+.fpb-block-body [data-fpb-dropzone] {
+    pointer-events: auto;
+}
+
+.fpb-embed-dropzone {
+    border: 2px dashed color-mix(in oklch, var(--primary-500) 45%, transparent);
+    border-radius: 0.75rem;
+    opacity: 1 !important;
+    color: var(--color-gray-500);
+}
+
+.fpb-embed-drop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    border: 2px dashed var(--primary-500);
+    border-radius: 0.75rem;
+    background: color-mix(in oklch, var(--primary-500) 18%, rgb(255 255 255 / 0.85));
+    color: var(--primary-700);
+    font-size: 0.875rem;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/*
+ * The canvas inspector is a narrow sidebar. Grouped toggle buttons are a single-row grid
+ * that cannot wrap, so a group with long labels ("Original 16:9 4:3 Square Portrait")
+ * overflowed it. Here they become a wrapping row of separate buttons, the way ungrouped
+ * toggle buttons already look. Everywhere else in the panel they stay joined.
+ */
+.fpb-inspector .fi-fo-toggle-buttons.fi-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    width: 100%;
+    box-shadow: none;
+}
+
+.fpb-inspector .fi-fo-toggle-buttons.fi-btn-group > .fi-btn {
+    flex: 1 1 auto;
+    margin: 0;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-gray-950) 10%, transparent) !important;
+}
+
+.dark .fpb-inspector .fi-fo-toggle-buttons.fi-btn-group > .fi-btn {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, white 20%, transparent) !important;
+}
+
+/* Nothing in the inspector may push it wider than the sidebar. */
+.fpb-inspector .fi-sc,
+.fpb-inspector .fi-fo-field {
+    min-width: 0;
+}
+
+/* Global search: a thumbnail (image, avatar) beside a result's title and details (Aurora\Support\SearchThumbnail). */
+.fi-global-search-result-link:has(.cms-search-thumb) {
+    position: relative;
+    padding-inline-start: 4.25rem;
+}
+
+.cms-search-thumb {
+    position: absolute;
+    inset-inline-start: 1rem;
+    top: 50%;
+    translate: 0 -50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background: var(--gray-100);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.05);
+}
+
+.dark .cms-search-thumb {
+    background: var(--gray-800);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+
+.cms-search-thumb-round {
+    border-radius: 9999px;
+}
+
+.cms-search-thumb-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.dark .cms-search-thumb-icon {
+    color: var(--primary-300);
+}
+
+.cms-search-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Folder choices (Aurora\Filament\Forms\Components\FolderSelect): icon, muted parents, name, indented by depth. */
+
+/* A folder that can't be picked (a folder can't move into itself): shown, but greyed out. */
+.fi-select-input-option.fi-disabled:has(.cms-folder-option) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.cms-folder-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    padding-inline-start: calc(var(--depth, 0) * 1rem);
+}
+
+.cms-folder-option-icon {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    color: var(--primary-500);
+}
+
+.cms-folder-option-path {
+    color: var(--gray-400);
+    white-space: nowrap;
+}
+
+.cms-folder-option-name {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* In the list the indentation shows the nesting, so only the name; searching keeps the path. */
+.fi-select-input-option .cms-folder-option:not(.cms-folder-option-searched) .cms-folder-option-path {
+    display: none;
+}
+
+/* In the field itself the selected folder shows its full path, not indented. */
+.fi-select-input-value-label .cms-folder-option {
+    padding-inline-start: 0;
+}
+
+.fi-tenant-menu-trigger {
+    padding: 0.375rem 0.5rem 0.375rem 0.375rem;
+    border-radius: 0.875rem;
+    transition: background-color 160ms;
+}
+
+/* Collapsed rail: just the site's tile, centred over the icons. */
+@media (min-width: 1024px) {
+    .fi-body-has-sidebar-collapsible-on-desktop .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-nav > .fi-tenant-menu {
+        width: 100%;
+        padding-bottom: 0.75rem;
+    }
+
+    .fi-body-has-sidebar-collapsible-on-desktop .fi-sidebar:not(.fi-sidebar-open) .fi-tenant-menu-trigger {
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        margin-inline: auto;
+        padding: 0;
+    }
+}
+
+.fi-sidebar-nav-groups {
+    margin-inline: 0;
+}
+
+.fi-sidebar-group-dropdown-trigger-btn {
+    border-radius: 0.875rem;
+}
+
+/* Breathing room between the items of a group. */
+.fi-sidebar-group-items {
+    gap: 0.5rem;
+}
+
+.fi-sidebar-item-badge-ctn .fi-badge-label-ctn,
+.fi-tabs-item .fi-badge .fi-badge-label-ctn {
+    display: block;
+    align-self: center;
+}
+
+/* A tab's own colour (Live in green, Scheduled in blue) stays, filled the same way. */
+.fi-tabs-item .fi-badge.fi-color:not(.fi-color-gray) {
+    background: var(--color-600);
+}
+
+/* The table toolbar's column and filter buttons: the same dot, on the icon's top-right corner
+   (Filament centres the badge on its anchor point). */
+.fi-ta-header-toolbar .fi-icon-btn > .fi-icon-btn-badge-ctn {
+    top: calc(50% - 0.5rem);
+    inset-inline-start: calc(50% + 0.5rem);
+    background: transparent;
+}
+
+/* No filters on: no count (Filament would show "0"; AppServiceProvider tags the button). */
+.fi-icon-btn[data-active-filters='0'] > .fi-icon-btn-badge-ctn {
+    display: none;
+}
+
+/* Filament centres the badge on its anchor point: put that on the bell's top-right corner. */
+.fi-topbar-database-notifications-btn > .fi-icon-btn-badge-ctn {
+    top: 0.45rem;
+    inset-inline-start: 1.75rem;
+    background: transparent;
+}
+
+.fi-topbar-database-notifications-btn > .fi-icon-btn-badge-ctn .fi-badge-label-ctn,
+.fi-ta-header-toolbar .fi-icon-btn > .fi-icon-btn-badge-ctn .fi-badge-label-ctn,
+.fi-body-has-sidebar-collapsible-on-desktop .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-badge-ctn .fi-badge-label-ctn {
+    display: block;
+    align-self: center;
+}
+
+/* Notifications: a dropdown under the bell, like the user menu (vendor override of
+   filament-notifications::database-notifications). */
+.fi-dropdown-panel:has(> .cms-notifications-header) {
+    width: min(24rem, calc(100vw - 2rem));
+    max-width: none;
+    overflow: hidden;
+}
+
+.dark .cms-notifications-heading {
+    color: #fff;
+}
+
+.cms-notifications-list {
+    max-height: min(28rem, 70vh);
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.cms-notifications-list > :last-child .fi-no-notification {
+    border-bottom: 0;
+}
+
+/* Denser rows than a toast: it's a list to glance through. */
+.cms-notifications-list .fi-no-notification {
+    padding: 0.75rem 1rem;
+}
+
+.cms-notifications-list .fi-no-notification .fi-btn {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.cms-notifications-empty {
+    display: grid;
+    justify-items: center;
+    gap: 0.25rem;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.cms-notifications-empty svg {
+    margin-bottom: 0.5rem;
+    color: var(--gray-400);
+}
+
+.cms-notifications-empty-heading {
+    font-weight: 600;
+    color: var(--gray-950);
+}
+
+.dark .cms-notifications-empty-heading {
+    color: #fff;
+}
+
+/* On phones the sidebar slides over the page. */
+.fi-sidebar.fi-sidebar-open {
+    background: transparent;
+}
+
+.fi-header-subheading {
+    color: var(--gray-500);
+}
+
+.fi-section:not(.fi-section-not-contained):not(.fi-aside) > .fi-section-header {
+    padding-block: 1.125rem;
+}
+
+/* On a phone, a section's header actions (Clear page cache, Add webhook…) go on a line of their
+   own under the heading, lined up with its text, instead of squeezing it into a narrow column. */
+@media (max-width: 40rem) {
+    .fi-section > .fi-section-header:has(> .fi-section-header-after-ctn) {
+        flex-wrap: wrap;
+    }
+
+    .fi-section > .fi-section-header > .fi-section-header-after-ctn {
+        flex-basis: 100%;
+        align-self: flex-start;
+        margin-block: 0;
+    }
+
+    .fi-section > .fi-section-header > .fi-section-header-after-ctn > .fi-sc.fi-align-end {
+        justify-content: flex-start;
+    }
+
+    .fi-section > .fi-section-header:has(> .fi-icon) > .fi-section-header-after-ctn {
+        margin-inline-start: 3.15rem;
+    }
+}
+
+/* A table standing in for a section gets the same tile (Aurora\Support\TableHeading), set beside
+   both its heading and description. */
+.fi-ta-header > div:has(.cms-ta-heading-icon) {
+    position: relative;
+    min-height: 2.5rem;
+    padding-inline-start: 3.25rem;
+}
+
+/* Stats: big display numbers in a gradient; the sparkline stays inside the card. */
+.fi-wi-stats-overview-stat {
+    overflow: hidden;
+}
+
+.fi-fo-field-label-content {
+    font-weight: 550;
+}
+
+.fi-checkbox-input {
+    border-radius: 0.375rem;
+}
+
+/* No overflow clipping on the card: it would also clip row action menus (dropdowns are
+   not teleported). The rounded corners are kept by rounding the first and last parts. */
+.fi-ta-ctn > :first-child {
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}
+
+.fi-ta-ctn > :last-child {
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+
+.fi-ta-row {
+    transition: background-color 120ms, box-shadow 120ms;
+}
+
+.fi-pagination .fi-pagination-item {
+    border: 0;
+}
+
+.fi-pagination .fi-pagination-item-label {
+    padding: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* On a phone, a form's tabs (Settings' sections) are words only, so they fit side by side. */
+@media (max-width: 40rem) {
+    .fi-sc-tabs .fi-tabs-item > .fi-icon {
+        display: none;
+    }
+}
+
+/* Long lists (selects, the folder tree) scroll inside the panel: the rule above would clip them. */
+.fi-dropdown-panel.fi-scrollable {
+    overflow-y: auto;
+}
+
+/* Slide-overs (notifications, submissions, …) run edge to edge: square, with the edge line
+   only on the side that faces the page. */
+.fi-modal-slide-over .fi-modal-window {
+    border-width: 0 0 0 1px;
+    border-radius: 0;
+}
+
+.fi-modal-slide-over.fi-modal-slide-over-from-start .fi-modal-window {
+    border-width: 0 1px 0 0;
+}
+
+.dark .fi-btn:is(.fi-color-danger, .fi-color-success, .fi-color-warning, .fi-color-info):not(.fi-outlined):not(label):not([aria-pressed]) {
+    color: var(--color-400);
+}
+
+.fi-btn:is(.fi-color-danger, .fi-color-success, .fi-color-warning, .fi-color-info):not(.fi-outlined):not(label):not([aria-pressed]) .fi-icon {
+    color: currentColor;
+}
+
+.cms-user-menu-card:hover {
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary-500) 35%, transparent);
+}
+
+.cms-user-menu-email {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.dark .cms-user-menu-name {
+    color: #fff;
+}
+
+.dark .cms-user-menu-role {
+    color: var(--primary-300);
+}
+
+.cms-user-menu-segment {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 0.75rem;
+    background: rgb(128 128 128 / 0.09);
+}
+
+.cms-user-menu-segment > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.25rem;
+    border-radius: 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    transition: background-color 150ms, color 150ms, box-shadow 150ms;
+}
+
+.cms-user-menu-segment > button:hover {
+    color: var(--gray-900);
+}
+
+.dark .cms-user-menu-segment > button:hover {
+    color: #fff;
+}
+
+.dark .cms-user-menu-segment > button.cms-active {
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+}
+
+.fi-cp-root .fi-cp-backdrop {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+/* Just the search field until something is typed (see the palette's script override). */
+.fi-cp-root[data-cp-collapsed] .fi-cp-results {
+    display: none;
+}
+
+.fi-cp-root[data-cp-collapsed] .fi-cp-search {
+    border-bottom-color: transparent;
+}
+
+.fi-cp-root .fi-cp-search-input {
+    font-size: 1rem;
+}
+
+.fi-cp-root .fi-cp-search-icon {
+    color: var(--primary-500);
+}
+
+.fi-cp-root .fi-cp-item-icon,
+.fi-cp-root .fi-cp-item-icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.fi-cp-root .fi-cp-item.is-selected {
+    color: #fff;
+    font-weight: 600;
+}
+
+.fi-cp-root .fi-cp-item.is-selected .fi-cp-item-icon {
+    color: #fff;
+}
+
+.fi-global-search-result-link {
+    margin: 0.25rem 0.375rem;
+    border-radius: 0.875rem;
+    transition: background-color 120ms;
+}
+
+/* A person's name with their avatar (Aurora\Support\UserBadge). In a select's chosen value
+   and options, it sits in the line's middle rather than on its baseline. */
+.cms-user-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    vertical-align: middle;
+}
+
+.fi-select-input-value-label:has(> .cms-user-badge, > .cms-grantee-option),
+.fi-select-input-option:has(> .cms-user-badge, > .cms-grantee-option) {
+    display: flex;
+    align-items: center;
+}
+
+.cms-user-badge-text {
+    color: var(--gray-500);
+}
+
+/* Tooltips (tippy.js): a dark glass pill with a violet edge, the same in both themes. The
+   arrow follows --tippy-background-color, so box and arrow stay one colour. */
+.tippy-box,
+.tippy-box[data-theme~='light'],
+.tippy-box[data-theme~='dark'] {
+    --tippy-background-color: #17142e;
+
+    border-radius: 0.625rem;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.35;
+    box-shadow:
+        0 10px 24px -8px rgb(13 11 31 / 0.55),
+        inset 0 0 0 1px color-mix(in oklch, var(--primary-400) 30%, transparent);
+}
+
+.tippy-box .tippy-content {
+    padding: 0.35rem 0.6rem;
+}
+
+.dark .tippy-box,
+.dark .tippy-box[data-theme~='light'],
+.dark .tippy-box[data-theme~='dark'] {
+    --tippy-background-color: #221d40;
+}
+
+/* Page header buttons sit on the right on phones too, where the header stacks, and when they
+   wrap onto a line of their own under a long title; the primary action stays at the end. */
+.fi-header .fi-header-actions-ctn {
+    align-self: flex-end;
+    margin-inline-start: auto;
+}
+
+.fi-header .fi-header-actions-ctn > .fi-ac {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.cms-people-row:has(input:checked) {
+    background: color-mix(in oklch, var(--primary-500) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary-500) 35%, transparent);
+}
+
+.cms-people-row:has(input:focus-visible) {
+    box-shadow: inset 0 0 0 2px var(--primary-500);
+}
+
+.cms-people-check .fi-icon {
+    opacity: 0;
+}
+
+.cms-people-row input:checked ~ .cms-people-check .fi-icon {
+    opacity: 1;
+}
+
+/* Links in the assistant's replies: violet pill buttons with an arrow, like the rest of the theme. */
+#copilot-messages .prose a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.15rem 0;
+    padding: 0.3rem 0.7rem 0.3rem 0.8rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--primary-700);
+    text-decoration: none;
+    background: color-mix(in oklch, var(--primary-500) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary-500) 30%, transparent);
+    transition: background-color 150ms, box-shadow 150ms, color 150ms;
+    vertical-align: baseline;
+}
+
+.dark #copilot-messages .prose a {
+    color: var(--primary-300);
+    background: color-mix(in oklch, var(--primary-500) 18%, transparent);
+}
+
+#copilot-messages .prose a::after {
+    content: '';
+    width: 0.8rem;
+    height: 0.8rem;
+    flex-shrink: 0;
+    background: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M224.49,136.49l-72,72a12,12,0,0,1-17-17L187,140H40a12,12,0,0,1,0-24H187L135.51,64.48a12,12,0,0,1,17-17l72,72A12,12,0,0,1,224.49,136.49Z'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: transform 150ms;
+}
+
+#copilot-messages .prose a:hover::after {
+    transform: translateX(2px);
+}
+
+/* The assistant's own dialogs sit above the chat panel (z-50), backdrop included. */
+.cms-assistant-dialogs .fi-modal-close-overlay,
+.cms-assistant-dialogs .fi-modal-window-ctn {
+    z-index: 60;
+}
+
+/* While any other dialog is open, the chat bubble and panel step below its backdrop. */
+body:has(.fi-modal.fi-modal-open:not(.cms-assistant-dialogs *)) :is(#cms-assistant, [aria-controls='cms-assistant']) {
+    z-index: 30;
+}
+
+/* In the visual editor the page sits in its own fixed layer, so its dialogs can't rise above
+   the chat: hide the chat while one is open instead. */
+body:has(.fpb):has(.fi-modal.fi-modal-open:not(.cms-assistant-dialogs *)) :is(#cms-assistant, [aria-controls='cms-assistant']) {
+    visibility: hidden;
+}
+
+/* "Write with AI" inside an editable table cell (->withAi() on a TextInputColumn). */
+.cms-ai-cell-button {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    color: var(--primary-500);
+    transition: background-color 150ms, color 150ms;
+}
+
+.cms-ai-cell-button:hover,
+.cms-ai-cell-button:focus-visible {
+    color: var(--primary-400);
+    background: color-mix(in oklch, var(--primary-500) 15%, transparent);
+    outline: none;
+}
+
+/* Above the assistant's chat bubble, which sits in the same corner. */
+body:has([aria-controls='cms-assistant']) .fi-no {
+    padding-bottom: 5.5rem;
+}
+
+/* Room for the scrollbar always, so pages don't shift sideways when one gets long enough to scroll. */
+html {
+    scrollbar-gutter: stable;
+}
+
+/* The visual editor fills the window and scrolls inside its canvas: no gutter there. */
+html:has(.fpb) {
+    scrollbar-gutter: auto;
+}
+
+/* Filament switches the desktop rail's width instantly; slide it instead. The labels still
+   fade in with Filament's own transition once there is room. */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    .fi-body-has-sidebar-collapsible-on-desktop .fi-sidebar {
+        transition: width 220ms cubic-bezier(0.2, 0, 0, 1);
+    }
+}
+
+/* On desktop the sidebar doesn't slide, so it needs no translate: even a zero one makes it the
+   frame fixed-position dropdowns (the site switcher) are placed in, which put them off by the
+   sidebar's own offset and let it clip them. */
+@media (min-width: 1024px) {
+    .fi-sidebar {
+        /* Filament's lg:translate-x-0 sits on more specific selectors. */
+        translate: none;
+    }
+}
+
+/* Only while pointing at the gap between two items, not at an item (Filament shows the
+   buttons above and below whichever item is hovered). The gap itself is the hover target. */
+.fi-fo-builder .fi-fo-builder-add-between-items-ctn {
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.fi-fo-builder .fi-fo-builder-add-between-items-ctn::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1rem;
+}
+
+.fi-fo-builder .fi-fo-builder-add-between-items {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms;
+}
+
+.fi-fo-builder .fi-fo-builder-add-between-items-ctn:is(:hover, :focus-within) .fi-fo-builder-add-between-items {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Grouped toggle buttons that fill their column (the page's publishing status). Each grows
+   from its label's width, and in a narrow column they drop their icons rather than wrap. */
+:has(> .fi-fo-toggle-buttons.cms-toggle-buttons-full) {
+    container-type: inline-size;
+}
+
+.fi-fo-toggle-buttons.fi-btn-group.cms-toggle-buttons-full {
+    display: flex;
+    width: 100%;
+}
+
+.fi-fo-toggle-buttons.fi-btn-group.cms-toggle-buttons-full > .fi-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+@container (max-width: 20rem) {
+    .fi-fo-toggle-buttons.fi-btn-group.cms-toggle-buttons-full > .fi-btn {
+        padding-inline: 0.5rem;
+    }
+
+    .fi-fo-toggle-buttons.fi-btn-group.cms-toggle-buttons-full > .fi-btn > .fi-icon {
+        display: none;
+    }
+}
+
+.fi-fo-toggle-buttons.fi-btn-group:not(.fpb-inspector *) > .fi-btn {
+    margin: 0;
+    border: 0;
+    border-radius: 0.625rem;
+    background: transparent;
+    box-shadow: none;
+    color: var(--gray-500);
+    transition: background-color 160ms, color 160ms, box-shadow 160ms;
+}
+
+.fi-fo-toggle-buttons.fi-btn-group:not(.fpb-inspector *) > .fi-btn .fi-icon {
+    color: currentColor;
+}
+
+.fi-fo-toggle-buttons.fi-btn-group:not(.fpb-inspector *) > .fi-btn[aria-pressed='false']:not([disabled]):hover {
+    background: color-mix(in oklch, var(--gray-500) 10%, transparent);
+    color: var(--gray-700);
+}
+
+.dark .fi-fo-toggle-buttons.fi-btn-group:not(.fpb-inspector *) > .fi-btn[aria-pressed='false']:not([disabled]):hover {
+    color: var(--gray-200);
+}
+
+.dark .fi-fo-toggle-buttons.fi-btn-group:not(.fpb-inspector *) > .fi-btn[aria-pressed='true'] {
+    color: var(--color-300, #fff);
+}
+
+/* Tables: "3 selected · Select all · Deselect all" takes the place of "Showing 1 to 10 of
+   40" in the pagination row, instead of pushing the table down from above. Only where
+   that overview shows (md and up); otherwise it stays above the table. */
+@media (min-width: 768px) {
+    .fi-ta-main:has(> .fi-pagination .fi-pagination-overview) {
+        position: relative;
+    }
+
+    .fi-ta-main:has(> .fi-pagination .fi-pagination-overview) > .fi-ta-selection-indicator {
+        position: absolute;
+        z-index: 1;
+        bottom: 0;
+        inset-inline-start: 0;
+        inset-inline-end: calc(50% + 5rem);
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.25rem 0.75rem;
+        min-height: 3.75rem;
+        padding-block: 0.75rem;
+        border: 0;
+        background: transparent;
+    }
+
+    .fi-ta-main:has(> .fi-pagination .fi-pagination-overview) > .fi-ta-selection-indicator > :nth-child(2) {
+        margin-inline-start: 0;
+    }
+
+    .fi-ta-main:has(> .fi-ta-selection-indicator:not([hidden])) > .fi-pagination .fi-pagination-overview {
+        visibility: hidden;
+    }
+}
+
+/* PagePicker: one page, from the tree. Subpages indented under their page (not while
+   searching), the address below the title, in a box of its own that scrolls: five rows and
+   the edge of the next. With a search, the box keeps its height so the form doesn't jump. */
+.cms-page-picker {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.cms-page-picker-list {
+    position: relative;
+    display: grid;
+    align-content: start;
+    gap: 0.125rem;
+    max-height: 16.25rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 0.25rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--color-gray-500) 4%, transparent);
+}
+
+.dark .cms-page-picker-list {
+    background: rgb(0 0 0 / 0.18);
+}
+
+@media (min-width: 40rem) {
+    .cms-page-picker-searchable .cms-page-picker-list {
+        height: 16.25rem;
+    }
+}
+
+.cms-page-picker-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    border-radius: 0.75rem;
+    padding: 0.375rem 0.625rem;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+
+.cms-page-picker-option:hover {
+    background: color-mix(in oklch, var(--color-gray-500) 8%, transparent);
+}
+
+.cms-page-picker-option:has(input:checked) {
+    background: color-mix(in oklch, var(--color-primary-500) 10%, transparent);
+}
+
+.cms-page-picker-option .fi-radio-input {
+    flex-shrink: 0;
+}
+
+.cms-page-picker-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    padding-inline-start: calc(var(--depth, 0) * 1.25rem);
+}
+
+.cms-page-picker-list-searched .cms-page-picker-text {
+    padding-inline-start: 0;
+}
+
+.cms-page-picker-title,
+.cms-page-picker-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cms-page-picker-title {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--color-gray-950);
+}
+
+.dark .cms-page-picker-title {
+    color: var(--color-white);
+}
+
+.cms-page-picker-badge {
+    flex-shrink: 0;
+    border-radius: 9999px;
+    padding: 0.0625rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-primary-600);
+    background: color-mix(in oklch, var(--color-primary-500) 12%, transparent);
+}
+
+.dark .cms-page-picker-badge {
+    color: var(--color-primary-300);
+}
+
+/* ->inModal(): the chosen page as a card (like a chosen file), the list in a dialog. */
+.cms-page-picker-chosen-wrp {
+    display: grid;
+    justify-items: start;
+    gap: 0.5rem;
+}
+
+.cms-page-picker-chosen {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    min-width: 0;
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in oklch, var(--color-gray-500) 4%, transparent);
+}
+
+.dark .cms-page-picker-chosen {
+    background: rgb(0 0 0 / 0.18);
+}
+
+.cms-page-picker-chosen-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-primary-500);
+}
+
+.cms-page-picker-clear {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    color: var(--color-gray-400);
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.cms-page-picker-clear:hover {
+    color: var(--color-gray-700);
+    background: color-mix(in oklch, var(--color-gray-500) 14%, transparent);
+}
+
+.dark .cms-page-picker-clear:hover {
+    color: var(--color-white);
+}
+
+.cms-page-picker-empty {
+    padding: 1.5rem 0.75rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+}
+
+/* The media library's image preview and its variants open full size in a lightbox. */
+.cms-lightbox-trigger {
+    display: block;
+    width: 100%;
+    cursor: zoom-in;
+}
+
+.cms-lightbox-thumb {
+    flex-shrink: 0;
+    border-radius: 0.5rem;
+    cursor: zoom-in;
+    transition: opacity 120ms ease;
+}
+
+.cms-lightbox-thumb:hover {
+    opacity: 0.8;
+}
+
+.cms-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    background: rgb(5 4 15 / 0.88);
+    backdrop-filter: blur(6px);
+    cursor: zoom-out;
+}
+
+.cms-lightbox-image {
+    max-width: 100%;
+    max-height: calc(100vh - 4rem);
+    object-fit: contain;
+    border-radius: 0.5rem;
+    box-shadow: 0 24px 80px -12px rgb(0 0 0 / 0.6);
+}
+
+.cms-lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    color: var(--color-white);
+    background: rgb(255 255 255 / 0.1);
+    transition: background-color 120ms ease;
+}
+
+.cms-lightbox-close:hover {
+    background: rgb(255 255 255 / 0.2);
+}
+
+/* Media library › Formats: the built-in sizes, above the formats that can be changed. */
+.cms-built-in-formats {
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--color-gray-500) 4%, transparent);
+}
+
+.cms-built-in-formats-label {
+    margin-bottom: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+}
+
+.cms-built-in-formats ul {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.cms-built-in-formats li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    font-size: 0.875rem;
+}
+
+.cms-built-in-formats li > span:first-child {
+    font-weight: 500;
+    color: var(--color-gray-950);
+}
+
+.dark .cms-built-in-formats li > span:first-child {
+    color: var(--color-white);
+}
+
+.cms-built-in-formats li > span:last-child {
+    color: var(--color-gray-500);
+}
+
+/* The schema's own gaps (between cards, and between a card's lines) are too roomy here. */
+.cms-format-list > .fi-sc {
+    gap: 0.5rem;
+}
+
+.cms-format-row .fi-sc {
+    gap: 0.125rem;
+}
+
+.cms-format-row {
+    padding: 0.75rem 0.75rem 0.75rem 1rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--color-gray-500) 4%, transparent);
+}
+
+.dark .cms-format-row {
+    background: rgb(0 0 0 / 0.18);
+}
+
+/* An image's Formats tab: a dot per size, green when made, yellow while being made, red
+   when missing. */
+.cms-format-status {
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+}
+
+.cms-format-status-ready {
+    background: var(--color-success-500);
+}
+
+.cms-format-status-pending {
+    background: var(--color-warning-400);
+    animation: cms-format-pulse 1.2s ease-in-out infinite;
+}
+
+.cms-format-status-missing {
+    background: var(--color-danger-500);
+}
+
+@keyframes cms-format-pulse {
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.cms-format-placeholder {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    color: var(--color-gray-400);
+    background: color-mix(in oklch, var(--color-gray-500) 8%, transparent);
+}
+
+/* A file's embedded data (EXIF, ID3): label and value per line, every tag folded away below. */
+.cms-exif-summary,
+.cms-exif-all dl {
+    display: grid;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.cms-exif-summary > div,
+.cms-exif-all dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.cms-exif-summary dt,
+.cms-exif-all dt {
+    flex-shrink: 0;
+    color: var(--color-gray-500);
+}
+
+.cms-exif-summary dd,
+.cms-exif-all dd {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: end;
+    color: var(--color-gray-950);
+}
+
+.dark .cms-exif-summary dd,
+.dark .cms-exif-all dd {
+    color: var(--color-white);
+}
+
+.cms-exif-all summary {
+    cursor: pointer;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-primary-600);
+}
+
+.dark .cms-exif-all summary {
+    color: var(--color-primary-400);
+}
+
+.cms-exif-all dl {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+}
+
+/* A file or folder with its own access (AssetAccess): a small lock after its name. */
+.cms-access-lock {
+    flex-shrink: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+    color: var(--color-gray-400);
+}
+
+/* The Access dialog's rules: one row each (who, what they can do), with its remove button
+   at the row's end instead of in a header of its own. */
+.cms-access-rules .fi-fo-repeater-item {
+    position: relative;
+}
+
+.cms-access-rules .fi-fo-repeater-item-header {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 1rem;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.cms-access-rules .fi-fo-repeater-item-content {
+    padding-inline-end: 3.75rem;
+    border-top: 0;
+}
+
+/* A role, or everyone, in the Access dialog's select: an icon where a person has a picture. */
+.cms-grantee-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    vertical-align: middle;
+}
+
+.cms-grantee-option-icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0.25rem;
+    border-radius: 9999px;
+    color: var(--color-gray-500);
+    background: color-mix(in oklch, var(--color-gray-500) 14%, transparent);
+}
+
+.cms-grantee-option-danger .cms-grantee-option-icon {
+    color: var(--color-danger-500);
+    background: color-mix(in oklch, var(--color-danger-500) 14%, transparent);
+}
+
+/* A page's search index (SearchIndexAction): its text by language, the words searched for
+   marked, and whether the search finds the page. */
+.cms-search-result {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-danger-700);
+    background: color-mix(in oklch, var(--color-danger-500) 10%, transparent);
+}
+
+.dark .cms-search-result {
+    color: var(--color-danger-300);
+}
+
+.cms-search-result-found {
+    color: var(--color-success-700);
+    background: color-mix(in oklch, var(--color-success-500) 10%, transparent);
+}
+
+.dark .cms-search-result-found {
+    color: var(--color-success-300);
+}
+
+.cms-search-index {
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.cms-search-index header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-gray-500);
+    background: color-mix(in oklch, var(--color-gray-500) 6%, transparent);
+}
+
+.cms-search-index-meta {
+    font-weight: 400;
+}
+
+.cms-search-index p {
+    max-height: min(16rem, 35vh);
+    overflow-y: auto;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: normal;
+}
+
+.cms-search-mark {
+    border-radius: 0.25rem;
+    padding: 0 0.125rem;
+    color: inherit;
+    background: color-mix(in oklch, var(--color-warning-400) 40%, transparent);
+}
+
+/* The pages a search finds (SearchPagesAction), ranked: title and address, status, and
+   whether visitors find it. */
+.cms-search-pages {
+    display: grid;
+    align-content: start;
+    gap: 0.375rem;
+    /* Scrolls on its own, so the dialog keeps its size however many pages match. */
+    max-height: min(26rem, 55vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline-end: 0.25rem;
+}
+
+.cms-search-pages li {
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 0.75rem;
+}
+
+.cms-search-pages-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: inherit;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+
+.cms-search-pages-row:hover,
+.cms-search-pages-open .cms-search-pages-row {
+    background: color-mix(in oklch, var(--color-gray-500) 6%, transparent);
+}
+
+.cms-search-pages-caret {
+    flex-shrink: 0;
+    color: var(--color-gray-400);
+    transition: transform 150ms ease;
+}
+
+.cms-search-pages-matches {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+.cms-search-pages-page {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.cms-search-pages-title,
+.cms-search-pages-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cms-search-pages-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.cms-search-pages-hidden {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--color-warning-600);
+}
+
+.dark .cms-search-pages-hidden {
+    color: var(--color-warning-400);
+}
+
+/* All of a page's matching languages together scroll too, below the result. */
+.cms-search-index-list {
+    display: grid;
+    gap: 1rem;
+    max-height: min(30rem, 55vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline-end: 0.25rem;
+}
+
+/* Pages list: the key after a password-protected page's title. */
+.cms-page-title-key {
+    display: inline-flex;
+    vertical-align: -0.15em;
+    margin-inline-start: 0.25rem;
+    color: var(--gray-400);
+}
+
+/* Layout picker (Aurora\Filament\Forms\Components\LayoutPicker): cards with a thumbnail of
+   the page drawn with each layout, a 1280 px wide frame scaled down to the card. */
+.cms-layout-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.75rem;
+}
+
+.cms-layout-picker-option {
+    display: grid;
+    /* Cards in a row share its height: the thumbnail and text stay at the top. */
+    align-content: start;
+    gap: 0.625rem;
+    padding: 0.5rem 0.5rem 0.75rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--color-gray-500) 4%, transparent);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.dark .cms-layout-picker-option {
+    background: rgb(0 0 0 / 0.18);
+}
+
+.cms-layout-picker-option:hover {
+    border-color: color-mix(in oklch, var(--color-primary-500) 45%, transparent);
+}
+
+.cms-layout-picker-option:has(input:checked) {
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 1px var(--color-primary-500);
+}
+
+.cms-layout-picker-option:has(input:focus-visible) {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+}
+
+.cms-layout-thumb {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    border-radius: 0.625rem;
+    background: color-mix(in oklch, var(--color-gray-500) 12%, transparent);
+    pointer-events: none;
+}
+
+.cms-layout-thumb iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1280px;
+    height: 800px;
+    border: 0;
+    overflow: hidden;
+    /* A picture of the page, not a page to use: no scrolling, clicks go to the card. */
+    pointer-events: none;
+    transform-origin: 0 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.cms-layout-thumb-ready iframe {
+    opacity: 1;
+}
+
+.cms-layout-thumb-empty {
+    display: grid;
+    place-items: center;
+    color: var(--color-gray-400);
+}
+
+.cms-layout-picker-text {
+    display: grid;
+    gap: 0.125rem;
+    min-width: 0;
+    padding-inline: 0.25rem;
+}
+
+.cms-layout-picker-name {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-gray-950);
+}
+
+.dark .cms-layout-picker-name {
+    color: #fff;
+}
+
+.cms-layout-picker-description {
+    font-size: 0.8125rem;
+    color: var(--color-gray-500);
+}
+
+.cms-layout-picker-default {
+    padding: 0 0.375rem;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--color-primary-500) 15%, transparent);
+    color: var(--color-primary-600);
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.dark .cms-layout-picker-default {
+    color: var(--color-primary-300);
+}
+
+.cms-layout-picker-chosen-wrp {
+    display: grid;
+    justify-items: start;
+    gap: 0.625rem;
+}
+
+.cms-layout-picker-chosen {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--color-gray-500) 4%, transparent);
+}
+
+.dark .cms-layout-picker-chosen {
+    background: rgb(0 0 0 / 0.18);
+}
+
+.cms-layout-picker-chosen-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-primary-500);
+}
+
+.cms-layout-picker-name-icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-primary-500);
+}
+
+/* A page's side menu (Settings): stays in view under the top bar as the page scrolls, and
+   scrolls on its own when it's taller than the screen. */
+.fi-page-has-sub-navigation-start .fi-page-sub-navigation-sidebar-ctn {
+    position: sticky;
+    top: calc(var(--topbar-height, 4rem) + 1rem);
+    flex-shrink: 0;
+    max-height: calc(100dvh - var(--topbar-height, 4rem) - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+/* The site switcher's list: as wide as the switcher (the sidebar, less its padding), its
+   sites the size of the sidebar's items, each with its avatar as a tile like the switcher's. */
+.fi-tenant-menu .fi-dropdown-panel {
+    width: calc(var(--sidebar-width, 20rem) - 1.5rem) !important;
+    max-width: calc(100vw - 1.5rem);
+}
+
+.fi-tenant-menu .fi-dropdown-list-item {
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.875rem;
+    font-size: 0.9375rem;
+}
+
+.fi-tenant-menu .fi-dropdown-list-item-image {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.5rem;
+    object-fit: cover;
+}
+
+/* Settings › Blocks: a block's picture as a small thumbnail at the start of its row. */
+.cms-block-preview-thumb img {
+    width: 5rem;
+    height: 3rem;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 0.5rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+}
+
+/* A menu row sizes itself to its name and address, which pushes the edit and
+   delete buttons past the edge of a narrow screen. Let the text shrink so the
+   row stays inside the page. */
+.fi-fo-repeater-items:has(.fi-menu-builder-item-label),
+.fi-fo-repeater-item:has(.fi-menu-builder-item-label),
+.fi-fo-repeater-item-header:has(.fi-menu-builder-item-label) {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.fi-menu-builder-item-label,
+.fi-menu-builder-item-url {
+    min-width: 0;
+}
+
+/* On a phone, the drag controls, name, address and buttons cannot share one
+   line. The name keeps the first line; the address and buttons share the next. */
+@media (max-width: 40rem) {
+    .fi-fo-repeater-item-header:has(.fi-menu-builder-item-label) {
+        flex-wrap: wrap;
+        row-gap: 0.25rem;
+    }
+
+    .fi-fo-repeater-item-header:has(.fi-menu-builder-item-label)::after {
+        content: "";
+        flex-basis: 100%;
+        width: 0;
+        height: 0;
+        order: 1;
+    }
+
+    .fi-fo-repeater-item-header:has(.fi-menu-builder-item-label) .fi-menu-builder-item-label {
+        flex: 1 1 0%;
+    }
+
+    .fi-fo-repeater-item-header:has(.fi-menu-builder-item-label) .fi-menu-builder-item-url {
+        flex: 1 1 0%;
+        order: 2;
+    }
+
+    .fi-fo-repeater-item-header:has(.fi-menu-builder-item-label) .fi-fo-repeater-item-header-end-actions {
+        flex: none;
+        order: 2;
+        margin-inline-start: 0;
+    }
+}
+
+/* Someone else is editing the page (Aurora\Livewire\EditLock): who, since when, and Take over. */
+.cms-edit-lock {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 0.875rem 0.75rem 1rem;
+    border: 1px solid color-mix(in oklch, var(--color-warning-500) 45%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--color-warning-500) 10%, transparent);
+    font-size: 0.875rem;
+}
+
+.cms-edit-lock-avatar,
+.cms-edit-lock-icon {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+}
+
+.cms-edit-lock-icon {
+    padding: 0.375rem;
+    color: var(--color-warning-600);
+}
+
+.cms-edit-lock-text {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    color: var(--color-gray-600);
+}
+
+.cms-edit-lock-text strong {
+    color: var(--color-gray-950);
+}
+
+.dark .cms-edit-lock-text {
+    color: var(--color-gray-400);
+}
+
+.dark .cms-edit-lock-text strong {
+    color: #fff;
+}
+
+/* In the visual editor, the lock keeper isn't one of the editor grid's areas (top bar, block
+   list, canvas, inspector): its notice floats over the canvas instead. */
+.fpb > .cms-edit-lock-keeper {
+    display: contents;
+}
+
+.fpb .cms-edit-lock {
+    position: fixed;
+    top: 4.75rem;
+    left: 50%;
+    z-index: 40;
+    width: min(36rem, calc(100vw - 2rem));
+    margin: 0;
+    transform: translateX(-50%);
+    background: var(--color-white, #fff);
+    box-shadow: 0 18px 40px -12px rgb(0 0 0 / 0.35);
+}
+
+.dark .fpb .cms-edit-lock {
+    background: var(--color-gray-900);
+}
+
+/* Settings › Integrations › REST API / GraphQL API: its addresses, one per row, or an example query. */
+.cms-api-endpoints dl {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.cms-api-endpoints dl > div {
+    display: grid;
+    grid-template-columns: minmax(12rem, auto) 1fr;
+    gap: 1rem;
+    font-size: 0.875rem;
+}
+
+.dark .cms-api-endpoints code {
+    color: var(--color-primary-300);
+}
+
+.cms-api-endpoints dd {
+    color: var(--color-gray-500);
+}
+
+/* On a phone, each address above what it answers. */
+@media (max-width: 40rem) {
+    .cms-api-endpoints dl > div {
+        grid-template-columns: 1fr;
+        gap: 0.125rem;
+    }
+}
+
+.cms-api-example-label {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.dark .cms-api-example {
+    background: rgb(0 0 0 / 0.25);
+}
+
+/* A file's focal point: the image, with a dot where cropped sizes keep its subject. */
+.cms-focal-point-image {
+    position: relative;
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+    cursor: crosshair;
+}
+
+.cms-focal-point-image img {
+    display: block;
+    max-height: 22rem;
+    width: auto;
+    border-radius: 0.75rem;
+}
+
+.cms-focal-point-dot {
+    position: absolute;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid #fff;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--color-primary-500) 70%, transparent);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 4px 12px rgb(0 0 0 / 0.35);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.cms-focal-point-hint {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+    text-align: center;
+}
+
+.cms-focal-point-reset {
+    margin-inline-start: 0.375rem;
+    color: var(--color-primary-600);
+    font-weight: 500;
+}
+
+/* SEO checks (Aurora\Support\SeoChecks): on a page's Search engines tab and in the report. */
+.cms-seo-ok {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-success-600);
+}
+
+.cms-seo-issues {
+    display: grid;
+    gap: 0.375rem;
+}
+
+.cms-seo-issue {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-gray-700);
+}
+
+.dark .cms-seo-issue {
+    color: var(--color-gray-300);
+}
+
+.cms-seo-issue-danger > .fi-icon {
+    color: var(--color-danger-500);
+}
+
+.cms-seo-issue-warning > .fi-icon {
+    color: var(--color-warning-500);
+}
+
+.cms-seo-issue-info > .fi-icon {
+    color: var(--color-gray-400);
+}
+
+.cms-seo-report {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.cms-seo-report-row {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) 2fr;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 22%, transparent);
+    border-radius: 1rem;
+    transition: border-color 150ms;
+}
+
+.cms-seo-report-row:hover {
+    border-color: var(--color-primary-500);
+}
+
+.cms-seo-report-page {
+    display: grid;
+    min-width: 0;
+    font-size: 0.875rem;
+}
+
+.cms-seo-report-page span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-gray-500);
+}
+
+@media (max-width: 640px) {
+    .cms-seo-report-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Settings › System › System info: one row per thing the CMS runs on. */
+.cms-system-info {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.cms-system-info > div {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-gray-500) 15%, transparent);
+    font-size: 0.875rem;
+}
+
+.cms-system-info dt {
+    color: var(--color-gray-500);
+}
+
+.cms-system-info dd span {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+    color: var(--color-warning-600);
+}
+
+/* Settings › Appearance: a theme's picture fills its card's thumbnail. */
+.cms-theme-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+}
+
+/* The same chip as the Preview button, with Phosphor's bold arrow in front. */
+.fpb .fpb-back::before {
+    content: '';
+    width: 1rem;
+    height: 1rem;
+    background: currentColor;
+    opacity: 0.6;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M228,128a12,12,0,0,1-12,12H69l51.52,51.51a12,12,0,0,1-17,17l-72-72a12,12,0,0,1,0-17l72-72a12,12,0,0,1,17,17L69,116H216A12,12,0,0,1,228,128Z'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: transform 150ms, opacity 150ms;
+}
+
+.fpb .fpb-back:hover::before {
+    opacity: 1;
+    transform: translateX(-2px);
+}
+
+.fpb .fpb-preview-btn {
+    border-radius: 9999px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    opacity: 1;
+    transition: background-color 160ms, color 160ms, box-shadow 160ms;
+}
+
+.fpb .fpb-preview-btn:not([data-active='true']):hover {
+    background: var(--gray-50);
+    color: var(--gray-700);
+}
+
+.dark .fpb .fpb-preview-btn {
+    color: var(--gray-400);
+}
+
+.dark .fpb .fpb-preview-btn:not([data-active='true']):hover {
+    background: rgb(255 255 255 / 0.05);
+    color: var(--gray-200);
+}
+
+.dark .fpb .fpb-preview-btn[data-active='true'] {
+    background: color-mix(in oklch, var(--primary-500) 28%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary-400) 40%, transparent);
+}
+
+.fpb .fpb-palette .fpb-palette-icon {
+    color: var(--primary-500);
+}
+
+.fpb .fpb-inspector-tabs {
+    border-radius: 9999px;
+}
+
+.fpb .fpb-inspector-tabs .fpb-side-tab {
+    border-radius: 9999px;
+}
+
+.fpb .fpb-inspector-parent,
+.fpb .fpb-crumb-field {
+    color: var(--primary-600);
+}
+
+/* ── Canvas: the page as a lit sheet on the grid ──────────────────────── */
+.fpb .fpb-canvas-frame {
+    background: transparent;
+    padding: 1.5rem;
+}
+
+.fpb .fpb-block-body [data-fpb-field]:hover {
+    outline-color: color-mix(in oklch, var(--primary-500) 50%, transparent);
+}
+
+/* Drop targets and drag feedback. */
+body.fpb-edit-mode .fpb .fpb-slot {
+    border-color: color-mix(in oklch, var(--primary-500) 30%, transparent);
+    background: color-mix(in oklch, var(--primary-500) 3%, transparent);
+}
+
+.fpb .fpb-col-handle::before {
+    background: color-mix(in oklch, var(--primary-500) 35%, transparent);
+}
+
+.fpb .fpb-block-body > .fpb-spacer {
+    background: repeating-linear-gradient(-45deg, color-mix(in oklch, var(--primary-500) 8%, transparent) 0 6px, transparent 6px 12px);
+    outline-color: color-mix(in oklch, var(--primary-500) 30%, transparent);
+}
+
+.fpb button.fpb-empty-btn {
+    border-color: color-mix(in oklch, var(--primary-500) 35%, transparent);
+    background: color-mix(in oklch, var(--primary-500) 6%, transparent);
+    border-radius: 9999px;
+}
+
+.fpb .fpb-preview-actions {
+    gap: 0.5rem;
+}
+
+.fpb button.fpb-preview-close:hover {
+    background-position: 70% 50%;
+    transform: translateY(-1px);
+}
+
+/* Save status: a green dot when saved, an amber, gently pulsing one with unsaved changes. */
+.fpb .fpb-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.fpb .fpb-status::before {
+    content: '';
+    width: 0.45rem;
+    height: 0.45rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    background: var(--success-500);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--success-500) 22%, transparent), 0 0 8px color-mix(in oklch, var(--success-500) 70%, transparent);
+}
+
+.fpb .fpb-status-dirty::before {
+    background: var(--warning-500);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--warning-500) 22%, transparent), 0 0 8px color-mix(in oklch, var(--warning-500) 70%, transparent);
+    animation: cms-status-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes cms-status-pulse {
+    50% {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fpb .fpb-status-dirty::before {
+        animation: none;
+    }
+}
+
+/* ── Language: the switcher, and translating (text only) ─────────────── */
+.fpb .cms-editor-language {
+    position: relative;
+}
+
+.fpb .cms-editor-language-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.6rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.6rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.fpb .cms-editor-language-item.is-active {
+    background: color-mix(in oklch, var(--primary-500) 14%, transparent);
+}
+
+.fpb .cms-editor-language-note {
+    font-size: 0.7rem;
+    font-weight: 500;
+    opacity: 0.6;
+}
+
+.fpb .cms-editor-missing {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--warning-500);
+    white-space: nowrap;
+}
+
+.fpb .cms-editor-missing.is-done {
+    color: var(--success-500);
+}
+
+/* Translating: the layout is shared, so what changes it is out of reach. The left column
+   shows the page's outline instead of blocks to add. */
+.cms-translating .fpb #fpb-panel-blocks,
+.cms-translating .fpb .fpb-side-tabs,
+.cms-translating .fpb #fpb-tab-style,
+.cms-translating .fpb #fpb-tab-layout,
+.cms-translating .fpb .fpb-block-handle,
+.cms-translating .fpb .fpb-block-bar button:not(:first-child),
+.cms-translating .fpb .fpb-slot-empty,
+.cms-translating .fpb [data-fpb-resize] {
+    display: none !important;
+}
+
+.cms-translating .fpb #fpb-panel-structure {
+    display: block !important;
+}
+
+/* The editor fills the window from the top; while impersonating, it starts below the banner. */
+body.fpb-edit-mode .fi-main {
+    top: var(--impersonate-banner-height, 0px) !important;
+    height: calc(100dvh - var(--impersonate-banner-height, 0px)) !important;
+}
+
+.fpb .fpb-status {
+    white-space: nowrap;
+}
+
+/* ── Toolbar on smaller screens: two tidy rows, labels give way to icons ── */
+.fpb .cms-editor-language-code-short,
+.fpb .cms-editor-missing-short {
+    display: none;
+}
+
+@media (max-width: 1280px) {
+    .fpb .fpb-chrome-start {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .fpb .fpb-chrome-title {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .fpb .fpb-toolbar-actions {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+        gap: 0.4rem;
+    }
+
+    /* The count as a small badge; the full sentence is its tooltip. */
+    .fpb .cms-editor-missing-long {
+        display: none;
+    }
+
+    .fpb .cms-editor-missing-short {
+        display: inline-grid;
+        place-items: center;
+        min-width: 1.4rem;
+        height: 1.4rem;
+        padding: 0 0.35rem;
+        border-radius: 9999px;
+        font-size: 0.7rem;
+        background: color-mix(in oklch, currentColor 16%, transparent);
+    }
+
+    /* Secondary buttons (Translate with AI, Preview) keep just their icon. */
+    .fpb .fpb-toolbar-actions > .fi-btn:not(.fi-color-primary) {
+        font-size: 0;
+        gap: 0;
+        padding-inline: 0.55rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .fpb .fpb-back,
+    .fpb .fpb-status {
+        font-size: 0;
+        gap: 0;
+    }
+
+    .fpb .fpb-back {
+        padding: 0.45rem;
+    }
+
+    .fpb .cms-editor-language-name {
+        display: none;
+    }
+
+    .fpb .cms-editor-language-code-short {
+        display: inline;
+    }
+
+    /* The language menu would run off the left edge from its right-aligned spot. */
+    .fpb .cms-editor-language-menu {
+        right: auto;
+        left: 0;
+    }
+}
+
+.fpb .cms-save-short {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .fpb .cms-save-long {
+        display: none;
+    }
+
+    .fpb .cms-save-short {
+        display: inline;
+    }
+}
+
+/* A block's picture in its card in the editor's block list, between its name and its
+   description (Aurora's copy of the editor view). */
+.fpb .fpb-palette .fpb-palette-copy {
+    min-width: 0;
+}
+
+/* Room above each category: every heading is first in its own group, so the page builder's
+   "no margin on the first one" took it from all of them. */
+.fpb .fpb-palette .fpb-palette-group-wrap + .fpb-palette-group-wrap .fpb-palette-group {
+    margin-top: 1.5rem;
+}
+
+.fpb .fpb-palette .fpb-palette-group {
+    margin-bottom: 0.5rem;
+}
+
+/* The same picture larger, beside the block list while pointing at the block
+   (block-previews.js). */
+.cms-block-preview {
+    position: fixed;
+    z-index: 60;
+    width: 24rem;
+    padding: 0.375rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500) 25%, transparent);
+    border-radius: 0.875rem;
+    background: var(--color-white, #fff);
+    box-shadow: 0 18px 40px -12px rgb(0 0 0 / 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-4px);
+    transition: opacity 120ms, transform 120ms;
+}
+
+.dark .cms-block-preview {
+    background: var(--color-gray-900);
+}
+
+.cms-block-preview-shown {
+    opacity: 1;
+    transform: none;
+}
+
+.cms-block-preview img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 0.5rem;
+}
+
+/* The block's icon on its name's line in the block list (Aurora's copy of the editor view). */
+.fpb .fpb-palette .cms-palette-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cms-folder-tile:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 18px 40px -18px color-mix(in oklch, var(--primary-600) 55%, transparent),
+        0 0 0 1px color-mix(in oklch, var(--primary-500) 35%, transparent);
+}
+
+/* Breadcrumb trail and the grid/list switch as glass pills. */
+.cms-folder-trail > button {
+    border-radius: 9999px;
+    padding-inline: 0.75rem;
+}
+
+.cms-segment > button {
+    border-radius: 9999px;
+}
+
+/* ── Image cards ──────────────────────────────────────────────────────── */
+.fi-ta-record.cms-asset-record {
+    /* Flat at rest: no edge or shadow until hovered or selected. */
+    border: 1px solid transparent;
+    border-radius: 1.25rem;
+    background: transparent;
+    box-shadow: none;
+    transition: transform 180ms, box-shadow 180ms, background 180ms;
+    --tw-ring-shadow: 0 0 #0000;
+}
+
+.fi-ta-record.cms-asset-record img {
+    border-radius: 0.875rem;
+}
+
+/* In the list layout the rows stay rows. */
+tr.cms-asset-record,
+.fi-ta-table .cms-asset-record {
+    transform: none !important;
+}
+
+/* ── Image picker ─────────────────────────────────────────────────────── */
+.cms-pick-thumb {
+    border-radius: 0.875rem;
+    transition: transform 160ms, box-shadow 160ms;
+}
+
+.group:hover > .cms-pick-thumb {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px -14px color-mix(in oklch, var(--primary-600) 65%, transparent);
+}
+
+.peer:checked + .cms-pick-thumb {
+    box-shadow: 0 0 0 2px var(--primary-500), 0 0 0 5px color-mix(in oklch, var(--primary-500) 20%, transparent), 0 14px 30px -14px color-mix(in oklch, var(--primary-600) 70%, transparent);
+    --tw-ring-shadow: 0 0 #0000;
+}
+
+/* Grid cards: the checkbox floats over the image's top-left corner and only shows on hover
+   or once selected, so the image and text use the full width of the card. */
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record {
+    position: relative;
+    padding: 0.625rem !important;
+}
+
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content-ctn,
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content {
+    padding: 0 !important;
+}
+
+/* Grid cards fill their row, and the tags sit at the bottom of each card, so they line up
+   across a row whatever the length of the title and alt text above them. */
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content-ctn {
+    align-self: stretch;
+}
+
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content-ctn > div,
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content,
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content > .fi-grid-col,
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-stack {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-stack > .fi-ta-col:has(.cms-asset-tags) {
+    margin-top: auto;
+}
+
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox {
+    position: absolute;
+    top: 1.125rem;
+    left: 1.125rem;
+    z-index: 2;
+    margin: 0;
+    opacity: 0;
+    transition: opacity 120ms;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record:hover > .fi-ta-record-checkbox,
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:checked,
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:focus-visible,
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record.fi-selected > .fi-ta-record-checkbox {
+    opacity: 1;
+}
+
+/* Unchecked, over a photo: a dark glass square with a white edge, visible on light and dark images. */
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:not(:checked) {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid rgb(255 255 255 / 0.9);
+    background-color: rgb(15 12 30 / 0.45);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35), 0 1px 4px rgb(0 0 0 / 0.45);
+    --tw-ring-shadow: 0 0 #0000;
+}
+
+.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:checked {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* Right-click menus on image cards and folder tiles (resources/js/admin/context-menu.js):
+   a dropdown panel at the pointer. */
+.fi-dropdown-panel.cms-context-menu {
+    position: fixed;
+    z-index: 60;
+    width: max-content;
+    min-width: 12rem;
+    max-width: 18rem;
+}
+
+/* ── Folder tree in the "Library" breadcrumb's dropdown (resources/views/filament/assets/folder-tree.blade.php) ── */
+.fi-dropdown-panel:has(> .cms-folder-tree) {
+    width: min(20rem, calc(100vw - 2rem));
+    max-width: none;
+}
+
+.cms-folder-tree {
+    padding: 0.375rem;
+}
+
+.cms-folder-tree-list {
+    display: grid;
+    gap: 0.125rem;
+}
+
+.cms-folder-tree-item:focus-visible {
+    outline: 2px solid var(--primary-500);
+    outline-offset: -2px;
+}
+
+/* Something is dragged over it: drop here. */
+.cms-folder-tree-over {
+    background: color-mix(in oklch, var(--primary-500) 14%, transparent);
+    box-shadow: inset 0 0 0 2px var(--primary-500);
+}
+
+.cms-folder-tree-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    color: var(--primary-500);
+}
+
+.cms-folder-tree-name {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cms-folder-tree-active .cms-folder-tree-count {
+    color: inherit;
+    opacity: 0.75;
+}
+
+/* The caret's place in every row, so names line up; the toggle sits over it. */
+.cms-folder-tree-caret {
+    display: inline-grid;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    place-items: center;
+}
+
+.cms-folder-tree-toggle {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    inset-inline-start: calc(0.5rem + var(--depth, 0) * 1rem);
+    translate: 0 -50%;
+    border-radius: 0.25rem;
+    color: var(--gray-400);
+}
+
+/* A file the right-click menu selected on its own: marked, without a ticked checkbox, and
+   without the table showing a selection (select-all state, the bulk actions button). */
+.cms-asset-record-menu-target .fi-ta-record-checkbox {
+    visibility: hidden;
+}
+
+/* The select-all checkbox keeps looking as it did (unticked) rather than half-ticked. */
+.cms-menu-selecting .fi-ta-content-header .fi-checkbox-input:is(:checked, :indeterminate) {
+    background-color: #fff;
+    background-image: none;
+    box-shadow: 0 0 0 1px rgb(3 7 18 / 0.1), 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.dark .cms-menu-selecting .fi-ta-content-header .fi-checkbox-input:is(:checked, :indeterminate) {
+    background-color: rgb(255 255 255 / 0.05);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.2), 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+/* The bulk actions button, which shows itself while something is selected. The menu's items
+   are copies of its items, and choosing one clicks the hidden original. */
+.cms-menu-selecting .fi-ta-header-toolbar .fi-dropdown[x-show*="getSelectedRecordsCount"] {
+    display: none !important;
+}
+
+.cms-asset-record-menu-target {
+    box-shadow: 0 0 0 2px var(--color-primary-500);
+}
