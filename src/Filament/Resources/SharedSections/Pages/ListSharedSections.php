@@ -26,6 +26,10 @@ class ListSharedSections extends ListRecords
             CreateAction::make()
                 ->label(__('New shared section'))
                 ->icon('phosphor-plus')
+                ->modalHeading(__('New shared section'))
+                ->modalIcon('phosphor-copy-simple')
+                ->modalWidth('md')
+                ->modalSubmitActionLabel(__('Continue'))
                 ->createAnother(false)
                 ->successRedirectUrl(fn (SharedSection $record): string => SharedSectionResource::getUrl('design', ['record' => $record])),
         ];

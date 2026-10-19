@@ -1,6 +1,7 @@
 {{-- Keeps the page's edit lock while it's open (Aurora\Livewire\EditLock), and lets it go on
      leaving: moving elsewhere in the admin, or closing the tab. --}}
 <div
+    class="cms-edit-lock-keeper"
     wire:poll.{{ \Aurora\Support\EditLocks::PING }}s="ping"
     x-data
     x-init="

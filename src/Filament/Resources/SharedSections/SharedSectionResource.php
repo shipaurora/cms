@@ -45,6 +45,7 @@ class SharedSectionResource extends Resource
                 ->label(__('Name'))
                 ->placeholder(__('e.g. Contact strip'))
                 ->helperText(__('What editors pick it by when placing it on a page.'))
+                ->columnSpanFull()
                 ->required()
                 ->maxLength(120),
         ]);
@@ -77,7 +78,7 @@ class SharedSectionResource extends Resource
                         ->label(__('Open visual editor'))
                         ->icon('phosphor-paint-brush')
                         ->url(fn (SharedSection $record): string => static::getUrl('design', ['record' => $record])),
-                    EditAction::make()->label(__('Rename'))->icon('phosphor-pencil-simple'),
+                    EditAction::make()->label(__('Rename'))->icon('phosphor-pencil-simple')->modalHeading(__('Rename shared section'))->modalWidth('md'),
                     DeleteAction::make()
                         ->modalDescription(fn (SharedSection $record): string => ($count = $record->pages()->count()) > 0
                             ? trans_choice('It’s on :count page, which then shows nothing in its place.|It’s on :count pages, which then show nothing in its place.', $count)
