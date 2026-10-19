@@ -2,7 +2,7 @@
     "name": "aurora/cms",
     "description": "Aurora: a content management system for Laravel, built on Filament.",
     "type": "library",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "^8.3",
         "althinect/filament-spatie-roles-permissions": "^4.0",
