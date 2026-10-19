@@ -27,6 +27,8 @@ use Filament\Actions\RestoreAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Callout;
+use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Str;
 use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable;
@@ -69,14 +71,80 @@ class EditPage extends EditRecord
     public function getSubheading(): ?string
     {
         return match (true) {
-            $this->record->hasWorkingCopy() => __('Live, with changes not on the website yet: saved :when by :name. Publish them to show them.', [
-                'when' => $this->record->working_copy_at?->diffForHumans(),
-                'name' => $this->record->workingCopyBy?->name ?? __('someone'),
-            ]),
+            $this->record->hasWorkingCopy() => __('Live, with changes that aren’t on the website yet.'),
             $this->record->isScheduled() => __('Scheduled for :date', ['date' => $this->record->published_at->isoFormat('LLL')]),
             $this->record->hasEnded() => __('Came down :when, at its unpublish date.', ['when' => $this->record->unpublish_at->diffForHumans()]),
             default => $this->record->status->getDescription(),
         };
+    }
+
+    /**
+     * Changes that aren't on the website yet say so first, in a banner with what to do next.
+     */
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            Callout::make(__('Changes not on the website yet'))
+                ->description(fn (): string => __('Saved :when by :name. Visitors still see the page as it was until the changes are published.', [
+                    'when' => $this->record->working_copy_at?->diffForHumans(),
+                    'name' => $this->record->workingCopyBy?->name ?? __('someone'),
+                ]))
+                ->icon('phosphor-pencil-simple-line')
+                ->warning()
+                ->actions([
+                    $this->publishChangesAction(),
+                    Action::make('previewChanges')
+                        ->label(__('Preview'))
+                        ->icon('phosphor-eye')
+                        ->color('gray')
+                        ->url(fn (): string => $this->record->previewUrl(), shouldOpenInNewTab: true),
+                    $this->discardChangesAction()->color('gray'),
+                ])
+                ->visible(fn (): bool => $this->record->hasWorkingCopy()),
+            $this->getFormContentComponent(),
+            $this->getRelationManagersContentComponent(),
+        ]);
+    }
+
+    public function publishChangesAction(): Action
+    {
+        return Action::make('publishChanges')
+            ->label(__('Publish changes'))
+            ->icon('phosphor-rocket-launch')
+            ->color('success')
+            ->visible(fn (): bool => $this->record->hasWorkingCopy() && auth()->user()->can('publish', $this->record))
+            ->requiresConfirmation()
+            ->modalIcon('phosphor-rocket-launch')
+            ->modalHeading(__('Publish the changes?'))
+            ->modalDescription(__('The website shows the page as it is here, straight away.'))
+            ->modalSubmitActionLabel(__('Publish changes'))
+            ->action(function (): void {
+                $this->record->publishWorkingCopy();
+                $this->fillForm();
+                $this->rememberData();
+                $this->dispatch('page-saved');
+                Notification::make()->title(__('Changes published'))->body($this->record->url())->success()->send();
+            });
+    }
+
+    public function discardChangesAction(): Action
+    {
+        return Action::make('discardChanges')
+            ->label(__('Discard'))
+            ->icon('phosphor-arrow-counter-clockwise')
+            ->color('danger')
+            ->visible(fn (): bool => $this->record->hasWorkingCopy() && auth()->user()->can('update', $this->record))
+            ->requiresConfirmation()
+            ->modalHeading(__('Discard the changes?'))
+            ->modalDescription(__('The page goes back to how it is on the website. The changes can’t be brought back.'))
+            ->modalSubmitActionLabel(__('Discard changes'))
+            ->action(function (): void {
+                $this->record->discardWorkingCopy();
+                $this->record->refresh();
+                $this->fillForm();
+                $this->rememberData();
+                Notification::make()->title(__('Changes discarded'))->success()->send();
+            });
     }
 
     /**
@@ -262,23 +330,7 @@ class EditPage extends EditRecord
                 ->color('gray')
                 // The live page, unless it has changes not on the website yet: those, as they'll look.
                 ->url(fn (): string => $this->record->isLive() && ! $this->record->hasWorkingCopy() ? $this->record->url() : $this->record->previewUrl(), shouldOpenInNewTab: true),
-            Action::make('publishChanges')
-                ->label(__('Publish changes'))
-                ->icon('phosphor-rocket-launch')
-                ->color('success')
-                ->visible(fn (): bool => $this->record->hasWorkingCopy() && auth()->user()->can('publish', $this->record))
-                ->requiresConfirmation()
-                ->modalIcon('phosphor-rocket-launch')
-                ->modalHeading(__('Publish the changes?'))
-                ->modalDescription(__('The website shows the page as it is here, straight away.'))
-                ->modalSubmitActionLabel(__('Publish changes'))
-                ->action(function (): void {
-                    $this->record->publishWorkingCopy();
-                    $this->fillForm();
-                    $this->rememberData();
-                    $this->dispatch('page-saved');
-                    Notification::make()->title(__('Changes published'))->body($this->record->url())->success()->send();
-                }),
+            $this->publishChangesAction(),
             Action::make('publish')
                 ->label(__('Publish'))
                 ->icon('phosphor-rocket-launch')
@@ -302,22 +354,7 @@ class EditPage extends EditRecord
                     Notification::make()->title(__('Sent for review'))->success()->send();
                 }),
             ActionGroup::make([
-                Action::make('discardChanges')
-                    ->label(__('Discard unpublished changes'))
-                    ->icon('phosphor-arrow-counter-clockwise')
-                    ->color('danger')
-                    ->visible(fn (): bool => $this->record->hasWorkingCopy() && auth()->user()->can('update', $this->record))
-                    ->requiresConfirmation()
-                    ->modalHeading(__('Discard the changes?'))
-                    ->modalDescription(__('The page goes back to how it is on the website. The changes can’t be brought back.'))
-                    ->modalSubmitActionLabel(__('Discard changes'))
-                    ->action(function (): void {
-                        $this->record->discardWorkingCopy();
-                        $this->record->refresh();
-                        $this->fillForm();
-                        $this->rememberData();
-                        Notification::make()->title(__('Changes discarded'))->success()->send();
-                    }),
+                $this->discardChangesAction()->label(__('Discard unpublished changes')),
                 DuplicatePageAction::make(),
                 // Search: what it knows about the page, and a box to try searches with.
                 SearchIndexAction::make(),

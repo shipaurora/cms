@@ -43,7 +43,7 @@ class PagesTable
             ->defaultSort('updated_at', 'desc')
             ->recordUrl(fn (Page $record): ?string => PageResource::canEdit($record) ? PageResource::getUrl('edit', ['record' => $record]) : null)
             // Who last edited each row, loaded with the rows.
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('lastEditor'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['lastEditor', 'workingCopyBy']))
             ->columns([
                 TextColumn::make('title')
                     ->weight(FontWeight::SemiBold)
@@ -55,7 +55,6 @@ class PagesTable
                     ->html()
                     ->formatStateUsing(fn (Page $record): HtmlString => new HtmlString(e($record->title)
                         .($record->isPasswordProtected() ? static::titleIcon('phosphor-key', __('Password protected')) : '')
-                        .($record->hasWorkingCopy() ? static::titleIcon('phosphor-pencil-simple-line', __('Changes not on the website yet')) : '')
                         .(($editor = EditLocks::holder($record)) !== null ? static::titleIcon('phosphor-lock-simple', __(':name is editing this page', ['name' => $editor['name']])) : '')))
                     ->wrap()
                     ->searchable(['title', 'slug'])
@@ -63,21 +62,25 @@ class PagesTable
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (Page $record): string => match (true) {
+                        $record->hasWorkingCopy() => __('Changes waiting'),
                         $record->isScheduled() => __('Scheduled'),
                         $record->hasEnded() => __('Ended'),
                         default => $record->status->getLabel(),
                     })
                     ->color(fn (Page $record): string => match (true) {
+                        $record->hasWorkingCopy() => 'warning',
                         $record->isScheduled() => 'info',
                         $record->hasEnded() => 'gray',
                         default => $record->status->getColor(),
                     })
                     ->icon(fn (Page $record): string => match (true) {
+                        $record->hasWorkingCopy() => 'phosphor-pencil-simple-line',
                         $record->isScheduled() => 'phosphor-clock',
                         $record->hasEnded() => 'phosphor-calendar-x',
                         default => $record->status->getIcon(),
                     })
                     ->tooltip(fn (Page $record): ?string => match (true) {
+                        $record->hasWorkingCopy() => __('Live. Changes saved :when by :name aren’t on the website yet.', ['when' => $record->working_copy_at?->diffForHumans(), 'name' => $record->workingCopyBy?->name ?? __('someone')]),
                         $record->isScheduled() => __('Goes live :when', ['when' => $record->published_at->diffForHumans()]),
                         $record->hasEnded() => __('Came down :when', ['when' => $record->unpublish_at->diffForHumans()]),
                         $record->isLive() && $record->unpublish_at !== null => __('Comes down :when', ['when' => $record->unpublish_at->diffForHumans()]),

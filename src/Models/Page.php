@@ -303,6 +303,15 @@ class Page extends Model implements MenuPanelable
         $query->where('status', PageStatus::Published)->where('unpublish_at', '<=', now());
     }
 
+    /**
+     * Live pages with saved changes that aren't on the website yet (their working copy).
+     */
+    #[Scope]
+    protected function withUnpublishedChanges(Builder $query): void
+    {
+        $query->whereNotNull('working_copy');
+    }
+
     #[Scope]
     protected function homepage(Builder $query): void
     {

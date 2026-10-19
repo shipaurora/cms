@@ -54,8 +54,11 @@ class PageObserver
         // Publishing is its own permission, checked here so no surface can skip it:
         // not the form, not a bulk action, not an AI assistant over MCP.
         // Taking a page live counts however it happens: its status, or the date a published
-        // page goes live (a scheduled page moved to now), or making it the homepage.
-        $goesLive = $page->status === PageStatus::Published && $page->isDirty('status', 'published_at');
+        // page goes live (a scheduled page moved to now), or making it the homepage. A live
+        // page that stays live isn't published again (its date re-saved by a form, say).
+        $wasLive = $page->exists && (clone $page)->setRawAttributes($page->getRawOriginal())->isLive();
+        $goesLive = $page->status === PageStatus::Published
+            && ($page->getOriginal('status') !== PageStatus::Published || ($page->isLive() && ! $wasLive));
 
         // The site's only page may be its homepage for anyone who may make pages: there is no
         // live homepage it could replace.

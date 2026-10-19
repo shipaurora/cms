@@ -1,6 +1,6 @@
 {{-- Aurora's copy of the page builder's editor (carljanzell/filament-page-builder), the same but
-     for who else is editing the page, and a block's card in the block list: its icon beside its
-     name, and its picture (look for "Aurora:"). --}}
+     for who else is editing the page, saved changes not published yet, and a block's card in
+     the block list: its icon beside its name, and its picture (look for "Aurora:"). --}}
 <x-filament-panels::page>
     <div
         class="fpb"
@@ -42,8 +42,15 @@
                     </nav>
                 @endif
 
-                <span class="fpb-status" @class(['fpb-status-dirty' => $this->isDirty])>
-                    {{ $this->isDirty ? __('page-builder::chrome.draft_not_saved') : __('page-builder::chrome.saved') }}
+                {{-- Aurora: saved into the page's working copy is "saved, not published". --}}
+                <span @class(['fpb-status', 'fpb-status-dirty' => $this->isDirty, 'fpb-status-unpublished' => ! $this->isDirty && $this->hasUnpublishedChanges()])>
+                    @if ($this->isDirty)
+                        {{ __('page-builder::chrome.draft_not_saved') }}
+                    @elseif ($this->hasUnpublishedChanges())
+                        {{ __('Saved, not published') }}
+                    @else
+                        {{ __('page-builder::chrome.saved') }}
+                    @endif
                 </span>
                 <span class="fpb-notice" x-show="notice" x-text="notice" x-cloak role="status"></span>
             </div>
@@ -119,6 +126,9 @@
                 >
                     {{ __('page-builder::chrome.preview') }}
                 </x-filament::button>
+
+                {{-- Aurora: publish what's saved, without leaving the editor. --}}
+                {{ $this->publishChangesAction }}
 
                 <x-filament::button
                     wire:click="save"

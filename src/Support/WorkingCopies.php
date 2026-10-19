@@ -3,6 +3,7 @@
 namespace Aurora\Support;
 
 use Aurora\Models\Page;
+use Aurora\Models\Setting;
 use Closure;
 
 /**
@@ -20,6 +21,12 @@ class WorkingCopies
      * @var array<int, string>
      */
     public const KEYS = ['title', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
+
+    /**
+     * A site can have saved changes go live straight away (Settings › Website › Publishing),
+     * for the people allowed to publish the page; everyone else's still wait.
+     */
+    public const SETTING = 'publish_on_save';
 
     protected static int $capturing = 0;
 
@@ -88,6 +95,17 @@ class WorkingCopies
 
         $changed = array_values(array_filter(static::KEYS, fn (string $key): bool => $page->isDirty($key)));
 
+        // Going live as it's saved: with whatever was still waiting, so nothing is lost.
+        if (static::publishesOnSave($page)) {
+            if ($page->hasWorkingCopy()) {
+                $page->forceFill(['working_copy' => [...$page->working_copy, ...array_intersect_key($page->toSnapshot(), array_flip($changed))]])
+                    ->applyWorkingCopy()
+                    ->forceFill(['working_copy' => null, 'working_copy_by_id' => null, 'working_copy_at' => null]);
+            }
+
+            return;
+        }
+
         if ($changed === []) {
             return;
         }
@@ -107,6 +125,14 @@ class WorkingCopies
     /**
      * Live before this save and still live after it.
      */
+    /**
+     * Whether this person's saves put a live page's changes on the website straight away.
+     */
+    public static function publishesOnSave(Page $page): bool
+    {
+        return (bool) Setting::get(self::SETTING) && (auth()->user()?->can('publish', $page) ?? false);
+    }
+
     protected static function stayedLive(Page $page): bool
     {
         if (! $page->isLive()) {

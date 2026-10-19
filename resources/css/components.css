@@ -1992,7 +1992,8 @@ body.fpb-edit-mode .fpb .fpb-slot {
     transform: translateY(-1px);
 }
 
-/* Save status: a green dot when saved, an amber, gently pulsing one with unsaved changes. */
+/* Save status: a green dot when saved, a blue one when saved but not published, an amber,
+   gently pulsing one with unsaved changes. */
 .fpb .fpb-status {
     display: inline-flex;
     align-items: center;
@@ -2007,6 +2008,12 @@ body.fpb-edit-mode .fpb .fpb-slot {
     border-radius: 9999px;
     background: var(--success-500);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--success-500) 22%, transparent), 0 0 8px color-mix(in oklch, var(--success-500) 70%, transparent);
+}
+
+/* Saved, but not on the website yet: a blue dot. */
+.fpb .fpb-status-unpublished::before {
+    background: var(--info-500);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--info-500) 22%, transparent);
 }
 
 .fpb .fpb-status-dirty::before {

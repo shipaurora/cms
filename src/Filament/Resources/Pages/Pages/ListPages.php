@@ -84,6 +84,13 @@ class ListPages extends ListRecords
                 ->badgeColor('gray')
                 ->visible($ended !== null)
                 ->modifyQueryUsing(fn (Builder $query) => $query->ended()),
+            // Saved, but not on the website until someone publishes them: only once there are some.
+            'changes' => Tab::make(__('Changes waiting'))
+                ->icon('phosphor-pencil-simple-line')
+                ->badge($changes = $query()->withUnpublishedChanges()->count() ?: null)
+                ->badgeColor('warning')
+                ->visible($changes !== null)
+                ->modifyQueryUsing(fn (Builder $query) => $query->withUnpublishedChanges()),
             'review' => Tab::make(PageStatus::Review->getLabel())
                 ->icon(PageStatus::Review->getIcon())
                 ->badge($query()->where('status', PageStatus::Review)->count() ?: null)

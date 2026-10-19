@@ -29,7 +29,7 @@ class CmsServer extends Server
     - Use `get_page` to see a page's block tree with ids, then make targeted changes with `update_block`, `add_block`, `move_block` and `remove_block`. Use `set_page_blocks` or `create_page` with a full tree for new pages or full redesigns.
     - Every change is saved as a revision attributed to the user, and can be undone with `restore_revision`.
     - Do not publish unless asked. Share the preview link so the user can review your work.
-    - Changes to a live page (its content, title, summary, layout and SEO) are kept as unpublished changes, not shown on the website: `get_page` reads them, the preview link shows them, and `publish_page` (action "publish") puts them on the website. A page's `has_unpublished_changes` says when it has some. Its address and publishing settings change straight away.
+    - Changes to a live page (its content, title, summary, layout and SEO) are kept as unpublished changes, not shown on the website (unless the site publishes saved changes straight away and the person may publish: then they go live as they're saved, and `has_unpublished_changes` stays false): `get_page` reads them, the preview link shows them, and `publish_page` (action "publish") puts them on the website. A page's `has_unpublished_changes` says when it has some. Its address and publishing settings change straight away.
     MARKDOWN;
 
     /**
@@ -57,7 +57,6 @@ class CmsServer extends Server
         Tools\ListImages::class,
         Tools\ListForms::class,
         Tools\ListLayouts::class,
-        Tools\ListSharedSections::class,
         Tools\SeoReport::class,
         Tools\UploadImageFromUrl::class,
         Tools\GetMenus::class,

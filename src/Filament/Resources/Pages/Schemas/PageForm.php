@@ -259,7 +259,10 @@ class PageForm
                     // The site's first page is its homepage, so it starts published (when the
                     // person may publish); later pages start as drafts.
                     ->default(fn (): PageStatus => ! Page::othersExist() && auth()->user()->can('publish', Page::class) ? PageStatus::Published : PageStatus::Draft)
+                    // Only people who may publish can make a page live; a page that already is stays
+                    // live when others save their changes to it (those wait to be published).
                     ->disableOptionWhen(fn (string $value, ?Page $record): bool => $value === PageStatus::Published->value
+                        && $record?->getOriginal('status') !== PageStatus::Published
                         && ! auth()->user()->can('publish', $record ?? Page::class))
                     ->required()
                     ->live()

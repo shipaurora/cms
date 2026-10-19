@@ -5,6 +5,7 @@ namespace Aurora\Models;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\SettingsTabs;
 use Aurora\Support\WebsiteAccess;
+use Aurora\Support\WorkingCopies;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ class Setting extends Model
      *
      * @var array<int, string>
      */
-    public const SITE_KEYS = ['site_name', 'tagline', 'brand_color', 'accent_color', 'contact_email', WebsiteAccess::SETTING];
+    public const SITE_KEYS = ['site_name', 'tagline', 'brand_color', 'accent_color', 'contact_email', WebsiteAccess::SETTING, WorkingCopies::SETTING];
 
     /**
      * @return array<int, string>

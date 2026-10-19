@@ -30,6 +30,7 @@ use Aurora\Support\SystemInfo;
 use Aurora\Support\Themes;
 use Aurora\Support\WebsiteAccess;
 use Aurora\Support\WordPressImport;
+use Aurora\Support\WorkingCopies;
 use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
@@ -178,7 +179,7 @@ class SiteSettings extends Page implements HasSchemas
      * @var array<string, array{label: string, icon: string, tabs: array<int, string>, saves: bool}>
      */
     protected const PAGES = [
-        'website' => ['label' => 'Website', 'icon' => 'phosphor-browser', 'tabs' => ['branding'], 'saves' => true],
+        'website' => ['label' => 'Website', 'icon' => 'phosphor-browser', 'tabs' => ['branding', 'publishing'], 'saves' => true],
         'templates' => ['label' => 'Templates', 'icon' => 'phosphor-layout', 'tabs' => ['layouts', 'blocks', 'menu-locations'], 'saves' => false],
         'media' => ['label' => 'Media', 'icon' => 'phosphor-image', 'tabs' => ['image-formats'], 'saves' => false],
         'languages-sites' => ['label' => 'Languages & sites', 'icon' => 'phosphor-translate', 'tabs' => ['languages', 'sites'], 'saves' => false],
@@ -336,6 +337,17 @@ class SiteSettings extends Page implements HasSchemas
             ]),
             // The website's own (its header, footer …): Aurora\Support\SettingsTabs.
             ...SettingsTabs::tabs(),
+            // Whether saved changes to a live page wait to be published (Aurora\Support\WorkingCopies).
+            'publishing' => Tab::make(__('Publishing'))->icon('phosphor-rocket-launch')->schema([
+                Section::make(__('Publishing'))
+                    ->icon('phosphor-rocket-launch')
+                    ->description(__('What happens when someone saves changes to a page that’s already on the website.'))
+                    ->schema([
+                        Toggle::make(WorkingCopies::SETTING)
+                            ->label(__('Changes go live when they’re saved'))
+                            ->helperText(__('Off: saved changes wait until someone publishes them, so they can be checked first. On: they’re on the website straight away. Either way, people who aren’t allowed to publish a page only save changes for someone else to publish.')),
+                    ]),
+            ]),
             // The layouts pages are drawn with, and the sizes made of every image: each saved as
             // it's changed, in a dialog of its own.
             'layouts' => Tab::make(__('Layouts'))->icon('phosphor-layout')->schema([
