@@ -25,13 +25,6 @@ class Themes
     protected static array $themes = [];
 
     /**
-     * Themes the Laravel app compiles itself, by id: their Vite entries.
-     *
-     * @var array<string, string>
-     */
-    protected static array $builds = [];
-
-    /**
      * Registering an id again replaces that theme.
      *
      * @param  string|null  $stylesheet  A prebuilt stylesheet (registered with Filament's assets)…
@@ -52,23 +45,11 @@ class Themes
     }
 
     /**
-     * The Laravel app compiles this theme itself: the theme's styles together with the classes
-     * of the website's blocks, so the visual editor's canvas shows them as the website does
-     * (a prebuilt stylesheet can't know them). Still the same theme in Settings › Appearance.
-     *
-     *     Themes::build('aurora', vite: 'resources/css/filament/admin/theme.css');
-     */
-    public static function build(string $id, string $vite): void
-    {
-        static::$builds[$id] = $vite;
-    }
-
-    /**
      * Take a theme away again (a site that doesn't offer a package's, or a test).
      */
     public static function forget(string $id): void
     {
-        unset(static::$themes[$id], static::$builds[$id]);
+        unset(static::$themes[$id]);
     }
 
     /**
@@ -131,7 +112,7 @@ class Themes
     public static function html(): string
     {
         $theme = static::$themes[static::active()] ?? null;
-        $vite = $theme === null ? null : static::$builds[$theme['id']] ?? $theme['vite'];
+        $vite = $theme['vite'] ?? null;
 
         return match (true) {
             $theme === null => '',

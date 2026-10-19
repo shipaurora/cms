@@ -4,6 +4,7 @@ use Aurora\Http\Controllers\AssetFileController;
 use Aurora\Http\Controllers\AssistantFileController;
 use Aurora\Http\Controllers\AuthenticateWithPasskeyController;
 use Aurora\Http\Controllers\BrandImageController;
+use Aurora\Http\Controllers\CanvasStylesController;
 use Aurora\Http\Controllers\DemoLoginController;
 use Aurora\Http\Controllers\FormSubmissionController;
 use Aurora\Http\Controllers\SubmissionFileController;
@@ -34,6 +35,9 @@ Route::middleware('web')->group(function (): void {
 
     // A file sent through a form: for signed-in people who may see submissions, by signed link.
     Route::get('submission-files/{media}', SubmissionFileController::class)->middleware(['auth', 'signed'])->whereUuid('media')->name('submission-files.show');
+
+    // The website's stylesheet, scoped to the visual editor's canvas.
+    Route::get('aurora/canvas.css', CanvasStylesController::class)->middleware('auth')->name('aurora.canvas-styles');
 
     // A theme's picture, for choosing it under Settings › Appearance.
     Route::get('aurora/themes/{theme}/preview', ThemePreviewController::class)->middleware('auth')->where('theme', '[a-z0-9-]+')->name('aurora.themes.preview');

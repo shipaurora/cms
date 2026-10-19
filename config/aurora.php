@@ -59,6 +59,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Website stylesheet
+    |--------------------------------------------------------------------------
+    |
+    | The Vite entry of the website's CSS. The visual editor shows it on its
+    | canvas, scoped there, so blocks look exactly as they do on the site
+    | (style the page through :root, html and body, not classes on <body>).
+    | Empty: the canvas shows blocks without the site's styles.
+    |
+    */
+
+    'website_css' => env('AURORA_WEBSITE_CSS', 'resources/css/app.css'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Blocks
     |--------------------------------------------------------------------------
     |

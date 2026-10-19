@@ -6,20 +6,11 @@
  */
 
 /*
- * The visual editor's canvas renders the site's real blocks. Give it the site's fonts and
- * text colour so it reads as the page, not as the admin panel around it.
+ * The visual editor's canvas renders the site's real blocks, in the website's own stylesheet
+ * (Aurora\Support\CanvasStyles): white paper unless the site says otherwise.
  */
 .fpb-canvas {
-    font-family: var(--font-body);
-    color: var(--ink-muted);
     --fpb-canvas-bg: #fff;
-}
-
-.fpb-canvas h1,
-.fpb-canvas h2,
-.fpb-canvas h3,
-.fpb-canvas h4 {
-    font-family: var(--font-display);
 }
 
 /* The per-block image editor previews tone changes on the cropper's images. */

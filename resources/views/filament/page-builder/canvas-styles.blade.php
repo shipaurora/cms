@@ -1,4 +1,7 @@
-{{-- Rendered inside the visual editor's canvas and its preview frame. The block styles
-     themselves come from the admin theme (resources/css/site/tokens.css); this adds the
-     brand colours chosen in Site settings, so the canvas matches the live site. --}}
+{{-- Rendered inside the visual editor's canvas and its preview frame: the website's own
+     stylesheet, scoped to the canvas (Aurora\Support\CanvasStyles), then the brand colours
+     chosen in Site settings, so the canvas matches the live site. --}}
+@if ($canvasStyles = \Aurora\Support\CanvasStyles::url())
+    <link rel="stylesheet" href="{{ $canvasStyles }}">
+@endif
 @include('aurora::partials.brand-palette')
