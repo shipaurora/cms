@@ -62,6 +62,16 @@ class ActivityLog
      */
     protected const IGNORED = ['updated_at', 'created_at', 'search_text', 'indexed_at', 'last_edited_by_id', 'last_seen_at', 'last_signed_in_at', 'remember_token', 'last_status', 'last_error', 'last_sent_at', 'working_copy_at', 'working_copy_by_id'];
 
+    /**
+     * A person's own preferences (the collapsed sidebar, light or dark, their language): theirs
+     * to change, nothing to account for.
+     *
+     * @var array<class-string<Model>, array<int, string>>
+     */
+    protected const PREFERENCES = [
+        User::class => ['sidebar_collapsed', 'theme', 'locale', 'passkey_prompt_dismissed_at'],
+    ];
+
     public static function listen(): void
     {
         foreach (array_keys(self::MODELS) as $model) {
@@ -78,7 +88,7 @@ class ActivityLog
         }
 
         $changes = $action === 'updated'
-            ? array_values(array_diff(array_keys($subject->getChanges()), self::IGNORED))
+            ? array_values(array_diff(array_keys($subject->getChanges()), self::IGNORED, self::PREFERENCES[$subject::class] ?? []))
             : null;
 
         if ($action === 'updated' && $changes === []) {
