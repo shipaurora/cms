@@ -6,21 +6,20 @@ use Aurora\Blocks\SharedSectionBlock;
 use Aurora\Filament\Concerns\EditsOnCanvas;
 use Aurora\Filament\Resources\SharedSections\SharedSectionResource;
 use Aurora\Support\EditLocks;
-use CarlJanzell\FilamentPageBuilder\BlockRegistry;
 use CarlJanzell\FilamentPageBuilder\Filament\Pages\DesignPage as BaseDesignPage;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Arr;
 
 /**
- * A shared section on the canvas: built like a page, shown wherever it's placed.
+ * A shared section on the canvas: built like a page, shown wherever it's placed. It never
+ * holds another shared section, which could end up inside itself.
  */
 class DesignSharedSection extends BaseDesignPage
 {
-    use EditsOnCanvas;
+    use EditsOnCanvas {
+        getPaletteProperty as paletteWithPictures;
+    }
 
     protected static string $resource = SharedSectionResource::class;
-
-    protected ?BlockRegistry $sectionRegistry = null;
 
     public function exitUrl(): ?string
     {
@@ -28,18 +27,18 @@ class DesignSharedSection extends BaseDesignPage
     }
 
     /**
-     * Every block but a shared section: one inside another isn't offered (it could end up
-     * inside itself).
+     * Every block but a shared section.
+     *
+     * @return array<int, array{type: string, label: string, icon: ?string, category: string, description: ?string, preview: ?string}>
      */
-    public function registry(): BlockRegistry
+    public function getPaletteProperty(): array
     {
-        if ($this->sectionRegistry === null) {
-            $this->sectionRegistry = clone parent::registry();
+        return array_values(array_filter($this->paletteWithPictures(), fn (array $item): bool => $item['type'] !== SharedSectionBlock::type()));
+    }
 
-            (fn () => $this->blocks = Arr::except($this->blocks, SharedSectionBlock::type()))->call($this->sectionRegistry);
-        }
-
-        return $this->sectionRegistry;
+    public function insertBlock(string $type, ?int $at = null, ?string $parent = null, ?string $slot = null): ?string
+    {
+        return $type === SharedSectionBlock::type() ? null : parent::insertBlock($type, $at, $parent, $slot);
     }
 
     public function save(): void
