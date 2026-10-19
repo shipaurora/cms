@@ -15,7 +15,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 class SettingsTabs
 {
     /**
-     * @var array<string, array{tab: Closure(): Tab, siteKeys: array<int, string>, page: ?string}>
+     * @var array<string, array{tab: Closure(): Tab, siteKeys: array<int, string>, page: ?string, publicKeys: array<int, string>}>
      */
     protected static array $tabs = [];
 
@@ -26,10 +26,14 @@ class SettingsTabs
      * @param  array<int, string>  $siteKeys  The tab's top-level setting keys that each site keeps for itself.
      * @param  string|null  $page  The Settings page it joins as a tab ('website', 'templates' …), or
      *                             null for a page of its own.
+     * @param  array<int, string>  $publicKeys  The tab's top-level setting keys anyone may read from the
+     *                                          website's APIs (Aurora\Support\PublicApi), such as a header's
+     *                                          links. None unless named: never list a key, token or address
+     *                                          visitors shouldn't see.
      */
-    public static function register(string $key, Closure $tab, array $siteKeys = [], ?string $page = null): void
+    public static function register(string $key, Closure $tab, array $siteKeys = [], ?string $page = null, array $publicKeys = []): void
     {
-        static::$tabs[$key] = ['tab' => $tab, 'siteKeys' => $siteKeys, 'page' => $page];
+        static::$tabs[$key] = ['tab' => $tab, 'siteKeys' => $siteKeys, 'page' => $page, 'publicKeys' => $publicKeys];
     }
 
     /**
@@ -66,5 +70,26 @@ class SettingsTabs
     public static function siteKeys(): array
     {
         return array_merge([], ...array_values(array_column(static::$tabs, 'siteKeys')));
+    }
+
+    /**
+     * The setting keys the tabs let the website's APIs show.
+     *
+     * @return array<int, string>
+     */
+    public static function publicKeys(): array
+    {
+        return array_merge([], ...array_values(array_column(static::$tabs, 'publicKeys')));
+    }
+
+    /**
+     * The tabs with settings the website's APIs show, built: their fields say what each value
+     * is (a page, a file …).
+     *
+     * @return array<int, Tab>
+     */
+    public static function publicTabs(): array
+    {
+        return array_values(array_map(fn (array $registered): Tab => ($registered['tab'])(), array_filter(static::$tabs, fn (array $registered): bool => $registered['publicKeys'] !== [])));
     }
 }

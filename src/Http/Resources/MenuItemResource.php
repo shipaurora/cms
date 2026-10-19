@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A menu item and the items under it, in the content API.
+ * A menu item and the items under it, in the REST API.
  *
  * @mixin MenuItem
  */

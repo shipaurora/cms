@@ -3,6 +3,7 @@
 namespace Aurora\Support;
 
 use Aurora\Models\Activity;
+use Aurora\Models\ApiKey;
 use Aurora\Models\Asset;
 use Aurora\Models\AssetFolder;
 use Aurora\Models\Form;
@@ -52,6 +53,7 @@ class ActivityLog
         Locale::class => 'Language',
         Setting::class => 'Setting',
         Webhook::class => 'Webhook',
+        ApiKey::class => 'API key',
         ImageFormat::class => 'Image format',
     ];
 

@@ -3,12 +3,13 @@
 namespace Aurora\Http\Resources;
 
 use Aurora\Models\Page;
+use Aurora\Support\ApiContent;
 use Aurora\Support\BlockTreeBuilder;
 use Illuminate\Http\Request;
 
 /**
- * A page with what it says, in the content API: its blocks as a nested tree in the language
- * asked for, its layout and its SEO.
+ * A page with what it says, in the REST API: its blocks as a nested tree in the language
+ * asked for, structured (Aurora\Support\ApiContent), its layout and its SEO.
  *
  * @mixin Page
  */
@@ -26,10 +27,10 @@ class PageResource extends PageSummaryResource
             'seo' => [
                 'title' => $this->seoTitle(),
                 'description' => $this->meta_description ?: $this->excerpt,
-                'image' => $this->og_image,
+                'image' => ApiContent::fieldAsset($this->og_image),
                 'noindex' => (bool) $this->noindex,
             ],
-            'blocks' => BlockTreeBuilder::nest($this->localizedBlocks()),
+            'blocks' => ApiContent::blocks(BlockTreeBuilder::nest($this->localizedBlocks())),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Aurora\Filament\Pages;
 
+use Aurora\Enums\Api;
 use Aurora\Filament\Auth\AuthenticatorApps;
 use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\ManagesBlockPreviews;
@@ -15,11 +16,11 @@ use Aurora\Filament\Pages\Auth\SetUpRequiredPasskey;
 use Aurora\Filament\Resources\LanguageLines\LanguageLineResource;
 use Aurora\Filament\Resources\Pages\Actions\ReindexAllAction;
 use Aurora\Filament\Resources\Pages\Actions\SearchPagesAction;
+use Aurora\Livewire\ApiKeysTable;
 use Aurora\Livewire\LanguagesTable;
 use Aurora\Livewire\SitesTable;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
-use Aurora\Support\ContentApi;
 use Aurora\Support\Copilot;
 use Aurora\Support\PageCache;
 use Aurora\Support\Passkeys;
@@ -61,7 +62,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\HtmlString;
 use InvalidArgumentException;
 use Livewire\Attributes\Url;
 use Throwable;
@@ -184,8 +184,8 @@ class SiteSettings extends Page implements HasSchemas
         'languages-sites' => ['label' => 'Languages & sites', 'icon' => 'phosphor-translate', 'tabs' => ['languages', 'sites'], 'saves' => false],
         'search-seo' => ['label' => 'Search & SEO', 'icon' => 'phosphor-magnifying-glass', 'tabs' => ['search', 'seo'], 'saves' => false],
         'performance' => ['label' => 'Performance', 'icon' => 'phosphor-lightning', 'tabs' => ['page-cache'], 'saves' => true],
-        'integrations' => ['label' => 'Integrations', 'icon' => 'phosphor-plugs-connected', 'tabs' => ['api', 'webhooks'], 'saves' => true],
-        'security' => ['label' => 'Security', 'icon' => 'phosphor-shield-check', 'tabs' => ['sign-in', 'access'], 'saves' => true],
+        'integrations' => ['label' => 'Integrations', 'icon' => 'phosphor-plugs-connected', 'tabs' => ['rest-api', 'graphql', 'webhooks'], 'saves' => true],
+        'security' => ['label' => 'Security', 'icon' => 'phosphor-shield-check', 'tabs' => ['sign-in', 'access', 'api-keys'], 'saves' => true],
         'appearance' => ['label' => 'Appearance', 'icon' => 'phosphor-paint-brush-broad', 'tabs' => ['admin-theme'], 'saves' => true],
         'ai' => ['label' => 'AI Assistant', 'icon' => 'phosphor-sparkle', 'tabs' => ['ai-assistant'], 'saves' => true],
         'system' => ['label' => 'System', 'icon' => 'phosphor-wrench', 'tabs' => ['maintenance', 'import', 'system-info'], 'saves' => false],
@@ -396,11 +396,11 @@ class SiteSettings extends Page implements HasSchemas
                         View::make('aurora::filament.pages.seo-report')->viewData(fn (): array => ['rows' => SeoChecks::report()]),
                     ]),
             ]),
-            // Pages kept ready-made for visitors (Aurora\Support\PageCache).
+            // Saved copies of pages for visitors (Aurora\Support\PageCache).
             'page-cache' => Tab::make(__('Page cache'))->icon('phosphor-lightning')->schema([
                 Section::make(__('Page cache'))
                     ->icon('phosphor-lightning')
-                    ->description(__('Visitors get pages ready-made instead of drawn on every visit, so the website is fast. Any change in the CMS clears it straight away.'))
+                    ->description(__('Makes the website faster. The first visit to a page saves a copy of it, and later visitors get that copy instead of waiting for the page to be built again. Saving anything in the CMS clears the copies, so visitors never see old content.'))
                     ->headerActions([
                         Action::make('clearPageCache')
                             ->label(__('Clear page cache'))
@@ -414,58 +414,28 @@ class SiteSettings extends Page implements HasSchemas
                     ->columns(2)
                     ->schema([
                         Toggle::make(PageCache::SETTING.'.enabled')
-                            ->label(__('Keep pages ready-made'))
-                            ->helperText(__('Only for visitors who aren’t signed in. Pages with a form, previews and password-protected pages are always drawn fresh.'))
+                            ->label(__('Cache pages to make them load faster'))
+                            ->helperText(__('Only visitors who aren’t signed in get the saved copies. Pages with a form, password-protected pages and previews are always built fresh.'))
                             ->live()
                             ->columnSpanFull(),
                         TextInput::make(PageCache::SETTING.'.minutes')
-                            ->label(__('Keep each page for'))
+                            ->label(__('Refresh each copy after'))
                             ->numeric()
                             ->integer()
                             ->minValue(1)
                             ->maxValue(1440)
                             ->default(60)
                             ->suffix(__('minutes'))
-                            ->helperText(__('A safety net: changes in the CMS clear it anyway, and scheduled pages go live on time.'))
+                            ->helperText(__('A safety net for changes made outside the CMS. Changes saved in the CMS clear the copies straight away, and scheduled pages still go live on time.'))
                             ->visible(fn (Get $get): bool => (bool) $get(PageCache::SETTING.'.enabled')),
                     ]),
             ]),
-            // Pages, menus and settings as JSON, for a separate frontend or app (Aurora\Support\ContentApi).
-            'api' => Tab::make(__('Content API'))->icon('phosphor-brackets-curly')->schema([
-                Section::make(__('Content API'))
-                    ->icon('phosphor-brackets-curly')
-                    ->description(__('Read the website’s live pages, menus and settings as JSON, for a frontend built apart from Laravel, an app or another service. It only shows what visitors may see.'))
-                    ->headerActions([
-                        Action::make('newContentApiKey')
-                            ->label(fn (): string => ContentApi::hasKey() ? __('New key') : __('Create a key'))
-                            ->icon('phosphor-key')
-                            ->color('gray')
-                            ->requiresConfirmation(fn (): bool => ContentApi::hasKey())
-                            ->modalDescription(__('The old key stops working straight away.'))
-                            ->action(function (): void {
-                                Notification::make()
-                                    ->title(__('Your new key'))
-                                    ->body(new HtmlString(__('Copy it now: it isn’t shown again.').'<br><code class="select-all font-mono">'.e(ContentApi::newKey()).'</code>'))
-                                    ->persistent()
-                                    ->success()
-                                    ->send();
-                            }),
-                    ])
-                    ->schema([
-                        Toggle::make(ContentApi::SETTING.'.enabled')
-                            ->label(__('Switch on the content API'))
-                            ->live(),
-                        Toggle::make(ContentApi::SETTING.'.requires_key')
-                            ->label(__('Only with the key'))
-                            ->default(true)
-                            ->helperText(fn (): string => ContentApi::hasKey()
-                                ? __('Send it as Authorization: Bearer <key>.')
-                                : __('Create a key with the button above, and send it as Authorization: Bearer <key>.'))
-                            ->visible(fn (Get $get): bool => (bool) $get(ContentApi::SETTING.'.enabled')),
-                        View::make('aurora::filament.pages.content-api-endpoints')
-                            ->viewData(fn (): array => ['base' => url(ContentApi::PREFIX)])
-                            ->visible(fn (Get $get): bool => (bool) $get(ContentApi::SETTING.'.enabled')),
-                    ]),
+            // Pages, menus and settings for a separate frontend or app (Aurora\Support\PublicApi).
+            'rest-api' => $this->apiTab(Api::Rest, __('Read the website’s live pages, menus and settings as JSON, each at its own address. Works with anything that can fetch a URL: a frontend built apart from Laravel, an app or another service. It only shows what visitors may see.')),
+            'graphql' => $this->apiTab(Api::Graphql, __('Ask for the website’s live pages, menus and settings in one request, with exactly the fields you need. Handy for JavaScript frontends such as Next.js, Nuxt or Astro. It only shows what visitors may see.')),
+            // The keys apps read both APIs with (Aurora\Models\ApiKey).
+            'api-keys' => Tab::make(__('API keys'))->icon('phosphor-key')->schema([
+                Livewire::make(ApiKeysTable::class)->key('api-keys-table'),
             ]),
             // Other systems told what happens to the content (Aurora\Support\Webhooks).
             'webhooks' => Tab::make(__('Webhooks'))->icon('phosphor-plugs-connected')->schema([
@@ -745,6 +715,47 @@ class SiteSettings extends Page implements HasSchemas
      * Build the open page again (its tabs, and the lists in them), so a change made in one of
      * its dialogs shows straight away.
      */
+    /**
+     * One of the website's APIs (Aurora\Support\PublicApi): switched on, whether it needs a key, and how to call it.
+     */
+    protected function apiTab(Api $api, string $description): Tab
+    {
+        $setting = $api->setting();
+
+        return Tab::make($api->getLabel())->icon($api->getIcon())->schema([
+            Section::make($api->getLabel())
+                ->icon($api->getIcon())
+                ->description($description)
+                ->headerActions([
+                    // The same keys as the API keys tab, without leaving this one.
+                    Action::make('manageApiKeys')
+                        ->label(__('Manage keys'))
+                        ->icon('phosphor-key')
+                        ->color('gray')
+                        ->modalHeading(__('API keys'))
+                        ->modalDescription(__('The same keys work for the REST and GraphQL APIs. Make one for each app, and revoke it when the app stops using it.'))
+                        ->modalIcon('phosphor-key')
+                        ->modalWidth('4xl')
+                        ->modalContent(view('aurora::filament.pages.manage-api-keys'))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel(__('Done')),
+                ])
+                ->schema([
+                    Toggle::make($setting.'.enabled')
+                        ->label(__('Switch on the :api', ['api' => $api->getLabel()]))
+                        ->live(),
+                    Toggle::make($setting.'.requires_key')
+                        ->label(__('Only with an API key'))
+                        ->default(true)
+                        ->helperText(__('Apps send one of the API keys (Manage keys, above) as Authorization: Bearer <key>. The same keys work for both APIs.'))
+                        ->visible(fn (Get $get): bool => (bool) $get($setting.'.enabled')),
+                    View::make('aurora::filament.pages.api-endpoints')
+                        ->viewData(['api' => $api])
+                        ->visible(fn (Get $get): bool => (bool) $get($setting.'.enabled')),
+                ]),
+        ]);
+    }
+
     protected function rebuildForm(): void
     {
         $this->sections = null;

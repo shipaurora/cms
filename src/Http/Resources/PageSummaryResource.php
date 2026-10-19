@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A page in a list, in the content API.
+ * A page in a list, in the REST API.
  *
  * @mixin Page
  */

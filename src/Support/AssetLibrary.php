@@ -192,6 +192,20 @@ class AssetLibrary
     }
 
     /**
+     * The ids of the library files some content refers to, found the way the usage index
+     * finds them (any id anywhere, and /files/{id} links in text).
+     *
+     * @return array<int, string>
+     */
+    public static function referencedIds(mixed $values): array
+    {
+        $found = [];
+        static::collect($values, '', $found);
+
+        return $found === [] ? [] : Asset::query()->whereIn('id', array_keys($found))->pluck('id')->all();
+    }
+
+    /**
      * @param  array<string, array<int, string>>  $found
      */
     protected static function collect(mixed $value, string $location, array &$found): void

@@ -286,7 +286,7 @@ class Page extends Model implements MenuPanelable
     }
 
     /**
-     * Live pages anyone may see: not behind a password or sign-in (the content API, search).
+     * Live pages anyone may see: not behind a password or sign-in (the website’s APIs, search).
      */
     #[Scope]
     protected function public(Builder $query): void
