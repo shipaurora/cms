@@ -37,7 +37,7 @@ class {{ class }} extends Block implements Container
     }
 
     /**
-     * The named places other blocks go; the view draws each with Blocks::slot().
+     * The named places other blocks go; the view draws each with block_slot().
      *
      * @param  array<string, mixed>  $data
      * @return array<int, string>

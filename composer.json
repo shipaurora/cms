@@ -42,7 +42,10 @@
             "Aurora\\": "src/",
             "Aurora\\Database\\Factories\\": "database/factories/",
             "Aurora\\Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "extra": {
         "laravel": {

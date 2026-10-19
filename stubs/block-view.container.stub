@@ -1,10 +1,6 @@
 @props(['data' => []])
 
-@php
-    use Aurora\Blocks\Blocks;
-@endphp
-
 {{-- The same view draws the block on the website, in the visual editor and in previews. --}}
 <div @class(['@container', 'text-center' => ($data['align'] ?? 'left') === 'center'])>
-    {!! Blocks::slot('content') !!}
+    {{ block_slot('content') }}
 </div>

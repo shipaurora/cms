@@ -153,6 +153,7 @@ class AuroraServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../../routes/ai.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
         $this->registerWebsite();
+        $this->registerBladeDirectives();
         $this->clearPageCacheOnChanges();
 
         // Who changed what (Administration › Activity log).
@@ -357,6 +358,32 @@ class AuroraServiceProvider extends ServiceProvider
 
             return $user->isSuperAdmin() ? true : null;
         });
+    }
+
+    /**
+     * The block view helpers (src/helpers.php) as Blade directives: @inlineText($data['title'])
+     * prints what {{ inline_text($data['title']) }} does, and @editing … @endediting and
+     *
+     * @shows('body', $data['body'] ?? null) … @endshows wrap what is_editing() and
+     * shows_field() decide. Not @slot: Blade's components already use it.
+     */
+    protected function registerBladeDirectives(): void
+    {
+        $echoes = [
+            'inlineText' => 'inline_text',
+            'plainText' => 'plain_text',
+            'richText' => 'rich_text',
+            'linkHref' => 'link_href',
+            'linkTarget' => 'link_target',
+            'blockSlot' => 'block_slot',
+        ];
+
+        foreach ($echoes as $directive => $helper) {
+            Blade::directive($directive, fn (string $expression): string => "<?php echo e({$helper}({$expression})); ?>");
+        }
+
+        Blade::if('editing', fn (): bool => is_editing());
+        Blade::if('shows', fn (string $field, mixed $value): bool => shows_field($field, $value));
     }
 
     /**
