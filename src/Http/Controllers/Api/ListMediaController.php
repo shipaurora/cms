@@ -6,6 +6,7 @@ use Aurora\Enums\AssetType;
 use Aurora\Http\Resources\MediaResource;
 use Aurora\Models\Asset;
 use Aurora\Support\ApiContent;
+use Aurora\Support\ApiParameter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
@@ -15,6 +16,8 @@ use Illuminate\Validation\Rule;
  * the public settings), newest first, 50 to a page. ?type=image for one kind. The rest of the
  * media library isn't listed.
  */
+#[ApiParameter('type', 'Only one kind of file.', enum: AssetType::class)]
+#[ApiParameter('page', 'Which page of results, 50 to a page.', type: 'integer', example: 2)]
 class ListMediaController
 {
     public function __invoke(Request $request): AnonymousResourceCollection

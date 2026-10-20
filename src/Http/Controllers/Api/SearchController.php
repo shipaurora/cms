@@ -4,6 +4,7 @@ namespace Aurora\Http\Controllers\Api;
 
 use Aurora\Http\Resources\SearchResultResource;
 use Aurora\Models\Page;
+use Aurora\Support\ApiParameter;
 use Aurora\Support\PageSearch;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -12,6 +13,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
  * GET /search?q=…: the site's pages a search finds, as the website's own search finds them
  * (live, anyone may see them, not left out of search), most relevant first, 20 to a page.
  */
+#[ApiParameter('q', 'What to search for.', required: true, example: 'pricing')]
+#[ApiParameter('page', 'Which page of results, 20 to a page.', type: 'integer', example: 2)]
 class SearchController
 {
     public function __invoke(Request $request): AnonymousResourceCollection
