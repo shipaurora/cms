@@ -2055,5 +2055,10 @@
     "Logo": "Logo",
     "No blocks of the website’s own yet": "No blocks of the website’s own yet",
     "Editors build pages from the built-in blocks for now. Blocks made for this website are listed here once its code has them: make one with php artisan aurora:make-block.": "Editors build pages from the built-in blocks for now. Blocks made for this website are listed here once its code has them: make one with php artisan aurora:make-block.",
-    "How to make a block": "How to make a block"
+    "How to make a block": "How to make a block",
+    "Up to date": "Up to date",
+    "Update available: :version": "Update available: :version",
+    "Aurora :version is out. Update with composer update shipaurora/cms.": "Aurora :version is out. Update with composer update shipaurora/cms.",
+    "See what changed": "See what changed",
+    "Update": "Update"
 }

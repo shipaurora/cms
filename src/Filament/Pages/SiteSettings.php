@@ -29,6 +29,7 @@ use Aurora\Support\SeoChecks;
 use Aurora\Support\SettingsTabs;
 use Aurora\Support\SystemInfo;
 use Aurora\Support\Themes;
+use Aurora\Support\Updates;
 use Aurora\Support\WebsiteAccess;
 use Aurora\Support\WordPressImport;
 use Aurora\Support\WorkingCopies;
@@ -238,6 +239,8 @@ class SiteSettings extends Page implements HasSchemas
                 ->icon($this->pages()[$key]['icon'])
                 ->url(static::getUrl(['tab' => $key]))
                 ->isActiveWhen(fn (): bool => $this->sectionKey() === $key)
+                // A newer Aurora is out (found out on System info; never asked for here).
+                ->badge($key === 'system' && Updates::available(ask: false) !== null ? __('Update') : null, 'warning')
                 ->sort($index))
             ->all();
     }

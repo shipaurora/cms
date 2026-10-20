@@ -2055,5 +2055,10 @@
     "Logo": "Logo",
     "No blocks of the website’s own yet": "Nettstedet har ingen egne blokker ennå",
     "Editors build pages from the built-in blocks for now. Blocks made for this website are listed here once its code has them: make one with php artisan aurora:make-block.": "Redaktørene bygger sider av de innebygde blokkene inntil videre. Blokker laget for dette nettstedet vises her når koden har dem: lag en med php artisan aurora:make-block.",
-    "How to make a block": "Slik lager du en blokk"
+    "How to make a block": "Slik lager du en blokk",
+    "Up to date": "Oppdatert",
+    "Update available: :version": "Ny versjon: :version",
+    "Aurora :version is out. Update with composer update shipaurora/cms.": "Aurora :version er ute. Oppdater med composer update shipaurora/cms.",
+    "See what changed": "Se hva som er endret",
+    "Update": "Oppdater"
 }

@@ -7,19 +7,20 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * What the CMS runs on, for Settings › System › System info: versions and the services it
- * uses, with what needs looking at.
+ * uses, with what needs looking at. Aurora's row says whether a newer release is out
+ * (Aurora\Support\Updates).
  */
 class SystemInfo
 {
     /**
-     * @return array<int, array{label: string, value: string, warning: ?string}>
+     * @return array<int, array{label: string, value: string, warning: ?string, badge?: array{label: string, color: string}, url?: ?string}>
      */
     public static function rows(): array
     {
         $version = fn (string $package): string => InstalledVersions::isInstalled($package) ? (string) InstalledVersions::getPrettyVersion($package) : '—';
 
         return [
-            ['label' => 'Aurora', 'value' => $version('shipaurora/cms'), 'warning' => null],
+            static::aurora($version(Updates::PACKAGE)),
             ['label' => 'Laravel', 'value' => app()->version(), 'warning' => null],
             ['label' => 'Filament', 'value' => $version('filament/filament'), 'warning' => null],
             ['label' => 'PHP', 'value' => PHP_VERSION, 'warning' => null],
@@ -30,6 +31,33 @@ class SystemInfo
             ['label' => __('Search'), 'value' => (string) config('scout.driver'), 'warning' => null],
             ['label' => __('Files'), 'value' => (string) config('media-library.disk_name', config('filesystems.default')), 'warning' => is_link(public_path('storage')) || ! is_dir(storage_path('app/public')) ? null : __('public/storage isn’t linked: run php artisan storage:link.')],
             ['label' => __('Environment'), 'value' => app()->environment(), 'warning' => app()->isProduction() && config('app.debug') ? __('Debug mode is on in production: visitors can see error details. Set APP_DEBUG=false.') : null],
+        ];
+    }
+
+    /**
+     * Aurora's row: the installed release, and whether it's the newest. Nothing more when
+     * that isn't known (no network, or a development checkout).
+     *
+     * @return array{label: string, value: string, warning: ?string, badge?: array{label: string, color: string}, url?: ?string}
+     */
+    protected static function aurora(string $installed): array
+    {
+        $row = ['label' => 'Aurora', 'value' => $installed, 'warning' => null];
+        $latest = Updates::installed() === null ? null : Updates::latest();
+
+        if ($latest === null) {
+            return $row;
+        }
+
+        if (($update = Updates::available()) === null) {
+            return [...$row, 'badge' => ['label' => __('Up to date'), 'color' => 'success']];
+        }
+
+        return [
+            ...$row,
+            'warning' => __('Aurora :version is out. Update with composer update shipaurora/cms.', ['version' => $update]),
+            'badge' => ['label' => __('Update available: :version', ['version' => $update]), 'color' => 'warning'],
+            'url' => Updates::changesUrl($update),
         ];
     }
 }
