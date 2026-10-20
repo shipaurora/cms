@@ -66,11 +66,19 @@ class CurrentSite
     {
         if (! app()->bound(self::DEFAULT_KEY)) {
             try {
-                app()->instance(self::DEFAULT_KEY, Site::default());
+                $site = Site::default();
             } catch (Throwable) {
                 // No sites table yet (installing, migrating).
                 return null;
             }
+
+            // None yet: nothing to keep, and asked again next time. (The container doesn't
+            // count a null it was given as bound, so keeping one breaks the next lookup.)
+            if ($site === null) {
+                return null;
+            }
+
+            app()->instance(self::DEFAULT_KEY, $site);
         }
 
         return app(self::DEFAULT_KEY);
