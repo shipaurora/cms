@@ -47,7 +47,7 @@ trait ManagesBlockPreviews
                             ->label(__('How to make a block'))
                             ->icon('phosphor-book-open')
                             ->color('gray')
-                            ->url(Aurora::docs('blocks'), shouldOpenInNewTab: true),
+                            ->url(Aurora::docs('building-a-site/creating-blocks'), shouldOpenInNewTab: true),
                     ])
                     ->contained(false),
             ];

@@ -9,16 +9,17 @@ namespace Aurora;
 class Aurora
 {
     /**
-     * Where Aurora's documentation is: a placeholder until it has an address.
+     * Where Aurora's documentation is.
      */
-    public const DOCS_URL = '#';
+    public const DOCS_URL = 'https://shipaurora.com/docs';
 
     /**
-     * A section of the documentation, for links from the admin ("blocks" for making blocks).
+     * A page of the documentation, for links from the admin, by its path under /docs
+     * ("building-a-site/creating-blocks").
      */
-    public static function docs(string $section = ''): string
+    public static function docs(string $page = ''): string
     {
-        return self::DOCS_URL === '#' || $section === '' ? self::DOCS_URL : rtrim(self::DOCS_URL, '/').'/'.$section;
+        return $page === '' ? self::DOCS_URL : self::DOCS_URL.'/'.ltrim($page, '/');
     }
 
     public static function path(string $path = ''): string
