@@ -5,6 +5,7 @@ namespace Aurora\Filament\Pages;
 use Aurora\Filament\Concerns\TranslatesPageLabels;
 use Aurora\Mcp\Capabilities;
 use Aurora\Models\McpActivity;
+use Aurora\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -19,8 +20,10 @@ use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Registrar;
+use Laravel\Passport\ClientRepository;
 use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
+use RuntimeException;
 use UnitEnum;
 
 /**
@@ -100,12 +103,31 @@ class AiAssistant extends Page implements HasTable
                         ->maxLength(80),
                 ])
                 ->action(function (array $data): void {
+                    static::ensurePersonalAccessClient(auth()->user());
+
                     $this->plainToken = auth()->user()->createToken($data['name'], [Registrar::OAUTH_SCOPE])->accessToken;
                     $this->refreshConnections();
 
                     Notification::make()->title(__('Token created'))->body(__('Copy it now: it will not be shown again.'))->success()->send();
                 }),
         ];
+    }
+
+    /**
+     * Passport makes personal access tokens through a client of their own, which a new site
+     * doesn't have yet (nothing creates it on install): made the first time someone asks for
+     * a token, for their user provider.
+     */
+    public static function ensurePersonalAccessClient(User $user): void
+    {
+        $clients = app(ClientRepository::class);
+        $provider = $user->getProviderName();
+
+        try {
+            $clients->personalAccessClient($provider);
+        } catch (RuntimeException) {
+            $clients->createPersonalAccessGrantClient('Personal access tokens', $provider);
+        }
     }
 
     public function table(Table $table): Table
