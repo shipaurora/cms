@@ -25,7 +25,13 @@ class TranslationLoader extends TranslationLoaderManager
         }
 
         if ($namespace === null || $namespace === '*') {
-            return parent::load($locale, $group, $namespace);
+            // Without a database to ask (a project just created, before its first migration),
+            // the lang files: booting must never need one.
+            try {
+                return parent::load($locale, $group, $namespace);
+            } catch (\Throwable) {
+                return $this->fileTranslations($locale, $group, $namespace ?? '*');
+            }
         }
 
         $files = $this->fileTranslations($locale, $group, $namespace);
