@@ -32,7 +32,8 @@ use function Laravel\Prompts\text;
     {--name= : The admin\'s name}
     {--email= : The admin\'s email address}
     {--password= : The admin\'s password}
-    {--seed : Then run the website\'s own seeders (database/seeders/DatabaseSeeder) without asking}')]
+    {--seed : Then run the website\'s own seeders (database/seeders/DatabaseSeeder) without asking}
+    {--interactive-only : Only set up when someone can answer the questions (as after composer create-project); otherwise say how to finish}')]
 #[Description('Set up the CMS: app key, database, the content it needs, labels and an admin account')]
 class InstallCms extends Command
 {
@@ -43,6 +44,14 @@ class InstallCms extends Command
 
     public function handle(TranslationSync $sync): int
     {
+        // Run by composer create-project as its last step: nobody there to answer (with
+        // --no-interaction, or in CI) is no reason to fail the whole create-project.
+        if ($this->option('interactive-only') && ! $this->canAsk()) {
+            $this->components->info('Finish setting up the CMS with: php artisan aurora:install');
+
+            return self::SUCCESS;
+        }
+
         $fresh = (bool) $this->option('fresh');
 
         if ($fresh && ! $this->option('force') && ! confirm('Drop every table and start over? Everything in the database is deleted.', default: false)) {
@@ -163,6 +172,16 @@ class InstallCms extends Command
         $this->components->info('The CMS is ready. Sign in at '.Filament::getPanel('admin')->getLoginUrl());
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Whether there's someone to answer the questions: an interactive run in a terminal.
+     * Composer can call a script interactively without one (create-project in CI), and
+     * then the prompts can't ask.
+     */
+    protected function canAsk(): bool
+    {
+        return $this->input->isInteractive() && defined('STDIN') && stream_isatty(STDIN);
     }
 
     /**
