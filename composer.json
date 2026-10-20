@@ -1,12 +1,37 @@
 {
     "name": "shipaurora/cms",
     "description": "Aurora: a content management system for Laravel, built on Filament.",
+    "keywords": [
+        "aurora",
+        "aurora-cms",
+        "cms",
+        "content-management",
+        "laravel",
+        "filament",
+        "page-builder",
+        "visual-editor",
+        "headless",
+        "mcp",
+        "ai"
+    ],
+    "homepage": "https://shipaurora.com",
     "type": "library",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Thomas Alrek",
+            "email": "thomas@alrek.no"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/shipaurora/cms/issues",
+        "source": "https://github.com/shipaurora/cms",
+        "docs": "https://shipaurora.com/docs"
+    },
     "require": {
         "php": "^8.3",
         "althinect/filament-spatie-roles-permissions": "^4.0",
-        "shipaurora/borealis-theme": "@dev",
+        "shipaurora/borealis-theme": "^1.0",
         "blade-ui-kit/blade-heroicons": "^2.7",
         "blade-ui-kit/blade-icons": "^1.10",
         "carljanzell/filament-page-builder": "^0.4.2",
@@ -53,6 +78,9 @@
                 "Aurora\\Providers\\AuroraServiceProvider",
                 "Aurora\\Providers\\AdminPanelProvider"
             ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
         }
     },
     "minimum-stability": "dev",
