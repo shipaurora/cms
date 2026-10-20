@@ -48,8 +48,8 @@ exactly the permissions of the person using them.
 The quickest start is the starter app, a Laravel application with Aurora already set up:
 
 ```bash
-composer create-project shipaurora/aurora my-site   # ends by running aurora:install
-cd my-site && npm install && npm run build
+composer create-project shipaurora/aurora my-site   # asks a few questions and sets it all up
+cd my-site
 ```
 
 To add Aurora to an existing Laravel application:
@@ -60,8 +60,9 @@ php artisan aurora:install
 ```
 
 `aurora:install` sets up the database and what the CMS needs, publishes the admin's assets and the
-page layouts, and creates your admin account. The starter app runs it for you at the end of
-`create-project`. Then sign in at `/admin`.
+page layouts, creates your admin account, and offers to build the website's front end (`--build`
+to do it without asking). The starter app runs it for you at the end of `create-project`. Then
+sign in at `/admin`.
 
 Aurora comes with its default admin theme, [Borealis](https://github.com/shipaurora/borealis-theme).
 [Minimal](https://github.com/shipaurora/minimal-theme) is a second one to choose from.
