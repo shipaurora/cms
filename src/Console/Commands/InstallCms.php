@@ -14,6 +14,7 @@ use Filament\Facades\Filament;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
@@ -33,6 +34,7 @@ use function Laravel\Prompts\text;
     {--email= : The admin\'s email address}
     {--password= : The admin\'s password}
     {--seed : Then run the website\'s own seeders (database/seeders/DatabaseSeeder) without asking}
+    {--build : Then install and build the website\'s front end (npm install, npm run build) without asking}
     {--interactive-only : Only set up when someone can answer the questions (as after composer create-project); otherwise say how to finish}')]
 #[Description('Set up the CMS: app key, database, the content it needs, labels and an admin account')]
 class InstallCms extends Command
@@ -47,7 +49,7 @@ class InstallCms extends Command
         // Run by composer create-project as its last step: nobody there to answer (with
         // --no-interaction, or in CI) is no reason to fail the whole create-project.
         if ($this->option('interactive-only') && ! $this->canAsk()) {
-            $this->components->info('Finish setting up the CMS with: php artisan aurora:install');
+            $this->components->info('Finish setting up the CMS with: cd '.basename(base_path()).' && php artisan aurora:install');
 
             return self::SUCCESS;
         }
@@ -85,6 +87,7 @@ class InstallCms extends Command
         }
 
         $seedWebsite = $this->seedsWebsite();
+        $buildFrontEnd = $this->buildsFrontEnd();
 
         if (! file_exists($this->laravel->environmentFilePath()) && file_exists(base_path('.env.example'))) {
             $this->components->task('Creating .env from .env.example', fn () => copy(base_path('.env.example'), $this->laravel->environmentFilePath()));
@@ -168,10 +171,87 @@ class InstallCms extends Command
             $this->components->task('Seeding the website\'s content', fn () => $this->seed(self::WEBSITE_SEEDER));
         }
 
+        $built = $buildFrontEnd && $this->buildFrontEnd();
+
         $this->newLine();
         $this->components->info('The CMS is ready. Sign in at '.Filament::getPanel('admin')->getLoginUrl());
 
+        // What's left to do by hand: the build, when it wasn't done, and (after create-project,
+        // which runs this in the new folder) going into that folder, which no command can do
+        // for the shell it was started from.
+        if (! $built && $this->needsFrontEnd()) {
+            $this->line('  Build the website\'s front end before opening it: <fg=gray>npm install && npm run build</>');
+        }
+
+        if ($this->option('interactive-only')) {
+            $this->line('  Next: <fg=gray>cd '.basename(base_path()).'</>, then open the site (or <fg=gray>php artisan serve</>).');
+        }
+
         return self::SUCCESS;
+    }
+
+    /**
+     * Whether to install and build the website's front end at the end: with --build, or when
+     * asked (yes unless said otherwise) while it hasn't been built yet. Never for an app
+     * without a package.json.
+     */
+    protected function buildsFrontEnd(): bool
+    {
+        if (! is_file(base_path('package.json'))) {
+            return false;
+        }
+
+        return $this->option('build') || ($this->input->isInteractive() && $this->needsFrontEnd() && confirm(
+            'Build the website\'s front end now?',
+            default: true,
+            hint: 'npm install && npm run build: the CSS and JavaScript its pages load. Pages can\'t open without it.',
+        ));
+    }
+
+    /**
+     * Whether the website's pages load assets that haven't been built yet (Vite's manifest).
+     */
+    protected function needsFrontEnd(): bool
+    {
+        return is_file(base_path('package.json')) && ! is_file(public_path('build/manifest.json'));
+    }
+
+    /**
+     * npm install, then npm run build, in the app. A missing npm or a failed build doesn't fail
+     * the install: it says what to run instead.
+     */
+    protected function buildFrontEnd(): bool
+    {
+        if (! Process::run('npm --version')->successful()) {
+            $this->components->warn('npm wasn\'t found. Install Node.js, then run: npm install && npm run build');
+
+            return false;
+        }
+
+        $failed = null;
+
+        $this->components->task('Building the website\'s front end', function () use (&$failed): bool {
+            foreach (['npm install', 'npm run build'] as $command) {
+                $result = Process::path(base_path())->timeout(900)->run($command);
+
+                if (! $result->successful()) {
+                    $failed = [$command, trim($result->errorOutput() ?: $result->output())];
+
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        if ($failed !== null) {
+            $this->components->error("{$failed[0]} failed. Fix it, then run: npm install && npm run build");
+            $this->line(collect(explode("\n", $failed[1]))->take(-10)->implode("\n"));
+
+            return false;
+        }
+
+        return true;
     }
 
     /**
