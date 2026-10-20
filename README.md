@@ -70,7 +70,9 @@ Aurora comes with its default admin theme, [Borealis](https://github.com/shipaur
 
 ```bash
 php artisan aurora:make-block "Pricing table"   # a block of the website's own
+php artisan make:aurora-layout "Campaign"        # a page layout, registered for editors to pick
 php artisan make:aurora-user                     # a person, with a role
+php artisan aurora:reindex                       # rebuild the search index
 ```
 
 Blocks live in the app (`app/Blocks`), with their views in `resources/views/components/blocks`.
