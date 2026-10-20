@@ -1,12 +1,12 @@
 {
-    "name": "aurora/cms",
+    "name": "shipaurora/cms",
     "description": "Aurora: a content management system for Laravel, built on Filament.",
     "type": "library",
     "license": "MIT",
     "require": {
         "php": "^8.3",
         "althinect/filament-spatie-roles-permissions": "^4.0",
-        "aurora/borealis": "@dev",
+        "shipaurora/borealis-theme": "@dev",
         "blade-ui-kit/blade-heroicons": "^2.7",
         "blade-ui-kit/blade-icons": "^1.10",
         "carljanzell/filament-page-builder": "^0.4.2",

@@ -6,7 +6,7 @@
 <link href="https://fonts.bunny.net/css?family=bricolage-grotesque:500,600,700,800|space-grotesk:500,600,700|jetbrains-mono:400,500" rel="stylesheet">
 
 {{-- Aurora's prebuilt admin scripts (resources/dist/aurora.js, published by filament:assets). --}}
-<script type="module" src="{{ \Filament\Support\Facades\FilamentAsset::getScriptSrc('aurora', 'aurora/cms') }}"></script>
+<script type="module" src="{{ \Filament\Support\Facades\FilamentAsset::getScriptSrc('aurora', 'shipaurora/cms') }}"></script>
 
 <script>
     {{-- resources/js/admin/copilot.js: the tools that change content, the screens that show it, and its wording. --}}

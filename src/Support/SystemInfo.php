@@ -19,7 +19,7 @@ class SystemInfo
         $version = fn (string $package): string => InstalledVersions::isInstalled($package) ? (string) InstalledVersions::getPrettyVersion($package) : '—';
 
         return [
-            ['label' => 'Aurora', 'value' => $version('aurora/cms'), 'warning' => null],
+            ['label' => 'Aurora', 'value' => $version('shipaurora/cms'), 'warning' => null],
             ['label' => 'Laravel', 'value' => app()->version(), 'warning' => null],
             ['label' => 'Filament', 'value' => $version('filament/filament'), 'warning' => null],
             ['label' => 'PHP', 'value' => PHP_VERSION, 'warning' => null],

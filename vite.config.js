@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 
 // Aurora's prebuilt admin scripts (resources/dist): run `npm run build:aurora` from the app
 // root after changing them. Sites that install Aurora use these as they are. Its admin
-// theme is Borealis, aurora/borealis (packages/borealis), built with its own config.
+// theme is Borealis, shipaurora/borealis-theme (packages/borealis), built with its own config.
 const resources = fileURLToPath(new URL('./resources', import.meta.url));
 
 // After every build (also each rebuild while watching), copy the files to public/ the way
