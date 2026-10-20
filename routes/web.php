@@ -7,6 +7,9 @@ use Aurora\Http\Controllers\BrandImageController;
 use Aurora\Http\Controllers\CanvasStylesController;
 use Aurora\Http\Controllers\DemoLoginController;
 use Aurora\Http\Controllers\FormSubmissionController;
+use Aurora\Http\Controllers\GraphqlPlaygroundController;
+use Aurora\Http\Controllers\OpenApiSpecController;
+use Aurora\Http\Controllers\RestApiExplorerController;
 use Aurora\Http\Controllers\SubmissionFileController;
 use Aurora\Http\Controllers\ThemePreviewController;
 use Aurora\Http\Controllers\UnlockPageController;
@@ -38,6 +41,14 @@ Route::middleware('web')->group(function (): void {
 
     // The website's stylesheet, scoped to the visual editor's canvas.
     Route::get('aurora/canvas.css', CanvasStylesController::class)->middleware('auth')->name('aurora.canvas-styles');
+
+    // The APIs' explorers, for those who may change the API settings (Settings › Integrations):
+    // Swagger UI on the REST API's OpenAPI document, made from its routes, and GraphiQL.
+    Route::middleware('auth')->prefix('admin/api')->name('aurora.explorer.')->group(function () {
+        Route::get('rest', RestApiExplorerController::class)->name('rest');
+        Route::get('rest/openapi.json', OpenApiSpecController::class)->name('openapi');
+        Route::get('graphql', GraphqlPlaygroundController::class)->name('graphql');
+    });
 
     // A theme's picture, for choosing it under Settings › Appearance.
     Route::get('aurora/themes/{theme}/preview/{mode?}', ThemePreviewController::class)->middleware('auth')->where(['theme' => '[a-z0-9-]+', 'mode' => 'light|dark'])->name('aurora.themes.preview');

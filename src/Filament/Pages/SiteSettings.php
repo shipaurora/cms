@@ -746,6 +746,12 @@ class SiteSettings extends Page implements HasSchemas
                 ->icon($api->getIcon())
                 ->description($description)
                 ->headerActions([
+                    // Its explorer, where its documentation is, from the API itself.
+                    Action::make('explore'.ucfirst($api->value))
+                        ->label($api === Api::Rest ? __('Open the API explorer') : __('Open the GraphQL playground'))
+                        ->icon($api === Api::Rest ? 'phosphor-book-open' : 'phosphor-play')
+                        ->color('gray')
+                        ->url(route($api === Api::Rest ? 'aurora.explorer.rest' : 'aurora.explorer.graphql'), shouldOpenInNewTab: true),
                     // The same keys as the API keys tab, without leaving this one.
                     Action::make('manageApiKeys')
                         ->label(__('Manage keys'))

@@ -2060,5 +2060,13 @@
     "Update available: :version": "Update available: :version",
     "Aurora :version is out. Update with composer update shipaurora/cms.": "Aurora :version is out. Update with composer update shipaurora/cms.",
     "See what changed": "See what changed",
-    "Update": "Update"
+    "Update": "Update",
+    "Open the API explorer": "Open the API explorer",
+    "Open the GraphQL playground": "Open the GraphQL playground",
+    "REST API explorer": "REST API explorer",
+    "GraphQL playground": "GraphQL playground",
+    "Back to Settings": "Back to Settings",
+    "The :api is switched off, so trying it here answers “not found”. Switch it on under Settings › Integrations.": "The :api is switched off, so trying it here answers “not found”. Switch it on under Settings › Integrations.",
+    "The API needs a key: put one of your API keys after \"Bearer\" in the Headers tab below.": "The API needs a key: put one of your API keys after \"Bearer\" in the Headers tab below.",
+    "Explore": "Explore"
 }
