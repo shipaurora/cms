@@ -1,5 +1,12 @@
 # Aurora
 
+[![Latest version](https://img.shields.io/packagist/v/shipaurora/cms)](https://packagist.org/packages/shipaurora/cms)
+[![Downloads](https://img.shields.io/packagist/dt/shipaurora/cms)](https://packagist.org/packages/shipaurora/cms)
+[![PHP 8.3+](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)](https://www.php.net)
+[![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
+[![Filament 5](https://img.shields.io/badge/Filament-5-FDAE4B)](https://filamentphp.com)
+[![License: MIT](https://img.shields.io/packagist/l/shipaurora/cms)](LICENSE)
+
 **A content management system for Laravel, built on [Filament](https://filamentphp.com).** Editors
 compose pages visually on the real design of the website. Developers keep plain Laravel: Eloquent
 models, Blade components, service providers and tests. AI assistants work on the same content with
