@@ -25,6 +25,7 @@ use Aurora\Support\Copilot;
 use Aurora\Support\ImageDescriptions;
 use Aurora\Support\PageCache;
 use Aurora\Support\Passkeys;
+use Aurora\Support\PublicApi;
 use Aurora\Support\SeoChecks;
 use Aurora\Support\SettingsTabs;
 use Aurora\Support\SystemInfo;
@@ -746,12 +747,6 @@ class SiteSettings extends Page implements HasSchemas
                 ->icon($api->getIcon())
                 ->description($description)
                 ->headerActions([
-                    // Its explorer, where its documentation is, from the API itself.
-                    Action::make('explore'.ucfirst($api->value))
-                        ->label($api === Api::Rest ? __('Open the API explorer') : __('Open the GraphQL playground'))
-                        ->icon($api === Api::Rest ? 'phosphor-book-open' : 'phosphor-play')
-                        ->color('gray')
-                        ->url(route($api === Api::Rest ? 'aurora.explorer.rest' : 'aurora.explorer.graphql'), shouldOpenInNewTab: true),
                     // The same keys as the API keys tab, without leaving this one.
                     Action::make('manageApiKeys')
                         ->label(__('Manage keys'))
@@ -774,6 +769,15 @@ class SiteSettings extends Page implements HasSchemas
                         ->default(true)
                         ->helperText(__('Apps send one of the API keys (Manage keys, above) as Authorization: Bearer <key>. The same keys work for both APIs.'))
                         ->visible(fn (Get $get): bool => (bool) $get($setting.'.enabled')),
+                    // Its explorer, where its documentation is, from the API itself, above the examples:
+                    // once it's switched on and saved (until then the API answers "not found").
+                    Actions::make([
+                        Action::make('explore'.ucfirst($api->value))
+                            ->label($api === Api::Rest ? __('Open the API explorer') : __('Open the GraphQL playground'))
+                            ->icon($api === Api::Rest ? 'phosphor-book-open' : 'phosphor-play')
+                            ->color('gray')
+                            ->url(route($api === Api::Rest ? 'aurora.explorer.rest' : 'aurora.explorer.graphql'), shouldOpenInNewTab: true),
+                    ])->visible(fn (Get $get): bool => (bool) $get($setting.'.enabled') && PublicApi::enabled($api)),
                     View::make('aurora::filament.pages.api-endpoints')
                         ->viewData(['api' => $api])
                         ->visible(fn (Get $get): bool => (bool) $get($setting.'.enabled')),
