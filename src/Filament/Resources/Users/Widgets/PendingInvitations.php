@@ -6,6 +6,7 @@ use Aurora\Models\Invitation;
 use Aurora\Models\User;
 use Aurora\Support\UserBadge;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -46,32 +47,34 @@ class PendingInvitations extends TableWidget
                 TextColumn::make('sent_at')->label(__('Sent'))->since()->color('gray'),
             ])
             ->recordActions([
-                Action::make('copyLink')
-                    ->label(__('Copy link'))
-                    ->icon('phosphor-link')
-                    ->color('gray')
-                    ->modalHeading(fn (Invitation $record): string => __('Invitation link for :email', ['email' => $record->email]))
-                    ->modalDescription(__('Share it any way you like. It works once, for this person only.'))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('Done'))
-                    ->mountUsing(function (Invitation $record): void {
-                        // An expired link is useless to share: give it a fresh week first.
-                        if ($record->isExpired()) {
-                            $record->update(['expires_at' => now()->addDays(Invitation::VALID_FOR_DAYS)]);
-                        }
-                    })
-                    ->fillForm(fn (Invitation $record): array => ['link' => $record->url()])
-                    ->schema([
-                        TextInput::make('link')->hiddenLabel()->readOnly()->copyable(copyMessage: __('Link copied')),
-                    ]),
-                Action::make('resend')
-                    ->label(__('Resend'))
-                    ->icon('phosphor-arrows-clockwise')
-                    ->color('gray')
-                    ->action(function (Invitation $record): void {
-                        $record->send();
-                        Notification::make()->title(__('Invitation sent again to :email', ['email' => $record->email]))->success()->send();
-                    }),
+                ActionGroup::make([
+                    Action::make('copyLink')
+                        ->label(__('Copy link'))
+                        ->icon('phosphor-link')
+                        ->color('gray')
+                        ->modalHeading(fn (Invitation $record): string => __('Invitation link for :email', ['email' => $record->email]))
+                        ->modalDescription(__('Share it any way you like. It works once, for this person only.'))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel(__('Done'))
+                        ->mountUsing(function (Invitation $record): void {
+                            // An expired link is useless to share: give it a fresh week first.
+                            if ($record->isExpired()) {
+                                $record->update(['expires_at' => now()->addDays(Invitation::VALID_FOR_DAYS)]);
+                            }
+                        })
+                        ->fillForm(fn (Invitation $record): array => ['link' => $record->url()])
+                        ->schema([
+                            TextInput::make('link')->hiddenLabel()->readOnly()->copyable(copyMessage: __('Link copied')),
+                        ]),
+                    Action::make('resend')
+                        ->label(__('Resend'))
+                        ->icon('phosphor-arrows-clockwise')
+                        ->color('gray')
+                        ->action(function (Invitation $record): void {
+                            $record->send();
+                            Notification::make()->title(__('Invitation sent again to :email', ['email' => $record->email]))->success()->send();
+                        }),
+                ]),
                 DeleteAction::make()
                     ->label(__('Revoke'))
                     ->icon('phosphor-prohibit')
