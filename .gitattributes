@@ -1,0 +1,7 @@
+# What isn't installed with the package: its tests and their website, and its build tooling.
+/tests export-ignore
+/workbench export-ignore
+/phpunit.xml export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/vite.config.js export-ignore
