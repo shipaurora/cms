@@ -35,14 +35,14 @@ class TranslationSync
     protected function paths(): array
     {
         $packages = collect(InstalledVersions::getInstalledPackages())
-            ->filter(fn (string $name): bool => str_starts_with($name, 'aurora/'))
+            ->filter(fn (string $name): bool => str_starts_with($name, 'shipaurora/'))
             ->map(fn (string $name): ?string => ($path = InstalledVersions::getInstallPath($name)) ? (realpath($path) ?: null) : null)
             ->push(dirname(__DIR__, 2))
             ->filter()
             ->unique()
             ->flatMap(fn (string $package): array => [$package.'/src', $package.'/resources/views']);
 
-        return array_values(array_filter([app_path(), resource_path('views'), ...$packages], is_dir(...)));
+        return array_values(array_filter([app_path(), ...config('view.paths', [resource_path('views')]), ...$packages], is_dir(...)));
     }
 
     /**
