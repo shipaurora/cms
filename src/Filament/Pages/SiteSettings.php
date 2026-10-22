@@ -528,6 +528,13 @@ class SiteSettings extends Page implements HasSchemas
                 Section::make(__('Admin theme'))
                     ->icon('phosphor-paint-brush-broad')
                     ->description(__('How the admin looks, for everyone who works in it. Theme packages can add their own.'))
+                    ->headerActions([
+                        Action::make('browseThemes')
+                            ->label(__('Browse themes'))
+                            ->icon('phosphor-arrow-square-out')
+                            ->link()
+                            ->url(Themes::BROWSE_URL, shouldOpenInNewTab: true),
+                    ])
                     ->schema([
                         ViewField::make(Themes::SETTING)
                             ->hiddenLabel()

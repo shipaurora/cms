@@ -2068,5 +2068,6 @@
     "Back to Settings": "Tilbake til innstillingene",
     "The :api is switched off, so trying it here answers “not found”. Switch it on under Settings › Integrations.": ":api er slått av, så forsøk her svarer «ikke funnet». Slå det på under Innstillinger › Integrasjoner.",
     "The API needs a key: put one of your API keys after \"Bearer\" in the Headers tab below.": "API-et krever en nøkkel: lim inn en av API-nøklene dine etter \"Bearer\" i Headers-fanen nedenfor.",
-    "Explore": "Utforsk"
+    "Explore": "Utforsk",
+    "Browse themes": "Finn flere temaer"
 }

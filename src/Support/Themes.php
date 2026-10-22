@@ -23,6 +23,11 @@ class Themes
     public const SETTING = 'admin_theme';
 
     /**
+     * Where the theme packages are listed: Packagist, by the keyword they share.
+     */
+    public const BROWSE_URL = 'https://packagist.org/search/?tags=aurora-cms-theme';
+
+    /**
      * @var array<string, array{id: string, name: string, description: ?string, stylesheet: ?string, vite: ?string, previews: array<string, string>, modes: array<int, string>}>
      */
     protected static array $themes = [];

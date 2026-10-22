@@ -72,6 +72,18 @@ class AdminThemeTest extends TestCase
             ->assertHasFormErrors([Themes::SETTING]);
     }
 
+    public function test_the_appearance_settings_link_to_more_themes_in_a_new_tab(): void
+    {
+        $this->actingAs($this->userWithRole(User::SUPER_ADMIN));
+
+        $html = Livewire::withQueryParams(['tab' => 'appearance'])
+            ->test(SiteSettings::class)
+            ->assertSee('Browse themes')
+            ->html();
+
+        $this->assertMatchesRegularExpression('#<a\b[^>]*href="'.preg_quote(e(Themes::BROWSE_URL), '#').'"[^>]*target="_blank"#s', $html);
+    }
+
     public function test_people_switch_between_light_and_dark_only_when_the_theme_has_both(): void
     {
         $panel = Filament::getPanel('admin');
