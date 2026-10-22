@@ -2,6 +2,7 @@
 
 namespace Aurora\Support;
 
+use Aurora\Aurora;
 use Illuminate\Support\Facades\File;
 
 /**
@@ -391,7 +392,7 @@ class AdminIcons
 
     public static function build(): void
     {
-        $source = base_path('vendor/codeat3/blade-phosphor-icons/resources/svg');
+        $source = Aurora::packagePath('codeat3/blade-phosphor-icons', 'resources/svg');
         $directory = static::directory();
 
         File::ensureDirectoryExists($directory);

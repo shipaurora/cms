@@ -146,7 +146,7 @@ class AuroraServiceProvider extends ServiceProvider
         // extends the binding rather than replacing it.
         $this->app->extend('translation.loader', fn ($loader, $app) => new TranslationLoader(
             $app['files'],
-            [base_path('vendor/laravel/framework/src/Illuminate/Translation/lang'), Aurora::path('lang'), $app['path.lang']],
+            [Aurora::packagePath('laravel/framework', 'src/Illuminate/Translation/lang'), Aurora::path('lang'), $app['path.lang']],
         ));
     }
 

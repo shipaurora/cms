@@ -216,7 +216,7 @@ class TranslationSync
 
         // The app's and Laravel's "group.key" labels, then every package's.
         $named = [
-            ...array_fill_keys($this->groupsIn([...Aurora::langPaths(), base_path('vendor/laravel/framework/src/Illuminate/Translation/lang')]), '*'),
+            ...array_fill_keys($this->groupsIn([...Aurora::langPaths(), Aurora::packagePath('laravel/framework', 'src/Illuminate/Translation/lang')]), '*'),
         ];
 
         foreach ($loader->namespaces() as $namespace => $path) {

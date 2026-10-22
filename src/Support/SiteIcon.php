@@ -2,6 +2,7 @@
 
 namespace Aurora\Support;
 
+use Aurora\Aurora;
 use BladeUI\Icons\Exceptions\SvgNotFound;
 use BladeUI\Icons\Factory;
 
@@ -19,7 +20,7 @@ class SiteIcon
     public static function register(Factory $factory): void
     {
         $factory->add(self::SET, [
-            'path' => base_path('vendor/blade-ui-kit/blade-heroicons/resources/svg'),
+            'path' => Aurora::packagePath('blade-ui-kit/blade-heroicons', 'resources/svg'),
             'prefix' => self::PREFIX,
         ]);
     }

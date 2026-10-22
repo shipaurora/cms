@@ -2,6 +2,8 @@
 
 namespace Aurora;
 
+use Composer\InstalledVersions;
+
 /**
  * Where Aurora's own files are (its views, translations, demo content …), wherever the
  * package is installed.
@@ -20,6 +22,18 @@ class Aurora
     public static function docs(string $page = ''): string
     {
         return $page === '' ? self::DOCS_URL : self::DOCS_URL.'/'.ltrim($page, '/');
+    }
+
+    /**
+     * A file in another installed package (Laravel's own lang files, an icon set), wherever
+     * Composer put it: the app's vendor folder usually, but not always.
+     */
+    public static function packagePath(string $package, string $path = ''): string
+    {
+        $root = InstalledVersions::isInstalled($package) ? InstalledVersions::getInstallPath($package) : null;
+        $root = $root !== null ? (realpath($root) ?: $root) : base_path('vendor/'.$package);
+
+        return $root.($path === '' ? '' : '/'.ltrim($path, '/'));
     }
 
     public static function path(string $path = ''): string
