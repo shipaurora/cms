@@ -62,6 +62,14 @@
         "wallacemartinss/filament-icon-picker": "^2.0",
         "webonyx/graphql-php": "^15.38"
     },
+    "require-dev": {
+        "brianium/paratest": "^7.20",
+        "fakerphp/faker": "^1.23",
+        "laravel/pint": "^1.27",
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^11.3",
+        "phpunit/phpunit": "^12.5.12"
+    },
     "autoload": {
         "psr-4": {
             "Aurora\\": "src/",
@@ -71,6 +79,13 @@
         "files": [
             "src/helpers.php"
         ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Aurora\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Database\\Seeders\\": "workbench/database/seeders/"
+        }
     },
     "extra": {
         "laravel": {
@@ -84,5 +99,11 @@
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts": {
+        "post-autoload-dump": [
+            "@php vendor/bin/testbench package:discover --ansi"
+        ],
+        "test": "@php vendor/bin/paratest --processes=6"
+    }
 }
