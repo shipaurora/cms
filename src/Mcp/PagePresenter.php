@@ -7,6 +7,7 @@ use Aurora\Models\Page;
 use Aurora\Models\User;
 use Aurora\Support\BlockOutline;
 use Aurora\Support\BlockTreeBuilder;
+use Aurora\Support\Layouts;
 
 /**
  * How pages look to an AI assistant: the facts it needs, links a person can click.
@@ -45,6 +46,8 @@ class PagePresenter
             ...static::summary($page, $user),
             'excerpt' => $page->excerpt,
             'layout' => $page->layoutOrDefault()?->handle,
+            // Only for a layout with fields of its own (list_layouts).
+            ...(Layouts::schemaFor($page->layoutOrDefault()) === [] ? [] : ['layout_settings' => (object) $page->layoutSettings()]),
             'seo' => [
                 'meta_title' => $page->meta_title,
                 'meta_description' => $page->meta_description,

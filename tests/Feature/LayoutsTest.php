@@ -6,6 +6,8 @@ use Aurora\Filament\Resources\Pages\Pages\EditPage;
 use Aurora\Filament\Resources\Pages\Pages\ListPages;
 use Aurora\Mcp\Servers\CmsServer;
 use Aurora\Mcp\Tools\CreatePage;
+use Aurora\Mcp\Tools\GetPage;
+use Aurora\Mcp\Tools\ListLayouts;
 use Aurora\Mcp\Tools\UpdatePage;
 use Aurora\Models\Layout;
 use Aurora\Models\Page;
@@ -14,8 +16,14 @@ use Aurora\Providers\AuroraServiceProvider;
 use Aurora\Support\Layouts;
 use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Once;
 use Illuminate\Support\ServiceProvider;
@@ -38,7 +46,7 @@ class LayoutsTest extends TestCase
         // with a footer and one without.
         $this->views = sys_get_temp_dir().'/aurora-layouts-'.uniqid();
         File::ensureDirectoryExists($this->views);
-        File::put($this->views.'/landing.blade.php', '<main>Landing: {{ $page->title }}</main><footer>Footer</footer>');
+        File::put($this->views.'/landing.blade.php', '<main>Landing: {{ $page->title }} {{ $settings[\'tagline\'] ?? \'\' }}</main><footer>Footer</footer>');
         File::put($this->views.'/minimal.blade.php', '<main>Minimal: {{ $page->title }}</main>');
         View::addNamespace('fixtures', $this->views);
 
@@ -48,6 +56,9 @@ class LayoutsTest extends TestCase
 
     protected function tearDown(): void
     {
+        Layouts::forgetSchema('fixtures::landing');
+        Layouts::forgetSchema('fixtures::minimal');
+        Model::preventAccessingMissingAttributes(false);
         File::delete(resource_path('views/layouts/campaign.blade.php'));
         File::deleteDirectory($this->views);
 
@@ -164,6 +175,48 @@ class LayoutsTest extends TestCase
             ->assertHasErrors(['No layout has the handle "nope"']);
     }
 
+    public function test_ai_apps_see_and_set_a_layout_s_own_fields(): void
+    {
+        Layouts::schema('fixtures::landing', fn (): array => [
+            TextInput::make('tagline')->label('Tagline'),
+            Select::make('tone')->label('Tone')->options(['light' => 'Light', 'dark' => 'Dark']),
+        ]);
+        $editor = $this->userWithRole('Editor');
+
+        CmsServer::actingAs($editor)
+            ->tool(ListLayouts::class)
+            ->assertOk()
+            ->assertSee(['"settings"', 'tagline', 'tone']);
+
+        CmsServer::actingAs($editor)
+            ->tool(CreatePage::class, ['title' => 'Spring sale', 'layout' => 'landing', 'layout_settings' => ['tagline' => 'Up to 50% off']])
+            ->assertOk();
+        $page = Page::query()->whereSlug('spring-sale')->sole();
+        $this->assertSame('Up to 50% off', $page->layoutSetting('tagline'));
+        $this->assertSame('light', $page->layoutSetting('tone', 'light'));
+
+        // Only the fields passed change; get_page shows them.
+        CmsServer::actingAs($editor)
+            ->tool(UpdatePage::class, ['page' => $page->id, 'layout_settings' => ['tone' => 'dark']])
+            ->assertOk();
+        $this->assertSame(['tagline' => 'Up to 50% off', 'tone' => 'dark'], $page->fresh()->layoutSettings());
+        CmsServer::actingAs($editor)
+            ->tool(GetPage::class, ['page' => $page->id])
+            ->assertSee(['"layout_settings"', 'Up to 50% off']);
+
+        // Fields it doesn't have, options it doesn't offer, and a layout without fields are refused.
+        CmsServer::actingAs($editor)
+            ->tool(UpdatePage::class, ['page' => $page->id, 'layout_settings' => ['colour' => 'red']])
+            ->assertHasErrors(['"landing" has no field "colour". Its fields are: tagline, tone.']);
+        CmsServer::actingAs($editor)
+            ->tool(UpdatePage::class, ['page' => $page->id, 'layout_settings' => ['tone' => 'neon']])
+            ->assertHasErrors(['"landing.tone" must be one of: light, dark.']);
+        CmsServer::actingAs($editor)
+            ->tool(UpdatePage::class, ['page' => $page->id, 'layout' => 'minimal', 'layout_settings' => ['tagline' => 'Hi']])
+            ->assertHasErrors(['"minimal" has no fields.']);
+        $this->assertSame(['tagline' => 'Up to 50% off', 'tone' => 'dark'], $page->fresh()->layoutSettings());
+    }
+
     public function test_the_page_s_layout_is_picked_from_thumbnails_of_the_page_drawn_with_each(): void
     {
         $minimal = $this->layout('minimal');
@@ -191,5 +244,70 @@ class LayoutsTest extends TestCase
         $this->get($page->previewUrl(embed: true, layout: $this->layout('minimal')->getKey()))->assertOk()->assertDontSee('<footer', false);
         $this->get($page->previewUrl(embed: true))->assertOk()->assertSee('<footer', false);
         $this->assertNull($page->fresh()->layout_id);
+    }
+
+    public function test_a_layout_s_own_fields_are_kept_in_the_page_s_settings_for_its_view(): void
+    {
+        // Both views have a "tagline", of different types.
+        Layouts::schema('fixtures::landing', fn (): array => [TextInput::make('tagline')->label('Tagline')]);
+        Layouts::schema('fixtures::minimal', fn (): array => [Toggle::make('tagline')->label('Show the tagline')]);
+        $page = Page::factory()->published()->create(['slug' => 'campaign', 'layout_id' => $this->layout('landing')->getKey()]);
+        $editor = $this->userWithRole('Editor');
+
+        Livewire::actingAs($editor)
+            ->test(EditPage::class, ['record' => $page->getKey()])
+            ->assertFormFieldExists('settings.layouts.fixtures::landing.tagline')
+            ->fillForm(['settings' => ['layouts' => ['fixtures::landing' => ['tagline' => 'Spring sale']]]])
+            ->call('save')
+            ->assertHasNoFormErrors()
+            // Like the rest of a live page's changes: waiting to be published.
+            ->callAction('publishChanges');
+
+        $this->assertSame(['tagline' => 'Spring sale'], $page->fresh()->layoutSettings());
+        $this->get('/campaign')->assertOk()->assertSee('Landing: '.$page->title.' Spring sale');
+
+        // Another layout's field of the same name starts empty, and the page keeps what it has for the first.
+        Livewire::actingAs($editor)
+            ->test(EditPage::class, ['record' => $page->getKey()])
+            ->fillForm(['layout_id' => $this->layout('minimal')->getKey()])
+            ->assertFormFieldDoesNotExist('settings.layouts.fixtures::landing.tagline')
+            ->assertFormFieldExists('settings.layouts.fixtures::minimal.tagline')
+            ->assertSchemaStateSet(['settings.layouts.fixtures::minimal.tagline' => null])
+            ->fillForm(['settings' => ['layouts' => ['fixtures::minimal' => ['tagline' => true]]]])
+            ->call('save')
+            ->assertHasNoFormErrors()
+            ->callAction('publishChanges');
+
+        $page = $page->fresh();
+        $this->assertSame($this->layout('minimal')->getKey(), $page->layout_id);
+        $this->assertSame(['tagline' => true], $page->layoutSettings());
+        $this->assertSame(['layouts' => ['fixtures::landing' => ['tagline' => 'Spring sale'], 'fixtures::minimal' => ['tagline' => true]]], $page->settings);
+
+        // A view's dots would read as nesting: they're kept as slashes.
+        $this->assertSame('layouts/campaign', Layouts::settingsKey('layouts.campaign'));
+    }
+
+    public function test_pages_work_as_before_until_the_settings_column_is_migrated(): void
+    {
+        Layouts::schema('fixtures::landing', fn (): array => [TextInput::make('tagline')]);
+        $page = Page::factory()->create(['slug' => 'campaign', 'layout_id' => $this->layout('landing')->getKey()]);
+
+        Schema::table('pages', fn (Blueprint $table) => $table->dropColumn('settings'));
+        Once::flush();
+        Model::preventAccessingMissingAttributes();
+
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(EditPage::class, ['record' => $page->getKey()])
+            ->assertFormFieldDoesNotExist('settings.tagline')
+            ->fillForm(['title' => 'Spring campaign'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $page = Page::query()->findOrFail($page->getKey());
+        $this->assertSame('Spring campaign', $page->title);
+        $this->assertSame([], $page->settings());
+        $this->assertSame([], $page->layoutSettings());
+        $this->assertArrayNotHasKey('settings', $page->toSnapshot());
+        $this->get($page->previewUrl())->assertOk()->assertSee('Landing: Spring campaign');
     }
 }

@@ -20,7 +20,7 @@ class WorkingCopies
      *
      * @var array<int, string>
      */
-    public const KEYS = ['title', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
+    public const KEYS = ['title', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'settings', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
 
     /**
      * A site can have saved changes go live straight away (Settings › Website › Publishing),

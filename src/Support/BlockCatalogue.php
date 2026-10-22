@@ -156,26 +156,41 @@ class BlockCatalogue
             return ["Unknown block type \"{$type}\"."];
         }
 
-        $fields = collect($description['fields'] ?? [])->keyBy('name');
+        return static::checkFields($type, $description['fields'] ?? [], $data);
+    }
+
+    /**
+     * Check data against described fields (fields()), a block's or a layout's ($owner, in the
+     * messages): unknown keys and values outside a field's options are refused.
+     *
+     * @param  array<int, array<string, mixed>>  $described
+     * @param  array<string, mixed>  $data
+     * @return array<int, string>
+     */
+    public static function checkFields(string $owner, array $described, array $data): array
+    {
+        $fields = collect($described)->keyBy('name');
         $errors = [];
 
         foreach ($data as $key => $value) {
             $field = $fields->get($key);
 
             if ($field === null) {
-                $errors[] = "\"{$type}\" has no field \"{$key}\". Its fields are: ".$fields->keys()->implode(', ').'.';
+                $errors[] = $fields->isEmpty()
+                    ? "\"{$owner}\" has no fields."
+                    : "\"{$owner}\" has no field \"{$key}\". Its fields are: ".$fields->keys()->implode(', ').'.';
 
                 continue;
             }
 
             if (str_starts_with($field['type'], 'image asset id') && filled($value) && ($notImages = static::nonImageAssets($value)) !== []) {
-                $errors[] = "\"{$type}.{$key}\" takes images only; ".implode(', ', $notImages).' is another kind of file.';
+                $errors[] = "\"{$owner}.{$key}\" takes images only; ".implode(', ', $notImages).' is another kind of file.';
 
                 continue;
             }
 
             if ($field['type'] === 'icon' && filled($value) && (! is_string($value) || SiteIcon::name($value) === null)) {
-                $errors[] = "\"{$type}.{$key}\" must be a Heroicon name such as \"hero-o-sparkles\".";
+                $errors[] = "\"{$owner}.{$key}\" must be a Heroicon name such as \"hero-o-sparkles\".";
 
                 continue;
             }
@@ -189,7 +204,7 @@ class BlockCatalogue
 
             foreach ($values as $item) {
                 if (! is_scalar($item) || ! in_array((string) $item, $allowed, true)) {
-                    $errors[] = "\"{$type}.{$key}\" must be one of: ".implode(', ', $allowed).'.';
+                    $errors[] = "\"{$owner}.{$key}\" must be one of: ".implode(', ', $allowed).'.';
 
                     break;
                 }
@@ -220,10 +235,12 @@ class BlockCatalogue
     }
 
     /**
+     * Filament fields as an assistant reads them: name, type, label, options and help.
+     *
      * @param  array<int, mixed>  $components
      * @return array<int, array<string, mixed>>
      */
-    protected static function fields(array $components): array
+    public static function fields(array $components): array
     {
         $fields = [];
 

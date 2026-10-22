@@ -143,6 +143,7 @@ class PageController
         $response = response()->view(Layouts::viewFor($page), [
             'page' => $page,
             'layout' => $page->layoutOrDefault(),
+            'settings' => $page->layoutSettings(),
             'preview' => $preview,
             'embedded' => $embedded,
         ]);

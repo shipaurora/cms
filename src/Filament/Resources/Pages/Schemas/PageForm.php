@@ -11,6 +11,7 @@ use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\Layouts;
 use Aurora\Support\SeoChecks;
 use Aurora\Support\UserBadge;
 use Closure;
@@ -457,6 +458,16 @@ class PageForm
                     ->hiddenLabel()
                     ->inModal()
                     ->formatStateUsing(fn (?string $state): ?string => $state ?? Layout::default()?->getKey()),
+                // The fields the chosen layout's view asks for (Layouts::schema()), kept in the
+                // page's settings by view. Left out until the settings column has been migrated.
+                Group::make(function (Get $get): array {
+                    $layout = Layout::cached()->firstWhere('id', $get('layout_id')) ?? Layout::default();
+                    $fields = Layouts::schemaFor($layout);
+
+                    return $fields === [] ? [] : [Group::make($fields)->statePath('layouts.'.Layouts::settingsKey($layout->view))];
+                })
+                    ->statePath('settings')
+                    ->visible(fn (): bool => Page::storesSettings()),
             ]);
     }
 

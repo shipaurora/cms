@@ -5,6 +5,7 @@ namespace Aurora\Mcp\Tools;
 use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Models\User;
+use Aurora\Support\Layouts;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -13,7 +14,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list_layouts')]
-#[Description('The layouts a page can be drawn with (pass the handle as "layout" to create_page or update_page), with what each is for. Pages without one use the default.')]
+#[Description('The layouts a page can be drawn with (pass the handle as "layout" to create_page or update_page), with what each is for. Pages without one use the default. A layout with "settings" has fields of its own besides the blocks (a background image, say): set them with "layout_settings" on create_page or update_page.')]
 #[IsReadOnly]
 class ListLayouts extends CmsTool
 {
@@ -37,7 +38,8 @@ class ListLayouts extends CmsTool
                 'name' => $layout->name,
                 'description' => $layout->description,
                 'default' => $layout->is_default,
-            ])->values()->all(),
+                'settings' => Layouts::describeSchema($layout) ?: null,
+            ])->map(fn (array $layout): array => array_filter($layout, fn (mixed $value): bool => $value !== null))->values()->all(),
         ]);
     }
 }

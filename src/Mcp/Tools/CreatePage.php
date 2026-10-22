@@ -31,6 +31,7 @@ class CreatePage extends CmsTool
             'parent' => $schema->string()->description('Id or slug of the page this one sits under; its address then starts with the parent\'s (/docs/getting-started). Omit for a top-level page.'),
             'excerpt' => $schema->string()->description('One or two sentences summarising the page. Used in page lists and as SEO fallback.'),
             'layout' => $schema->string()->enum(Layout::cached()->pluck('handle')->all())->description('The layout\'s handle, see list_layouts. Defaults to the default layout.'),
+            'layout_settings' => $schema->object()->description('Values for the fields the layout has besides the blocks (its "settings" in list_layouts), e.g. {"background": "<image asset id>"}.'),
             'status' => $schema->string()->enum(['draft', 'review', 'published'])->description('Defaults to draft.'),
             'meta_title' => $schema->string()->description('SEO title (max ~60 characters).'),
             'meta_description' => $schema->string()->description('SEO description (max ~155 characters).'),
@@ -51,6 +52,8 @@ class CreatePage extends CmsTool
         $blocks = BlockInput::decode($request->get('blocks', []));
         $flat = BlockTreeBuilder::flatten(BlockInput::tree(is_array($blocks) ? $blocks : []));
 
+        $layout = Layout::cached()->firstWhere('handle', $request->get('layout')) ?? Layout::default();
+
         $page = new Page([
             'parent_id' => filled($request->get('parent')) ? $this->findPage($request, 'parent')->getKey() : null,
             // The site's first page is its homepage.
@@ -58,13 +61,23 @@ class CreatePage extends CmsTool
             'title' => $request->get('title'),
             'slug' => $request->get('slug'),
             'excerpt' => $request->get('excerpt'),
-            'layout_id' => (Layout::cached()->firstWhere('handle', $request->get('layout')) ?? Layout::default())?->getKey(),
+            'layout_id' => $layout?->getKey(),
             'status' => PageStatus::tryFrom((string) $request->get('status')) ?? PageStatus::Draft,
             'meta_title' => $request->get('meta_title'),
             'meta_description' => $request->get('meta_description'),
             'blocks' => $flat,
             'author_id' => $user->id,
         ]);
+
+        if ($request->has('layout_settings')) {
+            $settings = $this->layoutSettings($request, $layout, $page);
+
+            if ($settings instanceof Response) {
+                return $settings;
+            }
+
+            $page->settings = $settings;
+        }
 
         $summary = 'Created the page with '.count($flat).' blocks';
         RevisionContext::as(AiChannel::current()->revisionSource(), $summary, fn () => $page->save());

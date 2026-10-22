@@ -30,7 +30,7 @@ class PageObserver
     /**
      * Attributes whose change is worth a revision. Status changes are not content.
      */
-    protected const TRACKED = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
+    protected const TRACKED = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'settings', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
 
     public function saving(Page $page): void
     {
@@ -263,7 +263,7 @@ class PageObserver
             'block_translations' => 'translations',
             'locales' => 'languages',
             'slug' => 'address',
-            'layout_id' => 'layout',
+            'layout_id', 'settings' => 'layout',
             'excerpt' => 'summary',
             'meta_title', 'meta_description', 'og_image', 'noindex' => 'SEO',
             'exclude_from_search' => 'search',

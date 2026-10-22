@@ -27,6 +27,7 @@ class CmsServer extends Server
     - Pages are built from typed blocks. Call `list_block_types` before writing content: it lists every block, field, option and slot.
     - Read `cms://guide` for the site's voice and page recipes.
     - Use `get_page` to see a page's block tree with ids, then make targeted changes with `update_block`, `add_block`, `move_block` and `remove_block`. Use `set_page_blocks` or `create_page` with a full tree for new pages or full redesigns.
+    - A page's layout can have fields of its own besides the blocks, such as a background image: `list_layouts` lists them as a layout's `settings`, `get_page` shows the page's values as `layout_settings`, and `create_page` and `update_page` set them with `layout_settings`. Put content in blocks; use these only for what the layout asks for.
     - Every change is saved as a revision attributed to the user, and can be undone with `restore_revision`.
     - Do not publish unless asked. Share the preview link so the user can review your work.
     - Changes to a live page (its content, title, summary, layout and SEO) are kept as unpublished changes, not shown on the website (unless the site publishes saved changes straight away and the person may publish: then they go live as they're saved, and `has_unpublished_changes` stays false): `get_page` reads them, the preview link shows them, and `publish_page` (action "publish") puts them on the website. A page's `has_unpublished_changes` says when it has some. Its address and publishing settings change straight away.

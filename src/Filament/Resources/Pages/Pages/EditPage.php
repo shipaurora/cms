@@ -158,6 +158,28 @@ class EditPage extends EditRecord
     }
 
     /**
+     * The form only has the chosen layout's fields: the page keeps what it has for other
+     * layouts' views (back to a layout, its background image is still there).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (array_key_exists('settings', $data)) {
+            $settings = $this->record->settings();
+
+            foreach ((array) ($data['settings']['layouts'] ?? []) as $view => $fields) {
+                $settings['layouts'][$view] = $fields;
+            }
+
+            $data['settings'] = $settings ?: null;
+        }
+
+        return $data;
+    }
+
+    /**
      * A live page whose address changes in any of its languages asks first whether the old
      * addresses should keep working.
      */

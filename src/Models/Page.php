@@ -10,6 +10,7 @@ use Aurora\Observers\PageObserver;
 use Aurora\Support\BlockTranslations;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\Layouts;
 use Aurora\Support\PageSearch;
 use Aurora\Support\Search\ScopedBuilder;
 use Aurora\Support\WorkingCopies;
@@ -28,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Laravel\Scout\Engines\DatabaseEngine;
@@ -70,7 +72,7 @@ class Page extends Model implements MenuPanelable
      *
      * @var array<int, string>
      */
-    public const SNAPSHOT = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
+    public const SNAPSHOT = ['parent_id', 'title', 'slug', 'excerpt', 'blocks', 'block_translations', 'locales', 'layout_id', 'settings', 'meta_title', 'meta_description', 'og_image', 'noindex', 'exclude_from_search'];
 
     protected $attributes = [
         'status' => 'draft',
@@ -85,6 +87,7 @@ class Page extends Model implements MenuPanelable
             'blocks' => 'array',
             'block_translations' => 'array',
             'locales' => 'array',
+            'settings' => 'array',
             'status' => PageStatus::class,
             'published_at' => 'datetime',
             'unpublish_at' => 'datetime',
@@ -181,6 +184,79 @@ class Page extends Model implements MenuPanelable
     public function layoutOrDefault(): ?Layout
     {
         return Layout::cached()->firstWhere('id', $this->layout_id) ?? Layout::default();
+    }
+
+    /**
+     * Whether pages have their settings column yet: a site that updated Aurora without
+     * migrating doesn't, and its pages go without settings until it does.
+     */
+    public static function storesSettings(): bool
+    {
+        return once(fn (): bool => Schema::hasColumn((new static)->getTable(), 'settings'));
+    }
+
+    /**
+     * Everything in the page's settings (each layout view's fields among them, under
+     * layouts), empty when it has none or the column isn't there yet.
+     *
+     * @return array<string, mixed>
+     */
+    public function settings(): array
+    {
+        return array_key_exists('settings', $this->getAttributes()) ? ($this->settings ?? []) : [];
+    }
+
+    /**
+     * What the page has in the fields its layout's view asks for (Layouts::schema()): the
+     * view's $settings. Another view's are left out, even with the same names.
+     *
+     * @return array<string, mixed>
+     */
+    public function layoutSettings(): array
+    {
+        $view = $this->layoutOrDefault()?->view;
+        $settings = filled($view) ? ($this->settings()['layouts'][Layouts::settingsKey($view)] ?? null) : null;
+
+        return is_array($settings) ? $settings : [];
+    }
+
+    /**
+     * One of its layout's fields ($page->layoutSetting('background')), dot notation for
+     * nested values; $default when it hasn't been set.
+     */
+    public function layoutSetting(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->layoutSettings(), $key, $default);
+    }
+
+    /**
+     * The page's settings with these values in a layout's fields (the page's own layout, by
+     * default), for saving: the layout's other fields and other views' settings are kept.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    public function settingsWithLayoutValues(array $values, ?Layout $layout = null): array
+    {
+        $settings = $this->settings();
+        $view = ($layout ?? $this->layoutOrDefault())?->view;
+
+        if (filled($view)) {
+            $key = Layouts::settingsKey($view);
+            $settings['layouts'][$key] = [...($settings['layouts'][$key] ?? []), ...$values];
+        }
+
+        return $settings;
+    }
+
+    /**
+     * What a revision keeps (SNAPSHOT), less settings before the column is there.
+     *
+     * @return array<int, string>
+     */
+    public static function snapshotKeys(): array
+    {
+        return static::storesSettings() ? self::SNAPSHOT : array_values(array_diff(self::SNAPSHOT, ['settings']));
     }
 
     public function author(): BelongsTo
@@ -667,7 +743,7 @@ class Page extends Model implements MenuPanelable
     public function toSnapshot(): array
     {
         return [
-            ...$this->only(self::SNAPSHOT),
+            ...$this->only(static::snapshotKeys()),
             // Every language's text, not just the one being read.
             ...collect($this->translatable)->mapWithKeys(fn (string $attribute): array => [$attribute => $this->getTranslations($attribute)])->all(),
             'noindex' => (bool) $this->noindex,
@@ -685,7 +761,7 @@ class Page extends Model implements MenuPanelable
      */
     public static function attributesFromSnapshot(array $snapshot): array
     {
-        $attributes = array_intersect_key($snapshot, array_flip(self::SNAPSHOT));
+        $attributes = array_intersect_key($snapshot, array_flip(static::snapshotKeys()));
 
         return [
             ...$attributes,

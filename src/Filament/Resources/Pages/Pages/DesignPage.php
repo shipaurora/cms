@@ -301,7 +301,7 @@ class DesignPage extends BaseDesignPage
         $page = $this->getRecord()->replicate()->forceFill(['blocks' => $this->blocks, 'block_translations' => []]);
         $page->id = $this->getRecord()->getKey();
 
-        return view(Layouts::viewFor($page), ['page' => $page, 'layout' => $page->layoutOrDefault(), 'preview' => false, 'embedded' => true])->render();
+        return view(Layouts::viewFor($page), ['page' => $page, 'layout' => $page->layoutOrDefault(), 'settings' => $page->layoutSettings(), 'preview' => false, 'embedded' => true])->render();
     }
 
     /**

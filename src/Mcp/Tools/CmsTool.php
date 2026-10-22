@@ -3,12 +3,15 @@
 namespace Aurora\Mcp\Tools;
 
 use Aurora\Enums\AiChannel;
+use Aurora\Mcp\BlockInput;
+use Aurora\Models\Layout;
 use Aurora\Models\McpActivity;
 use Aurora\Models\Page;
 use Aurora\Models\Site;
 use Aurora\Models\User;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\Layouts;
 use Aurora\Support\Permissions;
 use Aurora\Support\RevisionContext;
 use Aurora\Support\WorkingCopies;
@@ -176,6 +179,35 @@ abstract class CmsTool extends Tool
         $this->did($summary, $page);
 
         return $page->refresh()->applyWorkingCopy();
+    }
+
+    /**
+     * The page's settings with the "layout_settings" passed in this layout's fields, checked
+     * against them; else an error the assistant can act on.
+     *
+     * @return array<string, mixed>|Response
+     */
+    protected function layoutSettings(Request $request, ?Layout $layout, Page $page): array|Response
+    {
+        if (! Page::storesSettings()) {
+            return Response::error('Layout settings can’t be saved until the site’s database is migrated (php artisan migrate).');
+        }
+
+        $values = BlockInput::decode($request->get('layout_settings'));
+
+        if (! is_array($values) || ($values !== [] && array_is_list($values))) {
+            return Response::error('"layout_settings" takes an object of field names and values, e.g. {"background": "<image asset id>"}.');
+        }
+
+        if ($layout === null) {
+            return Response::error('The page has no layout to set fields for. See list_layouts.');
+        }
+
+        if (($errors = Layouts::validateSettings($layout, $values)) !== []) {
+            return Response::error(implode(' ', $errors).' See list_layouts.');
+        }
+
+        return $page->settingsWithLayoutValues($values, $layout);
     }
 
     protected function findPage(Request $request, string $key = 'page'): Page

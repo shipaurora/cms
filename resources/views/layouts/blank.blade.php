@@ -2,6 +2,7 @@
     /**
      * @var \Aurora\Models\Page $page
      * @var \Aurora\Models\Layout|null $layout
+     * @var array<string, mixed> $settings  what the page has in the fields this view asks for (Aurora\Support\Layouts::schema())
      * @var bool $preview  a preview link, or the page not live yet
      * @var bool $embedded  inside the visual editor
      */

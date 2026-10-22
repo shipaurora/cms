@@ -19,7 +19,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('update_page')]
-#[Description('Change page settings: title, address (slug), summary, layout, SEO, status, publish date or homepage. Only the fields you pass change. Changing the slug of a live page redirects the old address to the new one unless redirect_old_address is false. Publishing requires the publish permission.')]
+#[Description('Change page settings: title, address (slug), summary, layout, layout settings, SEO, status, publish date or homepage. Only the fields you pass change. Changing the slug of a live page redirects the old address to the new one unless redirect_old_address is false. Publishing requires the publish permission.')]
 class UpdatePage extends CmsTool
 {
     public function schema(JsonSchema $schema): array
@@ -32,6 +32,7 @@ class UpdatePage extends CmsTool
             'redirect_old_address' => $schema->boolean()->description('When the slug of a live page changes, keep the old address working with a redirect. Defaults to true.'),
             'excerpt' => $schema->string(),
             'layout' => $schema->string()->enum(Layout::cached()->pluck('handle')->all())->description('The layout\'s handle, see list_layouts.'),
+            'layout_settings' => $schema->object()->description('Values for the fields the page\'s layout has besides the blocks (its "settings" in list_layouts; with "layout", the new layout\'s), e.g. {"background": "<image asset id>"}. Only the fields passed change.'),
             'status' => $schema->string()->enum(['draft', 'review', 'published']),
             'published_at' => $schema->string()->description('ISO 8601 date-time. A future date with status "published" schedules the page.'),
             'unpublish_at' => $schema->string()->description('ISO 8601 date-time when the live page comes down by itself (a campaign, a job ad). Empty string to keep it live. Not for the homepage.'),
@@ -78,6 +79,17 @@ class UpdatePage extends CmsTool
             $attributes['layout_id'] = $layout->getKey();
         }
 
+        if ($request->has('layout_settings')) {
+            $layout = Layout::cached()->firstWhere('id', $attributes['layout_id'] ?? null) ?? $page->layoutOrDefault();
+            $settings = $this->layoutSettings($request, $layout, $page);
+
+            if ($settings instanceof Response) {
+                return $settings;
+            }
+
+            $attributes['settings'] = $settings;
+        }
+
         if ($request->has('parent')) {
             $attributes['parent_id'] = filled($request->get('parent')) ? $this->findPage($request, 'parent')->getKey() : null;
         }
@@ -90,7 +102,7 @@ class UpdatePage extends CmsTool
             ? PageRedirects::changes($page, [ContentLocale::current() => Str::slug((string) $attributes['slug'])])
             : [];
 
-        $page = $this->savePage($page, $attributes, 'Updated '.implode(', ', array_map(fn ($key) => str_replace('_', ' ', $key), array_keys($attributes))));
+        $page = $this->savePage($page, $attributes, 'Updated '.implode(', ', array_map(fn ($key) => $key === 'settings' ? 'layout settings' : str_replace('_', ' ', $key), array_keys($attributes))));
 
         PageRedirects::keep($page, array_column($redirects, 'from'));
 
