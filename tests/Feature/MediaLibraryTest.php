@@ -20,6 +20,7 @@ use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -84,6 +85,19 @@ class MediaLibraryTest extends TestCase
             ->assertOk()
             ->assertSee('srcset=', false)
             ->assertSee('alt="A deep blue fjord"', false);
+    }
+
+    public function test_images_load_lazily_unless_the_caller_says_otherwise(): void
+    {
+        $asset = $this->asset();
+
+        $lazy = Blade::render('<x-aurora::media :value="$id" />', ['id' => $asset->id]);
+        $eager = Blade::render('<x-aurora::media :value="$id" loading="eager" fetchpriority="high" />', ['id' => $asset->id]);
+
+        $this->assertStringContainsString('loading="lazy"', $lazy);
+        $this->assertStringContainsString('loading="eager"', $eager);
+        $this->assertStringNotContainsString('loading="lazy"', $eager);
+        $this->assertStringContainsString('fetchpriority="high"', $eager);
     }
 
     public function test_legacy_paths_and_urls_still_render(): void
