@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'packages/cms/src/Models/**'
+  - 'src/Models/**'
 ---
 
 # Models

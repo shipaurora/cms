@@ -1,7 +1,6 @@
 ---
 paths:
-  - 'aurora-docs/app/Http/Controllers/**'
-  - 'packages/cms/src/Http/Controllers/**'
+  - 'src/Http/Controllers/**'
 ---
 
 # Controllers

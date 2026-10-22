@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'packages/cms/src/Providers/**'
+  - 'src/Providers/**'
 ---
 
 # Providers

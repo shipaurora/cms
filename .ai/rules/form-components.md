@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'packages/cms/src/Filament/Forms/Components/**'
+  - 'src/Filament/Forms/Components/**'
 ---
 
 # Form Components

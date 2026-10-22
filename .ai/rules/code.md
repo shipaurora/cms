@@ -1,7 +1,7 @@
 ---
 paths:
-  - 'packages/cms/src/**'
-  - 'aurora-docs/app/**'
+  - 'src/**'
+  - 'workbench/app/**'
 ---
 
 # Code

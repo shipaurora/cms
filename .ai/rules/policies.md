@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'packages/cms/src/Policies/**'
+  - 'src/Policies/**'
 ---
 
 # Policies

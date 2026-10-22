@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'packages/cms/database/migrations/**'
+  - 'database/migrations/**'
 ---
 
 # Migrations

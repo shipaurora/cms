@@ -1,9 +1,9 @@
 ---
 paths:
-  - 'aurora-docs/resources/views/components/**'
+  - 'workbench/resources/views/components/**'
 ---
 
 # Components
 
 ## Anonymous Blade components
-The public site is built from anonymous Blade components; don't add class-based components in app/View/Components.
+The public site is built from anonymous Blade components; don't add class-based components.

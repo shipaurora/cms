@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'packages/cms/src/Mcp/**'
+  - 'src/Mcp/**'
 ---
 
 # Tools

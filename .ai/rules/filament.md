@@ -1,12 +1,12 @@
 ---
 paths:
-  - 'packages/cms/src/Filament/**'
+  - 'src/Filament/**'
 ---
 
 # Filament
 
 ## Filament admin conventions
-Save lives in the page header. User-facing text uses English-sentence keys via `__()`, added to both `packages/cms/lang/en.json` and `packages/cms/lang/nb.json` (then `php artisan aurora:import-translations`); no dotted keys or new PHP lang files. Icons are Phosphor only (`phosphor-*`), and every titled section has one. Translatable edit pages use the language switcher; global search results use `SearchThumbnail`.
+Save lives in the page header. User-facing text uses English-sentence keys via `__()`, added to both `lang/en.json` and `lang/nb.json` (then `php artisan aurora:import-translations`); no dotted keys or new PHP lang files. Icons are Phosphor only (`phosphor-*`), and every titled section has one. Translatable edit pages use the language switcher; global search results use `SearchThumbnail`.
 
 ## Share page behaviour through Concerns traits
 Shared resource or page behaviour (labels, breadcrumbs, header save, locale) goes in a trait in `Aurora\Filament\Concerns`; check the existing traits before writing it again.

@@ -1,6 +1,6 @@
 ---
 paths:
-  - 'packages/cms/src/Enums/**'
+  - 'src/Enums/**'
 ---
 
 # Enums
