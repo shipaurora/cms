@@ -5,7 +5,6 @@ namespace Aurora\Mcp\Tools;
 use Aurora\Mcp\PagePresenter;
 use Aurora\Models\Page;
 use Aurora\Models\User;
-use Aurora\Support\ContentLocale;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Mcp\Request;
