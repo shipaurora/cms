@@ -29,11 +29,29 @@ enum AssetType: string implements HasIcon, HasLabel
     case Other = 'other';
 
     /**
-     * Largest upload, in kilobytes: images stay small enough to resize quickly.
+     * Largest image upload, in kilobytes (aurora.media.max_image_mb): images stay small
+     * enough to resize quickly.
      */
-    public const MAX_IMAGE_KB = 10 * 1024;
+    public static function maxImageKilobytes(): int
+    {
+        return (int) round((float) config('aurora.media.max_image_mb', 10) * 1024);
+    }
 
-    public const MAX_FILE_KB = 50 * 1024;
+    /**
+     * Largest upload of any other file, in kilobytes (aurora.media.max_file_mb).
+     */
+    public static function maxFileKilobytes(): int
+    {
+        return (int) round((float) config('aurora.media.max_file_mb', 50) * 1024);
+    }
+
+    /**
+     * Largest upload of any type, in kilobytes: what Livewire and the media library let through.
+     */
+    public static function largestUploadKilobytes(): int
+    {
+        return max(self::maxImageKilobytes(), self::maxFileKilobytes());
+    }
 
     /**
      * @return array<int, string>
@@ -106,7 +124,7 @@ enum AssetType: string implements HasIcon, HasLabel
 
     public function maxKilobytes(): int
     {
-        return $this === self::Image ? self::MAX_IMAGE_KB : self::MAX_FILE_KB;
+        return $this === self::Image ? self::maxImageKilobytes() : self::maxFileKilobytes();
     }
 
     public function getLabel(): string

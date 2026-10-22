@@ -53,6 +53,7 @@ use Aurora\Support\Copilot;
 use Aurora\Support\CopilotContext;
 use Aurora\Support\CopilotToolRegistry;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\FormFields;
 use Aurora\Support\Layouts;
 use Aurora\Support\MissingLabels;
 use Aurora\Support\PageCache;
@@ -135,8 +136,9 @@ class AuroraServiceProvider extends ServiceProvider
 
         $this->callAfterResolving(IconFactory::class, fn (IconFactory $factory) => SiteIcon::register($factory));
 
-        // The media library takes files up to 50 MB (videos, PDFs); Livewire's own limit is 12 MB.
-        config(['livewire.temporary_file_upload.rules' => ['required', 'file', 'max:'.AssetType::MAX_FILE_KB]]);
+        // The media library takes files up to aurora.media's limits (50 MB by default, for videos
+        // and PDFs); Livewire's own limit is 12 MB.
+        config(['livewire.temporary_file_upload.rules' => ['required', 'file', 'max:'.AssetType::largestUploadKilobytes()]]);
         $this->app->singleton(ToolRegistry::class, CopilotToolRegistry::class);
 
         // Labels from the database on top of the lang files (spatie/laravel-translation-loader,
@@ -452,6 +454,9 @@ class AuroraServiceProvider extends ServiceProvider
             'permission.models.permission' => Permission::class,
             'media-library.media_model' => Media::class,
             'media-library.queue_conversions_by_default' => false,
+            // Spatie's own limit is 10 MB: the media library's uploads and the website's form
+            // files go through it, so it lets the larger of theirs through (or the app's own, if higher).
+            'media-library.max_file_size' => max((int) config('media-library.max_file_size'), AssetType::largestUploadKilobytes() * 1024, FormFields::MAX_FILE_MB * 1024 * 1024),
             'translation-loader.model' => LanguageLine::class,
             'translation-loader.translation_manager' => TranslationLoader::class,
             'filament-icon-picker.allowed_sets' => ['website-heroicons'],

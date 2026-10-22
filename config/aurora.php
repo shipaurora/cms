@@ -116,6 +116,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Media library
+    |--------------------------------------------------------------------------
+    |
+    | The largest file the media library takes, in megabytes: images, and
+    | everything else (videos, PDFs). Images are resized into several sizes,
+    | so keep theirs modest. PHP's upload_max_filesize and post_max_size, and
+    | the web server's own limit (client_max_body_size on nginx), must allow
+    | as much, or larger uploads fail before they reach Aurora.
+    |
+    */
+
+    'media' => [
+        'max_image_mb' => env('AURORA_MAX_IMAGE_MB', 10),
+        'max_file_mb' => env('AURORA_MAX_FILE_MB', 50),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | AI apps (MCP)
     |--------------------------------------------------------------------------
     |

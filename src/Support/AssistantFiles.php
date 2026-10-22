@@ -85,7 +85,7 @@ class AssistantFiles
         }
 
         $type = AssetType::fromMimeType($mime);
-        $max = ($type === AssetType::Image ? AssetType::MAX_IMAGE_KB : AssetType::MAX_FILE_KB) * 1024;
+        $max = $type->maxKilobytes() * 1024;
 
         if ($file->getSize() > $max) {
             return __('Larger than :size.', ['size' => Number::fileSize($max)]);

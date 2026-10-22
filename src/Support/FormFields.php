@@ -31,6 +31,11 @@ class FormFields
     public const RESERVED_NAMES = ['website', '_page', '_locale', '_started', '_token'];
 
     /**
+     * The most a file field can be set to take, in megabytes.
+     */
+    public const MAX_FILE_MB = 20;
+
+    /**
      * @var array<string, array{0: string, 1: string}>
      */
     public const TYPES = [
@@ -91,7 +96,7 @@ class FormFields
             ],
             'file' => [
                 TextInput::make('accept')->label('Allowed types')->placeholder('pdf, jpg, png')->helperText('File extensions, comma separated.'),
-                TextInput::make('max_mb')->label('Max size (MB)')->numeric()->minValue(1)->maxValue(20)->default(10),
+                TextInput::make('max_mb')->label('Max size (MB)')->numeric()->minValue(1)->maxValue(static::MAX_FILE_MB)->default(10),
             ],
             'consent' => [
                 Textarea::make('text')->label('Text next to the box')->placeholder('I agree that you store my details to answer my request.')->rows(2)->columnSpanFull(),

@@ -87,10 +87,31 @@ class MediaFilesTest extends TestCase
     public function test_dangerous_or_oversized_files_are_refused(): void
     {
         $script = UploadedFile::fake()->createWithContent('page.html', '<html><script>alert(1)</script></html>');
-        $huge = UploadedFile::fake()->image('huge.jpg')->size(AssetType::MAX_IMAGE_KB + 1);
+        $huge = UploadedFile::fake()->image('huge.jpg')->size(AssetType::maxImageKilobytes() + 1);
 
         $this->assertNotNull(AssetLibrary::rejectionFor($script));
         $this->assertNotNull(AssetLibrary::rejectionFor($huge));
+    }
+
+    public function test_files_up_to_the_librarys_limit_are_stored_past_spaties_own(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'pdf');
+        file_put_contents($path, "%PDF-1.4\n".str_repeat('x', 20 * 1024 * 1024)."\n%%EOF");
+
+        $asset = AssetLibrary::fromUpload(new UploadedFile($path, 'annual-report.pdf', 'application/pdf', null, true));
+
+        $this->assertSame(AssetType::Pdf, $asset->type());
+        $this->assertContains('max:'.AssetType::largestUploadKilobytes(), config('livewire.temporary_file_upload.rules'));
+    }
+
+    public function test_the_upload_limits_come_from_the_config(): void
+    {
+        config(['aurora.media.max_image_mb' => 1, 'aurora.media.max_file_mb' => 2]);
+
+        $this->assertSame(1024, AssetType::Image->maxKilobytes());
+        $this->assertSame(2048, AssetType::Pdf->maxKilobytes());
+        $this->assertNotNull(AssetLibrary::rejectionFor(UploadedFile::fake()->image('big.jpg')->size(1025)));
+        $this->assertNull(AssetLibrary::rejectionFor(UploadedFile::fake()->image('small.jpg')->size(1000)));
     }
 
     public function test_a_file_is_replaced_by_one_of_the_same_type(): void

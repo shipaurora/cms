@@ -384,8 +384,8 @@ class ListAssets extends ListRecords
                     'drop_to' => __('Drop to upload to :folder'),
                     'files_one' => __(':count file'),
                     'files_many' => __(':count files'),
-                    'too_large_image' => __('Larger than :size.', ['size' => $size(AssetType::MAX_IMAGE_KB)]),
-                    'too_large_file' => __('Larger than :size.', ['size' => $size(AssetType::MAX_FILE_KB)]),
+                    'too_large_image' => __('Larger than :size.', ['size' => $size(AssetType::maxImageKilobytes())]),
+                    'too_large_file' => __('Larger than :size.', ['size' => $size(AssetType::maxFileKilobytes())]),
                     'uploading' => __('Uploading :current of :total'),
                     'uploaded_failed' => __(':done uploaded, :failed failed'),
                     'uploaded_one' => __(':count file uploaded'),
@@ -549,11 +549,11 @@ class ListAssets extends ListRecords
                 ->schema([
                     FileUpload::make('files')
                         ->hiddenLabel()
-                        ->helperText(__('Images, video, audio, PDFs, Office documents, text and zip files. Images up to :image, other files up to :file.', ['image' => Number::fileSize(AssetType::MAX_IMAGE_KB * 1024), 'file' => Number::fileSize(AssetType::MAX_FILE_KB * 1024)]))
+                        ->helperText(__('Images, video, audio, PDFs, Office documents, text and zip files. Images up to :image, other files up to :file.', ['image' => Number::fileSize(AssetType::maxImageKilobytes() * 1024), 'file' => Number::fileSize(AssetType::maxFileKilobytes() * 1024)]))
                         ->acceptedFileTypes(AssetType::allowedMimeTypes())
                         ->multiple()
                         ->storeFiles(false)
-                        ->maxSize(AssetType::MAX_FILE_KB)
+                        ->maxSize(AssetType::maxFileKilobytes())
                         ->required(),
                 ])
                 ->action(function (array $data): void {

@@ -228,7 +228,7 @@ class AssetPicker extends Field
                                     ->acceptedFileTypes(array_merge(...array_map(fn (AssetType $type): array => $type->mimeTypes(), $this->getTypes())))
                                     ->multiple($this->isMultiple())
                                     ->storeFiles(false)
-                                    ->maxSize($this->takesOnlyImages() ? AssetType::MAX_IMAGE_KB : AssetType::MAX_FILE_KB),
+                                    ->maxSize($this->takesOnlyImages() ? AssetType::maxImageKilobytes() : AssetType::maxFileKilobytes()),
                                 TextInput::make('alt')
                                     ->label(__('Alt text'))
                                     ->helperText(__('Describe the image for people using screen readers. Saved with the image in the library.'))
