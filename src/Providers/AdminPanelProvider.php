@@ -144,7 +144,7 @@ class AdminPanelProvider extends PanelProvider
                 'violet' => Color::Violet,
             ])
             ->font('Inter')
-            // Borealis (shipaurora/borealis-theme), another theme package's, or the site's own build.
+            // Borealis (shipaurora/borealis), another theme package's, or the site's own build.
             // The theme chosen under Settings › Appearance (Aurora\Support\Themes), worked out as
             // each page is drawn.
             ->theme(Theme::make('aurora-active')->html(fn (): HtmlString => new HtmlString(Themes::html())))

@@ -184,7 +184,7 @@ class AuroraServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
         // Aurora's prebuilt admin scripts (npm run build), published by filament:assets.
-        // Its admin theme comes from shipaurora/borealis-theme.
+        // Its admin theme comes from shipaurora/borealis.
         FilamentAsset::register([
             // The image editor's styles (Cropper.js), which come with the scripts.
             Css::make('image-editor', Aurora::path('resources/dist/aurora.css')),

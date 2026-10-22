@@ -51,7 +51,7 @@ return [
     |
     | The admin's look until one is chosen under Settings › Appearance: the id
     | of a theme in Aurora's registry (Aurora\Support\Themes::register()).
-    | Empty: Borealis, Aurora's own (shipaurora/borealis-theme).
+    | Empty: Borealis, Aurora's own (shipaurora/borealis).
     |
     */
 

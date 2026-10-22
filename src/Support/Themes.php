@@ -11,9 +11,9 @@ use Illuminate\Foundation\Vite;
  * The admin's looks (the CMS's, never the website's): themes register here (a package's
  * prebuilt stylesheet, or a Vite entry the Laravel app builds), each with a name, a
  * description and a picture, and one is chosen for the whole admin under Settings ›
- * Appearance (not per site, not per person). Aurora's own is Borealis (shipaurora/borealis-theme).
+ * Appearance (not per site, not per person). Aurora's own is Borealis (shipaurora/borealis).
  *
- *     Themes::register('borealis', name: 'Borealis', stylesheet: __DIR__.'/../resources/dist/theme.css', package: 'shipaurora/borealis-theme', preview: __DIR__.'/../resources/preview.webp');
+ *     Themes::register('borealis', name: 'Borealis', stylesheet: __DIR__.'/../resources/dist/theme.css', package: 'shipaurora/borealis', preview: __DIR__.'/../resources/preview.webp');
  *
  * A theme made for light and dark can give a picture of each, and the picker shows the one
  * for the mode the person is in: preview: ['light' => …/preview-light.webp, 'dark' => …/preview-dark.webp].

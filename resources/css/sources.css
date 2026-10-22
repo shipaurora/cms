@@ -1,6 +1,6 @@
 /*
  * What the CMS's admin markup uses (its views, code and scripts), for Tailwind to find: an
- * admin theme (Borealis, shipaurora/borealis-theme, or a site's own) imports this beside its styles.
+ * admin theme (Borealis, shipaurora/borealis, or a site's own) imports this beside its styles.
  */
 @source '../../src/**/*';
 @source '../views/**/*.blade.php';

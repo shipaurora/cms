@@ -14,8 +14,8 @@ models, Blade components, service providers and tests. AI assistants work on the
 exactly the permissions of the person using them.
 
 <picture>
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/shipaurora/borealis-theme/main/resources/preview-light.webp">
-    <img src="https://raw.githubusercontent.com/shipaurora/borealis-theme/main/resources/preview-dark.webp" alt="Aurora's dashboard" width="960">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/shipaurora/borealis/main/resources/preview-light.webp">
+    <img src="https://raw.githubusercontent.com/shipaurora/borealis/main/resources/preview-dark.webp" alt="Aurora's dashboard" width="960">
 </picture>
 
 ## Features
@@ -65,8 +65,8 @@ page layouts, creates your admin account, and offers to build the website's fron
 to do it without asking). The starter app runs it for you at the end of `create-project`. Then
 sign in at `/admin`.
 
-Aurora comes with its default admin theme, [Borealis](https://github.com/shipaurora/borealis-theme).
-[Minimal](https://github.com/shipaurora/minimal-theme) is a second one to choose from.
+Aurora comes with its default admin theme, [Borealis](https://github.com/shipaurora/borealis).
+[Minimal](https://github.com/shipaurora/minimal) is a second one to choose from.
 
 ## Usage
 

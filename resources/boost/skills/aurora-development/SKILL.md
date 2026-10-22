@@ -47,7 +47,7 @@ Each page is drawn by its layout (`Aurora\Models\Layout`, set up under Pages ›
 
 ## The admin theme
 
-Aurora's admin comes with a prebuilt theme, Borealis (`shipaurora/borealis-theme`); run `php artisan filament:assets` after installing or updating Aurora. A different look for the CMS is a theme package of its own: it registers a Filament theme (`FilamentAsset::register([Theme::make('acme', …)])`), and `config('aurora.theme')` names its id. The admin theme is only the CMS's look: the visual editor shows blocks in the website's own stylesheet (`config('aurora.website_css')`, default `resources/css/app.css`), found through Vite and scoped to the canvas, so nothing needs compiling for it. Style the page itself through `:root`, `html` and `body` in that stylesheet rather than classes on `<body>`, so the canvas gets it too.
+Aurora's admin comes with a prebuilt theme, Borealis (`shipaurora/borealis`); run `php artisan filament:assets` after installing or updating Aurora. A different look for the CMS is a theme package of its own: it registers a Filament theme (`FilamentAsset::register([Theme::make('acme', …)])`), and `config('aurora.theme')` names its id. The admin theme is only the CMS's look: the visual editor shows blocks in the website's own stylesheet (`config('aurora.website_css')`, default `resources/css/app.css`), found through Vite and scoped to the canvas, so nothing needs compiling for it. Style the page itself through `:root`, `html` and `body` in that stylesheet rather than classes on `<body>`, so the canvas gets it too.
 
 ## Search
 
