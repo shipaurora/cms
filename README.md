@@ -3,7 +3,7 @@
 [![Latest version](https://img.shields.io/packagist/v/shipaurora/cms)](https://packagist.org/packages/shipaurora/cms)
 [![Tests](https://github.com/shipaurora/cms/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/shipaurora/cms/actions/workflows/tests.yml)
 [![Downloads](https://img.shields.io/packagist/dt/shipaurora/cms)](https://packagist.org/packages/shipaurora/cms)
-[![PHP 8.3+](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)](https://www.php.net)
+[![PHP 8.4+](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)](https://www.php.net)
 [![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
 [![Filament 5](https://img.shields.io/badge/Filament-5-FDAE4B)](https://filamentphp.com)
 [![License: MIT](https://img.shields.io/packagist/l/shipaurora/cms)](LICENSE)
@@ -40,7 +40,7 @@ exactly the permissions of the person using them.
 
 ## Requirements
 
-- PHP 8.3 or newer, with the GD or Imagick extension
+- PHP 8.4 or newer, with the GD or Imagick extension
 - Laravel 13
 - A database: SQLite, MySQL/MariaDB or PostgreSQL
 
