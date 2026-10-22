@@ -31,11 +31,20 @@ class Updates
     protected const RETRY_SECONDS = 3600;
 
     /**
+     * The release to take as installed instead of Composer's (Updates::fakeInstalled()).
+     */
+    protected static ?string $fakeInstalled = null;
+
+    /**
      * The installed release ("v1.0.4"), or null when Aurora isn't installed as a release
      * (a development branch, or a path repository).
      */
     public static function installed(): ?string
     {
+        if (static::$fakeInstalled !== null) {
+            return static::$fakeInstalled;
+        }
+
         $version = InstalledVersions::isInstalled(self::PACKAGE) ? (string) InstalledVersions::getPrettyVersion(self::PACKAGE) : null;
 
         return $version !== null && static::isRelease($version) ? $version : null;
@@ -79,6 +88,15 @@ class Updates
         $installed = static::installed();
 
         return $installed === null ? null : "https://github.com/shipaurora/cms/compare/{$installed}...{$latest}";
+    }
+
+    /**
+     * Take this release as installed, whatever Composer installed (null: Composer's again). For
+     * tests, which run from a development checkout as often as from a release.
+     */
+    public static function fakeInstalled(?string $version): void
+    {
+        static::$fakeInstalled = $version;
     }
 
     /**
