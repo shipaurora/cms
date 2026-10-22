@@ -433,6 +433,8 @@ class AuroraServiceProvider extends ServiceProvider
         config(array_filter([
             'auth.providers.users.model' => $isAuroras(config('auth.providers.users.model')) ? null : $user,
             'passkeys.models.authenticatable' => $isAuroras(config('passkeys.models.authenticatable')) ? null : $user,
+            // AI apps sign in with Passport tokens (routes/ai.php), unless the app has its own api guard.
+            'auth.guards.api' => config('auth.guards.api') !== null ? null : ['driver' => 'passport', 'provider' => 'users'],
         ]));
 
         // Search works out of the box: the database (full-text on MySQL), unless a search

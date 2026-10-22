@@ -74,7 +74,7 @@ class AiAssistant extends Page implements HasTable
      */
     public function endpoint(): string
     {
-        $base = config('services.mcp.public_url') ?: config('app.url');
+        $base = config('services.mcp.public_url') ?: config('aurora.mcp.public_url') ?: config('app.url');
 
         return rtrim($base, '/').'/mcp';
     }

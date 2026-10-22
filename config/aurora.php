@@ -114,4 +114,22 @@ return [
 
     'translations_path' => env('AURORA_TRANSLATIONS_PATH'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI apps (MCP)
+    |--------------------------------------------------------------------------
+    |
+    | The account the local MCP server acts as (php artisan mcp:start cms),
+    | and the public address Claude's custom connectors reach the CMS on:
+    | they connect from Anthropic's cloud, so a .test domain won't do (use a
+    | tunnel such as `herd share` in development). An app's own
+    | services.mcp settings win over these.
+    |
+    */
+
+    'mcp' => [
+        'local_user' => env('MCP_USER'),
+        'public_url' => env('MCP_PUBLIC_URL'),
+    ],
+
 ];

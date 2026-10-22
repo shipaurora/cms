@@ -227,7 +227,7 @@ abstract class CmsTool extends Tool
      */
     protected function localUser(): ?User
     {
-        $email = config('services.mcp.local_user');
+        $email = config('services.mcp.local_user') ?? config('aurora.mcp.local_user');
 
         return app()->runningInConsole() && filled($email)
             ? User::query()->where('email', $email)->first()
