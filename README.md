@@ -1,6 +1,7 @@
 # Aurora
 
 [![Latest version](https://img.shields.io/packagist/v/shipaurora/cms)](https://packagist.org/packages/shipaurora/cms)
+[![Tests](https://github.com/shipaurora/cms/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/shipaurora/cms/actions/workflows/tests.yml)
 [![Downloads](https://img.shields.io/packagist/dt/shipaurora/cms)](https://packagist.org/packages/shipaurora/cms)
 [![PHP 8.3+](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)](https://www.php.net)
 [![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
