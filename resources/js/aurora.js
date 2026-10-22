@@ -1,4 +1,4 @@
-// Aurora's admin scripts, bundled into resources/dist/aurora.js (npm run build:aurora).
+// Aurora's admin scripts, bundled into resources/dist/aurora.js (npm run build).
 import './admin/image-editor.js'
 import './admin/media-drag.js'
 import './admin/passkeys.js'
