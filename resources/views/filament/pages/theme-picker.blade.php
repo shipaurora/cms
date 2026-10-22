@@ -1,7 +1,7 @@
 {{-- Settings › Appearance: the registered themes as cards with their pictures (Aurora\Support\Themes):
      a theme with a picture per mode shows the one for the mode the person is in. --}}
 @php
-    /** @var array<string, array{id: string, name: string, description: ?string, previews: array<string, string>, modes: array<int, string>}> $themes */
+    /** @var array<string, array{id: string, name: string, description: ?string, previews: array<string, string>, modes: array<int, string>, version: ?string}> $themes */
     $statePath = $getStatePath();
 @endphp
 
@@ -24,7 +24,12 @@
                     <span class="cms-layout-thumb cms-layout-thumb-empty"><x-filament::icon icon="phosphor-paint-brush-broad" class="size-8" /></span>
                 @endif
                 <span class="cms-layout-picker-text">
-                    <span class="cms-layout-picker-name">{{ __($theme['name']) }}</span>
+                    <span class="cms-layout-picker-name">
+                        {{ __($theme['name']) }}
+                        @if (filled($theme['version']))
+                            <x-filament::badge size="sm" color="gray">{{ $theme['version'] }}</x-filament::badge>
+                        @endif
+                    </span>
                     @if (filled($theme['description']))
                         <span class="cms-layout-picker-description">{{ __($theme['description']) }}</span>
                     @endif

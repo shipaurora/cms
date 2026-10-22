@@ -7,6 +7,7 @@ use Aurora\Models\Setting;
 use Aurora\Models\User;
 use Aurora\Support\Themes;
 use Aurora\Tests\TestCase;
+use Composer\InstalledVersions;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -70,6 +71,26 @@ class AdminThemeTest extends TestCase
             ->fillForm([Themes::SETTING => 'unknown'])
             ->call('save')
             ->assertHasFormErrors([Themes::SETTING]);
+    }
+
+    public function test_each_theme_shows_its_version_beside_its_name(): void
+    {
+        // Borealis's assets go by another name than its package: it's found by where its stylesheet is.
+        $borealis = 'v'.ltrim((string) InstalledVersions::getPrettyVersion('shipaurora/borealis'), 'v');
+        Themes::register('acme', name: 'Acme', stylesheet: __FILE__, package: 'acme/admin-theme', version: '2.1.0');
+        $this->actingAs($this->userWithRole(User::SUPER_ADMIN));
+
+        $this->assertSame($borealis, Themes::version('borealis'));
+        $this->assertSame('v2.1.0', Themes::version('acme'));
+
+        Livewire::withQueryParams(['tab' => 'appearance'])
+            ->test(SiteSettings::class)
+            ->assertSee($borealis)
+            ->assertSee('v2.1.0');
+
+        // A theme the app builds itself has no release to show.
+        Themes::register('acme', name: 'Acme', vite: 'resources/css/app.css');
+        $this->assertNull(Themes::version('acme'));
     }
 
     public function test_the_appearance_settings_link_to_more_themes_in_a_new_tab(): void

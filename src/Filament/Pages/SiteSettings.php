@@ -539,7 +539,7 @@ class SiteSettings extends Page implements HasSchemas
                         ViewField::make(Themes::SETTING)
                             ->hiddenLabel()
                             ->view('aurora::filament.pages.theme-picker')
-                            ->viewData(['themes' => Themes::all()])
+                            ->viewData(['themes' => array_map(fn (array $theme): array => [...$theme, 'version' => Themes::version($theme['id'])], Themes::all())])
                             ->default(fn (): ?string => Themes::active())
                             ->formatStateUsing(fn (?string $state): ?string => $state ?? Themes::active())
                             ->in(fn (): array => array_keys(Themes::all())),

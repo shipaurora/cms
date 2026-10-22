@@ -3,6 +3,7 @@
 namespace Aurora\Support;
 
 use Aurora\Models\Setting;
+use Composer\InstalledVersions;
 use Filament\Support\Assets\Theme;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Foundation\Vite;
@@ -17,6 +18,9 @@ use Illuminate\Foundation\Vite;
  *
  * A theme made for light and dark can give a picture of each, and the picker shows the one
  * for the mode the person is in: preview: ['light' => …/preview-light.webp, 'dark' => …/preview-dark.webp].
+ *
+ * The picker shows a theme's version beside its name: the installed release of the Composer
+ * package it comes from, or the version: it registers with.
  */
 class Themes
 {
@@ -28,9 +32,16 @@ class Themes
     public const BROWSE_URL = 'https://packagist.org/search/?tags=aurora-cms-theme';
 
     /**
-     * @var array<string, array{id: string, name: string, description: ?string, stylesheet: ?string, vite: ?string, previews: array<string, string>, modes: array<int, string>}>
+     * @var array<string, array{id: string, name: string, description: ?string, stylesheet: ?string, vite: ?string, previews: array<string, string>, modes: array<int, string>, package: ?string, version: ?string}>
      */
     protected static array $themes = [];
+
+    /**
+     * Versions found in Composer's list of installed packages, by theme id.
+     *
+     * @var array<string, ?string>
+     */
+    protected static array $versions = [];
 
     /**
      * Registering an id again replaces that theme.
@@ -41,14 +52,16 @@ class Themes
      *                                                      for every mode, or one per mode (light => file, dark => file).
      * @param  array<int, string>  $modes  The modes it's made for: ['light', 'dark'], or one of them.
      *                                     Only with both can people switch (the user menu, ⌘K).
+     * @param  string|null  $version  Shown beside its name; by default the release Composer installed.
      */
-    public static function register(string $id, string $name, ?string $description = null, ?string $stylesheet = null, ?string $vite = null, string|array|null $preview = null, ?string $package = null, array $modes = ['light', 'dark']): void
+    public static function register(string $id, string $name, ?string $description = null, ?string $stylesheet = null, ?string $vite = null, string|array|null $preview = null, ?string $package = null, array $modes = ['light', 'dark'], ?string $version = null): void
     {
         $modes = array_values(array_intersect(['light', 'dark'], $modes)) ?: ['light', 'dark'];
 
         $previews = static::previewsFor($preview, $modes);
 
-        static::$themes[$id] = compact('id', 'name', 'description', 'stylesheet', 'vite', 'previews', 'modes');
+        static::$themes[$id] = compact('id', 'name', 'description', 'stylesheet', 'vite', 'previews', 'modes', 'package', 'version');
+        unset(static::$versions[$id]);
 
         if ($stylesheet !== null) {
             FilamentAsset::register([Theme::make($id, $stylesheet)], package: $package ?? 'app');
@@ -82,11 +95,60 @@ class Themes
      */
     public static function forget(string $id): void
     {
-        unset(static::$themes[$id]);
+        unset(static::$themes[$id], static::$versions[$id]);
     }
 
     /**
-     * @return array<string, array{id: string, name: string, description: ?string, stylesheet: ?string, vite: ?string, previews: array<string, string>, modes: array<int, string>}>
+     * A theme's version for the picker ("v1.0.6"): the one it registered with, else the release
+     * Composer installed of its package, found by name or as the package its stylesheet or
+     * picture is in (a theme's asset name needn't be its package's). Null for a theme the app
+     * builds itself, or a package installed from a branch.
+     */
+    public static function version(string $id): ?string
+    {
+        $theme = static::$themes[$id] ?? null;
+
+        if ($theme === null) {
+            return null;
+        }
+
+        $version = $theme['version'] ?? (static::$versions[$id] ??= static::installedVersion($theme));
+
+        return $version === null ? null : 'v'.ltrim($version, 'vV');
+    }
+
+    /**
+     * @param  array{stylesheet: ?string, previews: array<string, string>, package: ?string}  $theme
+     */
+    protected static function installedVersion(array $theme): ?string
+    {
+        // A name the package replaces (Borealis's old one) is installed, but has no version of its own.
+        $package = $theme['package'] !== null && InstalledVersions::isInstalled($theme['package']) && InstalledVersions::getPrettyVersion($theme['package']) !== null ? $theme['package'] : null;
+
+        if ($package === null) {
+            $file = $theme['stylesheet'] ?? (reset($theme['previews']) ?: null);
+            $file = $file === null ? false : realpath($file);
+            $root = InstalledVersions::getRootPackage()['name'];
+
+            foreach ($file === false ? [] : InstalledVersions::getInstalledPackages() as $installed) {
+                // Names only replaced or provided by another package have no path of their own.
+                $path = $installed === $root ? null : InstalledVersions::getInstallPath($installed);
+                $path = $path === null ? false : realpath($path);
+
+                if ($path !== false && str_starts_with($file, $path.DIRECTORY_SEPARATOR)) {
+                    $package = $installed;
+                    break;
+                }
+            }
+        }
+
+        $version = $package === null ? null : InstalledVersions::getPrettyVersion($package);
+
+        return $version === null || str_starts_with($version, 'dev-') || str_ends_with($version, '-dev') ? null : $version;
+    }
+
+    /**
+     * @return array<string, array{id: string, name: string, description: ?string, stylesheet: ?string, vite: ?string, previews: array<string, string>, modes: array<int, string>, package: ?string, version: ?string}>
      */
     public static function all(): array
     {
