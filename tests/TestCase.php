@@ -10,12 +10,14 @@ use Aurora\Providers\AdminPanelProvider;
 use Aurora\Providers\AuroraServiceProvider;
 use Aurora\Support\TranslationSync;
 use Filament\Facades\Filament;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Orchestra\Testbench\TestCase as Testbench;
 use Workbench\App\Providers\WorkbenchServiceProvider;
+
+use function Orchestra\Testbench\default_skeleton_path;
 
 /**
  * Aurora in a Laravel app of its own (Testbench), with a website built on it: the workbench's
@@ -43,6 +45,46 @@ abstract class TestCase extends Testbench
     }
 
     /**
+     * Whether this test process has its own copy of the app yet.
+     */
+    protected static bool $hasOwnApp = false;
+
+    /**
+     * An app of its own per test process (ParaTest's TEST_TOKEN), copied from Testbench's once
+     * per run: what a test publishes into it (layout views, by aurora:install or
+     * make:aurora-layout) and the caches it clears (view:clear) never pull a file from under
+     * another process.
+     */
+    public static function applicationBasePath(): string
+    {
+        $app = sys_get_temp_dir().'/aurora-tests-'.(getenv('TEST_TOKEN') ?: '0');
+
+        if (! static::$hasOwnApp) {
+            $files = new Filesystem;
+            $files->deleteDirectory($app);
+
+            foreach ($files->directories(default_skeleton_path()) as $directory) {
+                // Not its storage: only what earlier runs left there.
+                if (basename($directory) !== 'storage') {
+                    $files->copyDirectory($directory, $app.'/'.basename($directory));
+                }
+            }
+
+            foreach ($files->files(default_skeleton_path()) as $file) {
+                $files->copy($file->getPathname(), $app.'/'.$file->getFilename());
+            }
+
+            foreach (['app/public', 'framework/cache/data', 'framework/sessions', 'framework/testing', 'framework/views', 'logs'] as $directory) {
+                $files->ensureDirectoryExists($app.'/storage/'.$directory);
+            }
+
+            static::$hasOwnApp = true;
+        }
+
+        return $app;
+    }
+
+    /**
      * The packages Aurora is built on register themselves, as in an app (package discovery).
      *
      * @return array<int, string>
@@ -64,11 +106,6 @@ abstract class TestCase extends Testbench
     {
         // The workbench website's views: its blocks.
         $app['config']->set('view.paths', [...$app['config']->get('view.paths', []), __DIR__.'/../workbench/resources/views']);
-        // Compiled views of their own per test process (ParaTest's TEST_TOKEN): clearing the
-        // caches in one (view:clear) never pulls a view from under another.
-        $compiled = sys_get_temp_dir().'/aurora-tests-views-'.(getenv('TEST_TOKEN') ?: '0');
-        File::ensureDirectoryExists($compiled);
-        $app['config']->set('view.compiled', $compiled);
         // Foreign keys hold, as in a site's database: Testbench's SQLite leaves them off.
         $app['config']->set('database.connections.testing.foreign_key_constraints', true);
     }
