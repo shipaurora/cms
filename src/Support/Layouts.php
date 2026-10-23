@@ -2,6 +2,7 @@
 
 namespace Aurora\Support;
 
+use Aurora\Blocks\Blocks;
 use Aurora\Layouts\PageLayout;
 use Aurora\Models\Layout;
 use Aurora\Models\Page;
@@ -10,6 +11,8 @@ use Filament\Schemas\Components\Component;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use InvalidArgumentException;
+use ReflectionClass;
+use Symfony\Component\Finder\Finder;
 
 /**
  * Page layouts and the views that draw them. A layout names any Blade view: Aurora's own
@@ -64,6 +67,40 @@ class Layouts
             static::$registered[$class::handle()] = $class;
             static::schema($class::view(), fn (): array => $class::schema());
         }
+    }
+
+    /**
+     * Register every layout class in a folder (and its subfolders) whose handle isn't taken
+     * yet; abstract classes and other classes are left alone (Blocks::discover()'s twin).
+     *
+     * @return array<int, class-string<PageLayout>>
+     */
+    public static function discover(string $path, ?string $namespace = null): array
+    {
+        if (! is_dir($path)) {
+            return [];
+        }
+
+        $namespace = trim($namespace ?? Blocks::namespaceFor($path), '\\');
+        $found = [];
+
+        foreach ((new Finder)->files()->in($path)->name('*.php')->sortByName() as $file) {
+            $class = $namespace.'\\'.str_replace(['/', '.php'], ['\\', ''], $file->getRelativePathname());
+
+            if (! class_exists($class) || ! is_subclass_of($class, PageLayout::class) || ! (new ReflectionClass($class))->isInstantiable()) {
+                continue;
+            }
+
+            if (! isset(static::$registered[$class::handle()])) {
+                $found[] = $class;
+            }
+        }
+
+        if ($found !== []) {
+            static::register($found);
+        }
+
+        return $found;
     }
 
     /**

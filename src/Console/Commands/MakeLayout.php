@@ -3,6 +3,7 @@
 namespace Aurora\Console\Commands;
 
 use Aurora\Aurora;
+use Aurora\Blocks\Blocks;
 use Aurora\Models\Layout;
 use Aurora\Support\Layouts;
 use Illuminate\Console\Attributes\Description;
@@ -10,23 +11,25 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\PromptsForMissingInput;
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
 use function Laravel\Prompts\text;
 
 /**
- * A new page layout of the website's own: its view at resources/views/layouts/{handle}.blade.php,
- * started from the site's standard layout (its head, styles, header and footer) to make this
- * one's own, and the layout itself, so editors can pick it for a page straight away. Its icon
- * is changed in Settings › Templates › Layouts.
+ * A new page layout of the website's own, defined in code: its class in aurora.layout_path
+ * (found there on its own, like blocks) from Aurora's stub or the site's own in stubs/aurora
+ * (php artisan vendor:publish --tag=aurora-stubs), and its view at
+ * resources/views/layouts/{handle}.blade.php, started from the site's standard layout (its
+ * head, styles, header and footer) to make this one's own. Editors can pick it for a page
+ * straight away.
  */
 #[Signature('make:aurora-layout
     {name : The layout\'s name, e.g. "Campaign"}
     {--description= : What it\'s for, shown to editors when they pick a layout}
-    {--force : Overwrite the view and update the layout if they exist}')]
-#[Description('Create a page layout: its Blade view, registered as a layout editors can pick')]
+    {--icon= : A Phosphor icon, e.g. phosphor-megaphone}
+    {--force : Overwrite the class and view if they exist}')]
+#[Description('Create a page layout: its class and its Blade view, offered for editors to pick')]
 class MakeLayout extends Command implements PromptsForMissingInput
 {
     /**
@@ -36,49 +39,63 @@ class MakeLayout extends Command implements PromptsForMissingInput
 
     public function handle(Filesystem $files): int
     {
-        $name = trim((string) $this->argument('name'));
-        $handle = Str::slug($name);
+        $name = Str::of((string) $this->argument('name'))->trim()->replaceMatches('/\s*layout$/i', '');
+        $handle = (string) $name->slug();
 
-        if ($handle === '') {
-            $this->components->error('Give the layout a name with letters or numbers, e.g. "Campaign".');
-
-            return self::FAILURE;
-        }
-
-        if (! $this->hasLayoutsTable()) {
-            $this->components->error('Set up the CMS first: php artisan aurora:install');
+        if ($handle === '' || ! $name->studly()->isMatch('/^[A-Za-z][A-Za-z0-9]*$/')) {
+            $this->components->error('Use letters and numbers for the name, e.g. "Campaign".');
 
             return self::FAILURE;
         }
 
+        $path = config('aurora.layout_path') ?: app_path('Layouts');
+        $namespace = config('aurora.layout_namespace') ?: Blocks::namespaceFor($path);
+        $class = $name->studly().'Layout';
         $view = 'layouts.'.$handle;
-        $file = resource_path('views/layouts/'.$handle.'.blade.php');
-        $existing = Layout::query()->where('handle', $handle)->first();
 
-        if (! $this->option('force') && ($existing !== null || $files->exists($file))) {
-            $this->components->error($existing !== null
-                ? "There is already a layout [{$handle}]. Use --force to overwrite its view and update it."
-                : "[{$this->relative($file)}] already exists. Use --force to overwrite it.");
+        $classFile = $path.'/'.$class.'.php';
+        $viewFile = resource_path('views/layouts/'.$handle.'.blade.php');
 
-            return self::FAILURE;
+        foreach ([$classFile, $viewFile] as $file) {
+            if ($files->exists($file) && ! $this->option('force')) {
+                $this->components->error("[{$this->relative($file)}] already exists. Use --force to overwrite it.");
+
+                return self::FAILURE;
+            }
         }
 
         $description = $this->description();
 
-        $files->ensureDirectoryExists(dirname($file));
-        $files->put($file, $this->viewFrom($files->get($this->startingPoint()), $name, $description));
-
-        Layouts::put($existing, [
-            'name' => $name,
-            'handle' => $handle,
-            'description' => $description,
-            'icon' => $existing?->icon ?? self::ICON,
-            'view' => $view,
-        ]);
+        $files->ensureDirectoryExists(dirname($classFile));
+        $files->ensureDirectoryExists(dirname($viewFile));
+        $files->put($classFile, strtr($files->get($this->stub('layout.stub')), [
+            '{{ namespace }}' => $namespace,
+            '{{ class }}' => $class,
+            '{{ handle }}' => $handle,
+            '{{ name }}' => (string) $name,
+            '{{ purpose }}' => $description ?? 'what this layout is for, in a sentence.',
+            '{{ description }}' => $description === null ? 'null' : sprintf('__(%s)', var_export($description, true)),
+            '{{ icon }}' => $this->option('icon') ?: self::ICON,
+            '{{ view }}' => $view,
+        ]));
+        $files->put($viewFile, $this->viewFrom($files->get($this->startingPoint()), (string) $name, $description));
 
         $this->components->info("Layout [{$handle}] created.");
-        $this->components->twoColumnDetail('View', $this->relative($file));
-        $this->components->twoColumnDetail('Layout', "{$name} ({$view}), to pick for a page in the admin");
+        $this->components->twoColumnDetail('Class', $this->relative($classFile));
+        $this->components->twoColumnDetail('View', $this->relative($viewFile));
+
+        // Outside the folder Aurora looks in: it has to be registered by hand.
+        if (blank(config('aurora.layout_path'))) {
+            $this->newLine();
+            $this->components->warn('Layout discovery is off (aurora.layout_path). Register it in a service provider:');
+            $this->line("    Layouts::register([\\{$namespace}\\{$class}::class]);");
+        }
+
+        // One added in the admin keeps its handle: this one isn't offered until that's gone.
+        if ($this->addedInTheAdmin($handle)) {
+            $this->newLine();
+            $this->components->warn("A layout added in the admin already has the handle [{$handle}]: it stays, and this one isn't offered until it's deleted.");
+        }
 
         return self::SUCCESS;
     }
@@ -121,13 +138,27 @@ class MakeLayout extends Command implements PromptsForMissingInput
         return $count > 0 ? (string) $replaced : $comment."\n".$source;
     }
 
-    protected function hasLayoutsTable(): bool
+    /**
+     * Whether a layout added in the admin has the handle (the table there to ask, and the
+     * column that tells them apart).
+     */
+    protected function addedInTheAdmin(string $handle): bool
     {
         try {
-            return Schema::hasTable((new Layout)->getTable());
+            return Layout::storesClasses() && Layout::query()->where('handle', $handle)->whereNull('class')->exists();
         } catch (Throwable) {
             return false;
         }
+    }
+
+    /**
+     * The site's own copy of a stub, or Aurora's.
+     */
+    protected function stub(string $name): string
+    {
+        $own = base_path('stubs/aurora/'.$name);
+
+        return is_file($own) ? $own : Aurora::path('stubs/'.$name);
     }
 
     protected function relative(string $path): string

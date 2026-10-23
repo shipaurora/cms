@@ -251,6 +251,11 @@ class AuroraServiceProvider extends ServiceProvider
             if (filled($path = config('aurora.block_path'))) {
                 Blocks::discover($path, config('aurora.block_namespace'));
             }
+
+            // And its layouts defined in code, in aurora.layout_path.
+            if (filled($path = config('aurora.layout_path'))) {
+                Layouts::discover($path, config('aurora.layout_namespace'));
+            }
         });
 
         // Aurora's own versions of packages' Livewire components: registered once every

@@ -90,6 +90,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Layouts
+    |--------------------------------------------------------------------------
+    |
+    | Where the site's page layouts defined in code live (Aurora\Layouts\
+    | PageLayout). Every layout class in this folder is offered to editors on
+    | its own, with the layouts added in the admin. php artisan
+    | make:aurora-layout creates new ones here. Set the path to null to
+    | register layouts by hand (Aurora\Support\Layouts::register()).
+    |
+    */
+
+    'layout_path' => app_path('Layouts'),
+
+    'layout_namespace' => null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Website routes
     |--------------------------------------------------------------------------
     |
