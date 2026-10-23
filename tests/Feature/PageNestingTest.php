@@ -22,6 +22,20 @@ class PageNestingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_a_link_to_a_subpage_goes_to_its_whole_address(): void
+    {
+        $docs = Page::factory()->published()->create(['slug' => 'docs']);
+        $start = Page::factory()->published()->create(['slug' => 'get-started', 'parent_id' => $docs->id]);
+        $install = Page::factory()->published()->create(['slug' => 'installation', 'parent_id' => $start->id]);
+        $gone = Page::factory()->published()->create(['slug' => 'gone']);
+        $gone->delete();
+
+        // A card's or a button's page link (Fields::link()), as link_href() reads it.
+        $this->assertSame('/docs/get-started/installation', link_href(['link_type' => 'page', 'link_page' => $install->id]));
+        $this->assertSame('/docs', link_href(['link_type' => 'page', 'link_page' => $docs->id]));
+        $this->assertNull(link_href(['link_type' => 'page', 'link_page' => $gone->id]));
+    }
+
     public function test_the_pages_list_is_in_address_order_until_another_column_is_sorted(): void
     {
         $this->actingAs($this->userWithRole('Editor'));

@@ -205,14 +205,15 @@ class Fields
     }
 
     /**
-     * Every page's address on a site in a language, looked up once per request (once() is
-     * cleared between requests, queue jobs and tests).
+     * Every page's address on a site in a language, the pages above it included (a page
+     * under /docs is /docs/installation), looked up once per request (once() is cleared
+     * between requests, queue jobs and tests).
      *
      * @return array<string, string>
      */
     protected static function pagePaths(string $locale, ?string $siteId): array
     {
-        return once(fn (): array => Page::query()->get(['id', 'slug', 'is_homepage', 'locales'])->mapWithKeys(fn (Page $page): array => [$page->id => $page->path($locale)])->all());
+        return once(fn (): array => Page::paths($locale));
     }
 
     public static function helpText(string $text): HtmlString

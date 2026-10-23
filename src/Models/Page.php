@@ -404,24 +404,8 @@ class Page extends Model implements MenuPanelable
      */
     public static function idsInPathOrder(?string $locale = null): array
     {
-        $locale ??= ContentLocale::current();
-        $pages = static::query()->withTrashed()->get(['id', 'site_id', 'parent_id', 'slug', 'locales', 'is_homepage'])->keyBy('id');
-
-        // Not in this language: its address is in the one it's written in, which its translations tell.
-        $elsewhere = $pages->reject(fn (self $page): bool => $page->isAvailableIn($locale))->keys();
-
-        foreach ($elsewhere->isEmpty() ? [] : static::query()->withTrashed()->whereKey($elsewhere)->get(['id', 'block_translations']) as $full) {
-            $pages[$full->getKey()]->setRawAttributes([...$pages[$full->getKey()]->getAttributes(), 'block_translations' => $full->getAttributes()['block_translations']], sync: true);
-        }
-
-        // The pages above each one, from those already read: path() asks no more of the database.
-        foreach ($pages as $page) {
-            $page->setRelation('parent', $pages[$page->parent_id] ?? null);
-        }
-
-        $segments = $pages->map(fn (self $page): array => explode('/', trim($page->path($locale), '/')));
-
-        return $segments
+        return collect(static::paths($locale, withTrashed: true))
+            ->map(fn (string $path): array => explode('/', trim($path, '/')))
             ->sort(function (array $a, array $b): int {
                 foreach ($a as $index => $segment) {
                     if (! isset($b[$index])) {
@@ -436,6 +420,37 @@ class Page extends Model implements MenuPanelable
                 return count($a) <=> count($b);
             })
             ->keys()
+            ->all();
+    }
+
+    /**
+     * Every page's address on the site in a language (path()), by id, the pages above each
+     * one included, from one read of them all: what a page's address is made of, without a
+     * query per page or per parent. Pages in the bin only with $withTrashed, though a page's
+     * address still goes through a parent in the bin.
+     *
+     * @return array<string, string>
+     */
+    public static function paths(?string $locale = null, bool $withTrashed = false): array
+    {
+        $locale ??= ContentLocale::current();
+        $pages = static::query()->withTrashed()->get(['id', 'site_id', 'parent_id', 'slug', 'locales', 'is_homepage', 'deleted_at'])->keyBy('id');
+
+        // Not in this language: its address is in the one it's written in, which its translations tell.
+        $elsewhere = $pages->reject(fn (self $page): bool => $page->isAvailableIn($locale))->keys();
+
+        foreach ($elsewhere->isEmpty() ? [] : static::query()->withTrashed()->whereKey($elsewhere)->get(['id', 'block_translations']) as $full) {
+            $pages[$full->getKey()]->setRawAttributes([...$pages[$full->getKey()]->getAttributes(), 'block_translations' => $full->getAttributes()['block_translations']], sync: true);
+        }
+
+        // The pages above each one, from those already read: path() asks no more of the database.
+        foreach ($pages as $page) {
+            $page->setRelation('parent', $pages[$page->parent_id] ?? null);
+        }
+
+        return $pages
+            ->when(! $withTrashed, fn ($pages) => $pages->reject(fn (self $page): bool => $page->trashed()))
+            ->map(fn (self $page): string => $page->path($locale))
             ->all();
     }
 
