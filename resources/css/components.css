@@ -1963,6 +1963,43 @@ html:has(.fpb) {
     outline-color: color-mix(in oklch, var(--primary-500) 50%, transparent);
 }
 
+/* A block's handle, label and tools sit just above it, as tabs on its outline, not over its
+   first line. Touching the outline, so the pointer goes from the block into them without
+   leaving it. The canvas's first block keeps them inside: above it, the canvas would cut
+   them off. Narrower screens keep the page builder's sticky strip. */
+@media (min-width: 1281px) {
+    .fpb .fpb-block > .fpb-block-bar {
+        top: auto;
+        bottom: 100%;
+        padding: 0;
+    }
+
+    .fpb .fpb-block > .fpb-block-bar > * {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .fpb .fpb-canvas > .fpb-block:not(.fpb-block ~ .fpb-block) > .fpb-block-bar {
+        top: 0;
+        bottom: auto;
+        padding: 0.2rem;
+    }
+
+    /* Rounded again, but where the handle meets the label. */
+    .fpb .fpb-canvas > .fpb-block:not(.fpb-block ~ .fpb-block) > .fpb-block-bar > * {
+        border-bottom-left-radius: 0.3rem;
+    }
+
+    .fpb .fpb-canvas > .fpb-block:not(.fpb-block ~ .fpb-block) > .fpb-block-bar > :not(.fpb-block-handle) {
+        border-bottom-right-radius: 0.3rem;
+    }
+}
+
+/* Unseen, they catch no clicks: above a block, they'd sit on the end of the one before. */
+.fpb .fpb-block:not(:hover, [data-selected='true']) > .fpb-block-bar > * {
+    pointer-events: none;
+}
+
 /* Drop targets and drag feedback. */
 body.fpb-edit-mode .fpb .fpb-slot {
     border-color: color-mix(in oklch, var(--primary-500) 30%, transparent);
