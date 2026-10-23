@@ -3,6 +3,7 @@
 namespace Workbench\App\Blocks;
 
 use Aurora\Blocks\Block;
+use Aurora\Blocks\Editable;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\ToggleButtons;
 use Workbench\App\Blocks\Concerns\HasPreviewImage;
@@ -34,6 +35,12 @@ class RichTextBlock extends Block
     public static function defaults(): array
     {
         return ['width' => 'prose'];
+    }
+
+    public static function editables(): array
+    {
+        // Formatting, links, headings, lists and quotes on the page; tables in the panel.
+        return ['body' => Editable::richText()->placeholder(__('Write something…'))];
     }
 
     public static function aiHints(): ?string

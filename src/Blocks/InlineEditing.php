@@ -71,9 +71,13 @@ class InlineEditing extends PageBuilder
             'data-fpb-block="'.e((string) static::$blockId).'"',
             'data-fpb-field="'.e("{$repeater}.{$index}.{$field}").'"',
             'data-fpb-kind="'.e($editable->kind).'"',
-            'contenteditable="plaintext-only"',
-            'data-fpb-multiline="'.($editable->isMultiline() ? 'true' : 'false').'"',
         ];
+
+        // Rich text gets its editor when clicked (resources/js/admin/canvas-rich-text.js).
+        if ($editable->kind === Editable::TEXT) {
+            $attributes[] = 'contenteditable="plaintext-only"';
+            $attributes[] = 'data-fpb-multiline="'.($editable->isMultiline() ? 'true' : 'false').'"';
+        }
 
         if (filled($placeholder = $editable->getPlaceholder())) {
             $attributes[] = 'data-fpb-placeholder="'.e($placeholder).'"';

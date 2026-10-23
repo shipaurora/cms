@@ -9,10 +9,13 @@ use Aurora\Filament\Resources\Pages\Concerns\TranslatesBlocks;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Support\BlockTranslations;
 use Aurora\Support\EditLocks;
+use Aurora\Support\InlineRichText;
 use Aurora\Support\Layouts;
 use Aurora\Support\RevisionContext;
 use Aurora\Support\WorkingCopies;
+use CarlJanzell\FilamentPageBuilder\Editable;
 use CarlJanzell\FilamentPageBuilder\Filament\Pages\DesignPage as BaseDesignPage;
+use CarlJanzell\FilamentPageBuilder\PageBuilder;
 use CarlJanzell\FilamentPageBuilder\Support\EmbedUrl;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
@@ -359,6 +362,13 @@ class DesignPage extends BaseDesignPage
             return;
         }
 
+        // Rich text written on the canvas: a document to check, not a string (InlineRichText).
+        if (($target = $this->richTextTarget($id, $field)) !== null) {
+            $this->setRichText($id, $target, $value);
+
+            return;
+        }
+
         if (! str_contains($field, '.')) {
             parent::setBlockField($id, $field, $value);
 
@@ -366,6 +376,85 @@ class DesignPage extends BaseDesignPage
         }
 
         $this->setBlockItemField($id, $field, $value);
+    }
+
+    /**
+     * What the canvas's rich text editor starts from: the field's stored text as a document,
+     * or not editable there when it holds more than that editor knows (a table).
+     *
+     * @return array{editable: bool, document: array<string, mixed>|null}
+     */
+    public function richTextDocument(string $id, string $field): array
+    {
+        $target = $this->richTextTarget($id, $field);
+        $document = $target === null ? null : InlineRichText::document(data_get($this->blocks[$target['index']]['data'] ?? [], $target['path']));
+
+        return ['editable' => $document !== null, 'document' => $document];
+    }
+
+    /**
+     * Where a rich text field written on the canvas goes, if the block declared it
+     * Editable::richText() (itself, or in its repeater's items) and, while translating,
+     * it's text the language has.
+     *
+     * @return array{index: int, path: string}|null
+     */
+    protected function richTextTarget(string $id, string $field): ?array
+    {
+        $index = $this->indexOf($id);
+        $type = $index === null ? null : $this->blocks[$index]['type'];
+        $block = $this->registry()->find($type);
+
+        if ($block === null || ! $this->registry()->isVisible($type)) {
+            return null;
+        }
+
+        if (preg_match('/^([a-z_]+)\.(\d{1,3})\.([a-z_]+)$/', $field, $path)) {
+            $editable = is_subclass_of($block, Block::class) ? ($block::itemEditables()[$path[1]][$path[3]] ?? null) : null;
+            $exists = is_array($this->blocks[$index]['data'][$path[1]][(int) $path[2]] ?? null);
+        } else {
+            $editable = PageBuilder::editablesFor($type)[$field] ?? null;
+            $exists = true;
+        }
+
+        if (! $editable instanceof Editable || $editable->kind !== Editable::RICH_TEXT || ! $exists) {
+            return null;
+        }
+
+        if ($this->isTranslating() && ! in_array(Str::before($field, '.'), BlockTranslations::fieldsOf($type), true)) {
+            return null;
+        }
+
+        return ['index' => $index, 'path' => $field];
+    }
+
+    /**
+     * @param  array{index: int, path: string}  $target
+     */
+    protected function setRichText(string $id, array $target, mixed $document): void
+    {
+        $current = data_get($this->blocks[$target['index']]['data'] ?? [], $target['path']);
+
+        // Text the canvas can't edit is never written from it: its editor would have dropped part of it.
+        if (! InlineRichText::isEditable($current)) {
+            return;
+        }
+
+        $html = InlineRichText::html($document);
+
+        if ($html === null || $html === ($current ?? '')) {
+            return;
+        }
+
+        $this->remember();
+        data_set($this->blocks[$target['index']]['data'], $target['path'], $html);
+        $this->syncDirty();
+
+        if ($this->selectedId === $id) {
+            $this->blockData = $this->blocks[$target['index']]['data'];
+            $this->cacheSchema('form', null);
+            $this->form->fill($this->blockData);
+        }
     }
 
     /**

@@ -1,0 +1,74 @@
+/* The canvas's rich text editor (rich-text.js). In :where(), so the admin theme restyles these
+   classes without having to outweigh them; the colours are the panel's own. */
+
+:where(.cms-rich-text-toolbar) {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.25rem;
+    border: 1px solid color-mix(in oklch, var(--color-gray-500, #6b7280) 25%, transparent);
+    border-radius: 0.625rem;
+    background: var(--color-white, #fff);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+    font-family: inherit;
+}
+
+:where(.dark .cms-rich-text-toolbar) {
+    background: var(--color-gray-900, #111827);
+}
+
+:where(.cms-rich-text-button) {
+    min-width: 1.875rem;
+    height: 1.875rem;
+    padding: 0 0.375rem;
+    border-radius: 0.4375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--color-gray-700, #374151);
+    cursor: pointer;
+}
+
+:where(.dark .cms-rich-text-button) {
+    color: var(--color-gray-200, #e5e7eb);
+}
+
+:where(.cms-rich-text-button:hover) {
+    background: color-mix(in oklch, var(--color-gray-500, #6b7280) 12%, transparent);
+}
+
+:where(.cms-rich-text-button-active) {
+    background: color-mix(in oklch, var(--color-primary-500, #3b82f6) 16%, transparent);
+    color: var(--color-primary-600, #2563eb);
+}
+
+:where(.dark .cms-rich-text-button-active) {
+    color: var(--color-primary-300, #93c5fd);
+}
+
+:where(.cms-rich-text-divider) {
+    width: 1px;
+    height: 1.25rem;
+    margin-inline: 0.25rem;
+    background: color-mix(in oklch, var(--color-gray-500, #6b7280) 25%, transparent);
+}
+
+/* The text being written: the block's own styles, and an outline like the canvas's other fields. */
+:where([data-cms-rich-active]) {
+    outline: 2px solid var(--color-primary-500, #2563eb);
+    outline-offset: 2px;
+}
+
+:where(.cms-rich-text-editor) {
+    outline: none;
+}
+
+:where(.cms-rich-text-editor p.is-editor-empty:first-child)::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    opacity: 0.45;
+    pointer-events: none;
+}

@@ -191,6 +191,7 @@ class AuroraServiceProvider extends ServiceProvider
             // The image editor's styles (Cropper.js), which come with the scripts.
             Css::make('image-editor', Aurora::path('resources/dist/aurora.css')),
             Js::make('aurora', Aurora::path('resources/dist/aurora.js'))->module()->loadedOnRequest(),
+            Js::make('rich-text', Aurora::path('resources/dist/rich-text.js'))->module()->loadedOnRequest(),
         ], package: 'shipaurora/cms');
         $this->registerViews();
 

@@ -19,4 +19,25 @@
             'reload' => __('Reload'),
         ],
     ]);
+
+    {{-- resources/js/admin/canvas-rich-text.js: the canvas's rich text editor, and its wording. --}}
+    window.cmsRichText = @js([
+        'src' => \Filament\Support\Facades\FilamentAsset::getScriptSrc('rich-text', 'shipaurora/cms'),
+        'strings' => [
+            'toolbar' => __('Text formatting'),
+            'placeholder' => __('Write something…'),
+            'locked' => __('This text has a table, image or alignment that can only be changed in the panel on the right.'),
+            'link' => __('Link'),
+            'linkPrompt' => __('Link to (a page’s address, such as /about, or a full URL). Leave empty to remove the link.'),
+            'bold' => __('Bold'),
+            'italic' => __('Italic'),
+            'underline' => __('Underline'),
+            'strike' => __('Strikethrough'),
+            'heading2' => __('Heading'),
+            'heading3' => __('Subheading'),
+            'bulletList' => __('Bulleted list'),
+            'orderedList' => __('Numbered list'),
+            'blockquote' => __('Quote'),
+        ],
+    ]);
 </script>

@@ -2069,5 +2069,15 @@
     "The :api is switched off, so trying it here answers “not found”. Switch it on under Settings › Integrations.": "The :api is switched off, so trying it here answers “not found”. Switch it on under Settings › Integrations.",
     "The API needs a key: put one of your API keys after \"Bearer\" in the Headers tab below.": "The API needs a key: put one of your API keys after \"Bearer\" in the Headers tab below.",
     "Explore": "Explore",
-    "Browse themes": "Browse themes"
+    "Browse themes": "Browse themes",
+    "Text formatting": "Text formatting",
+    "Write something…": "Write something…",
+    "This text has a table, image or alignment that can only be changed in the panel on the right.": "This text has a table, image or alignment that can only be changed in the panel on the right.",
+    "Link to (a page’s address, such as /about, or a full URL). Leave empty to remove the link.": "Link to (a page’s address, such as /about, or a full URL). Leave empty to remove the link.",
+    "Bold": "Bold",
+    "Italic": "Italic",
+    "Strikethrough": "Strikethrough",
+    "Subheading": "Subheading",
+    "Bulleted list": "Bulleted list",
+    "Numbered list": "Numbered list"
 }

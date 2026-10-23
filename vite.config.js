@@ -14,7 +14,11 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 aurora: `${resources}/js/aurora.js`,
+                // The canvas's rich text editor, loaded when it's first needed (admin/canvas-rich-text.js).
+                'rich-text': `${resources}/js/rich-text.js`,
             },
+            // rich-text.js is imported by the admin's script: its exports stay.
+            preserveEntrySignatures: 'exports-only',
             output: {
                 entryFileNames: '[name].js',
                 assetFileNames: '[name][extname]',
