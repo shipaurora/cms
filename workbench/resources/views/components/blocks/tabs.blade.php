@@ -1,8 +1,6 @@
 @props(['data' => []])
 
 @php
-    use Aurora\Blocks\InlineEditing;
-
     $items = array_values(array_filter($data['items'] ?? [], 'is_array'));
     $pills = ($data['style'] ?? 'pills') === 'pills';
     // Ties each tab to its panel; unique per block on the page.
@@ -63,8 +61,8 @@
                 @class(['col-start-1 row-start-1 max-w-3xl transition-opacity duration-300', 'invisible opacity-0' => $index > 0])
                 :class="{ 'invisible opacity-0': tab !== {{ $index }} }"
             >
-                <h3 class="font-display text-2xl font-semibold text-ink" {!! InlineEditing::itemAttributes('items', $index, 'title') !!}>{{ plain_text($item['title'] ?? '') }}</h3>
-                <p class="mt-3 text-base/7 text-ink-muted whitespace-pre-line" {!! InlineEditing::itemAttributes('items', $index, 'body') !!}>{{ plain_text($item['body'] ?? '') }}</p>
+                <h3 class="font-display text-2xl font-semibold text-ink" @editableItem('items', $index, 'title')>{{ plain_text($item['title'] ?? '') }}</h3>
+                <p class="mt-3 text-base/7 text-ink-muted whitespace-pre-line" @editableItem('items', $index, 'body')>{{ plain_text($item['body'] ?? '') }}</p>
             </div>
         @endforeach
     </div>

@@ -1,7 +1,6 @@
 @props(['data' => []])
 
 @php
-    use Aurora\Blocks\InlineEditing;
     use Aurora\Support\AssetLibrary;
 
     $logos = array_values(array_filter($data['logos'] ?? [], 'is_array'));
@@ -23,7 +22,7 @@
                     @if ($image)
                         <img src="{{ $image }}" alt="{{ $logo['name'] ?? '' }}" class="h-8 w-auto">
                     @else
-                        <span class="text-xl whitespace-nowrap {{ $fonts[$index % count($fonts)] }}" @unless ($marquee) {!! InlineEditing::itemAttributes('logos', $index, 'name') !!} @endunless>{{ $logo['name'] ?? '' }}</span>
+                        <span class="text-xl whitespace-nowrap {{ $fonts[$index % count($fonts)] }}" @unless ($marquee) @editableItem('logos', $index, 'name') @endunless>{{ $logo['name'] ?? '' }}</span>
                     @endif
                 </div>
             @endforeach

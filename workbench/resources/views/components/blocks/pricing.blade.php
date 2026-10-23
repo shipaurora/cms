@@ -1,8 +1,6 @@
 @props(['data' => []])
 
 @php
-    use Aurora\Blocks\InlineEditing;
-
     $featured = (bool) ($data['featured'] ?? false);
     $features = array_values(array_filter($data['features'] ?? [], fn ($item) => is_array($item) || is_string($item)));
     $href = is_editing() ? '#' : (link_href($data, 'button') ?? '#');
@@ -41,7 +39,7 @@
         @foreach ($features as $index => $feature)
             <li class="flex gap-3">
                 {{ svg('hero-m-check-circle', 'size-5 shrink-0 '.($featured ? 'text-brand-400' : 'text-brand-600')) }}
-                <span class="text-ink-muted" {!! InlineEditing::itemAttributes('features', $index, 'text') !!}>{{ is_array($feature) ? ($feature['text'] ?? '') : $feature }}</span>
+                <span class="text-ink-muted" @editableItem('features', $index, 'text')>{{ is_array($feature) ? ($feature['text'] ?? '') : $feature }}</span>
             </li>
         @endforeach
     </ul>

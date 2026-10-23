@@ -392,6 +392,10 @@ class AuroraServiceProvider extends ServiceProvider
             Blade::directive($directive, fn (string $expression): string => "<?php echo e({$helper}({$expression})); ?>");
         }
 
+        // A repeater item's field, editable on the canvas like @editable: the attributes are
+        // escaped where they're made (InlineEditing::itemAttributes()), and nothing off it.
+        Blade::directive('editableItem', fn (string $expression): string => "<?php echo \\Aurora\\Blocks\\InlineEditing::itemAttributes({$expression}); ?>");
+
         Blade::if('editing', fn (): bool => is_editing());
         Blade::if('shows', fn (string $field, mixed $value): bool => shows_field($field, $value));
         Blade::if('nested', fn (): bool => is_nested_block());

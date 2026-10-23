@@ -27,7 +27,12 @@ class VisualEditorTest extends TestCase
 
         $this->actingAs($editor);
 
+        // @editableItem marks each item's fields on the canvas, and nothing on the website.
+        $this->get($page->previewUrl())->assertDontSee('data-fpb-field="items.0.question"', false);
+
         Livewire::test(DesignPage::class, ['record' => $page->getKey()])
+            ->assertSeeHtml('data-fpb-field="items.0.question"')
+            ->assertSeeHtml('data-fpb-field="items.0.answer"')
             ->call('setBlockField', 'faq', 'items.0.question', 'New question?')
             ->call('setBlockField', 'faq', 'items.0.secret', 'nope')
             ->call('setBlockField', 'faq', 'items.5.question', 'nope')

@@ -1,7 +1,6 @@
 @props(['data' => []])
 
 @php
-    use Aurora\Blocks\InlineEditing;
     use Aurora\Support\Markup;
 
     $items = array_values(array_filter($data['items'] ?? [], 'is_array'));
@@ -20,11 +19,11 @@
             @foreach ($items as $index => $item)
                 <li class="relative pb-12 pl-10 last:pb-0">
                     <span class="absolute -left-[0.95rem] top-0 grid size-7 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white ring-4 ring-white [.tone-dark_&]:ring-zinc-950">{{ $index + 1 }}</span>
-                    @if (filled($item['kicker'] ?? null) || InlineEditing::isEditing())
-                        <p class="text-sm font-semibold text-brand-600 [.tone-dark_&]:text-brand-300" {!! InlineEditing::itemAttributes('items', $index, 'kicker') !!}>{{ $item['kicker'] ?? '' }}</p>
+                    @if (filled($item['kicker'] ?? null) || is_editing())
+                        <p class="text-sm font-semibold text-brand-600 [.tone-dark_&]:text-brand-300" @editableItem('items', $index, 'kicker')>{{ $item['kicker'] ?? '' }}</p>
                     @endif
-                    <h3 class="mt-1 font-display text-xl font-semibold text-ink" {!! InlineEditing::itemAttributes('items', $index, 'title') !!}>{{ $item['title'] ?? '' }}</h3>
-                    <p class="mt-2 max-w-2xl text-base/7 text-ink-muted whitespace-pre-line" {!! InlineEditing::itemAttributes('items', $index, 'body') !!}>{{ $item['body'] ?? '' }}</p>
+                    <h3 class="mt-1 font-display text-xl font-semibold text-ink" @editableItem('items', $index, 'title')>{{ $item['title'] ?? '' }}</h3>
+                    <p class="mt-2 max-w-2xl text-base/7 text-ink-muted whitespace-pre-line" @editableItem('items', $index, 'body')>{{ $item['body'] ?? '' }}</p>
                 </li>
             @endforeach
         </ol>
@@ -38,8 +37,8 @@
                             <span class="hidden h-px flex-1 bg-gradient-to-r from-brand-300 to-transparent @3xl:block"></span>
                         @endunless
                     </div>
-                    <h3 class="mt-4 font-display text-xl font-semibold text-ink" {!! InlineEditing::itemAttributes('items', $index, 'title') !!}>{{ $item['title'] ?? '' }}</h3>
-                    <p class="mt-2 text-base/7 text-ink-muted whitespace-pre-line" {!! InlineEditing::itemAttributes('items', $index, 'body') !!}>{{ $item['body'] ?? '' }}</p>
+                    <h3 class="mt-4 font-display text-xl font-semibold text-ink" @editableItem('items', $index, 'title')>{{ $item['title'] ?? '' }}</h3>
+                    <p class="mt-2 text-base/7 text-ink-muted whitespace-pre-line" @editableItem('items', $index, 'body')>{{ $item['body'] ?? '' }}</p>
                 </li>
             @endforeach
         </ol>
