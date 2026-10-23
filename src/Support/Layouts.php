@@ -2,15 +2,27 @@
 
 namespace Aurora\Support;
 
+use Aurora\Layouts\PageLayout;
 use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Closure;
 use Filament\Schemas\Components\Component;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\UniqueConstraintViolationException;
+use InvalidArgumentException;
 
 /**
  * Page layouts and the views that draw them. A layout names any Blade view: Aurora's own
  * (aurora::layouts.standard and .blank, published to the site on install to make them its
  * own) or one of the site's. Each gets $page, $layout, $settings, $preview and $embedded.
+ *
+ * Layouts are added in the admin (Pages › More › Layouts), or defined in code, a site's or
+ * a component library's, and registered from a service provider (Aurora\Layouts\PageLayout):
+ *
+ *     Layouts::register([CampaignLayout::class]);
+ *
+ * Those are offered with the others and can be the default, but can't be changed or deleted
+ * in the admin: each has a row, kept in step with its class (syncRegistered()).
  *
  * A view can ask for fields of its own, for what doesn't fit in a block (a background
  * image): pages drawn with it show them under the layout picker, and they're saved in the
@@ -29,6 +41,99 @@ class Layouts
      * @var array<string, Closure(): array<int, Component>|array<int, Component>>
      */
     protected static array $schemas = [];
+
+    /**
+     * Layouts defined in code, by handle.
+     *
+     * @var array<string, class-string<PageLayout>>
+     */
+    protected static array $registered = [];
+
+    /**
+     * Offer layouts defined in code. Their fields (PageLayout::schema()) are their views'.
+     *
+     * @param  array<int, class-string<PageLayout>>  $layouts
+     */
+    public static function register(array $layouts): void
+    {
+        foreach ($layouts as $class) {
+            if (! is_subclass_of($class, PageLayout::class)) {
+                throw new InvalidArgumentException("{$class} isn't a ".PageLayout::class.'.');
+            }
+
+            static::$registered[$class::handle()] = $class;
+            static::schema($class::view(), fn (): array => $class::schema());
+        }
+    }
+
+    /**
+     * @return array<string, class-string<PageLayout>>
+     */
+    public static function registered(): array
+    {
+        return static::$registered;
+    }
+
+    /**
+     * Stop offering a layout defined in code (a test).
+     */
+    public static function forget(string $handle): void
+    {
+        if (isset(static::$registered[$handle])) {
+            static::forgetSchema(static::$registered[$handle]::view());
+            unset(static::$registered[$handle]);
+        }
+    }
+
+    /**
+     * Whether the layout is defined in code that's still there.
+     */
+    public static function isRegistered(Layout $layout): bool
+    {
+        return $layout->isFromCode() && (static::$registered[$layout->handle] ?? null) === $layout->class;
+    }
+
+    /**
+     * Bring the layouts defined in code into the table, from Layout::cached(): added the first
+     * time, and changed when their class changes; nothing written otherwise. A layout added in
+     * the admin keeps its handle: one in code with the same handle isn't offered.
+     *
+     * @param  Collection<int, Layout>  $rows  every layout, as read
+     * @return bool whether any row was added or changed
+     */
+    public static function syncRegistered(Collection $rows): bool
+    {
+        if (static::$registered === [] || ! Layout::storesClasses()) {
+            return false;
+        }
+
+        $changed = false;
+
+        foreach (static::$registered as $handle => $class) {
+            $row = $rows->firstWhere('handle', $handle);
+
+            if ($row !== null && ! $row->isFromCode()) {
+                continue;
+            }
+
+            $attributes = ['name' => $class::name(), 'description' => $class::description(), 'icon' => $class::icon(), 'view' => $class::view(), 'class' => $class];
+
+            try {
+                if ($row === null) {
+                    Layout::query()->create([...$attributes, 'handle' => $handle, 'sort' => (int) $rows->max('sort') + 1, 'is_default' => $rows->isEmpty()]);
+                    $changed = true;
+                } elseif ($row->fill($attributes)->isDirty()) {
+                    $row->save();
+                    $changed = true;
+                }
+            } catch (UniqueConstraintViolationException) {
+                // Another request added it at the same moment.
+                $changed = true;
+            }
+        }
+
+        return $changed;
+    }
 
     /**
      * Give pages drawn with this view fields of their own. Registering a view again replaces
@@ -119,6 +224,11 @@ class Layouts
      */
     public static function put(?Layout $layout, array $data): Layout
     {
+        // A layout defined in code is its code's; it can only be made the default.
+        if ($layout?->isFromCode()) {
+            return ($data['is_default'] ?? false) ? static::makeDefault($layout) : $layout;
+        }
+
         $attributes = [
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
@@ -145,12 +255,23 @@ class Layouts
     }
 
     /**
+     * New pages, and pages without one of their own, get this layout; the one that was the
+     * default stops being it.
+     */
+    public static function makeDefault(Layout $layout): Layout
+    {
+        $layout->update(['is_default' => true]);
+
+        return $layout;
+    }
+
+    /**
      * Pages that used it go back to the default layout. The default itself stays: another
      * becomes the default first.
      */
     public static function remove(Layout $layout): bool
     {
-        if ($layout->is_default) {
+        if ($layout->is_default || $layout->isFromCode()) {
             return false;
         }
 

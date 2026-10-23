@@ -2086,5 +2086,9 @@
     ":count link leads nowhere (a page that isn’t live, or was removed): :links|:count links lead nowhere (pages that aren’t live, or were removed): :links": ":count link leads nowhere (a page that isn’t live, or was removed): :links|:count links lead nowhere (pages that aren’t live, or were removed): :links",
     ":count link goes through a redirect: link to the page’s address itself. :links|:count links go through a redirect: link to the pages’ addresses themselves. :links": ":count link goes through a redirect: link to the page’s address itself. :links|:count links go through a redirect: link to the pages’ addresses themselves. :links",
     ":count link has no text: search engines and screen readers can’t tell where it goes.|:count links have no text: search engines and screen readers can’t tell where they go.": ":count link has no text: search engines and screen readers can’t tell where it goes.|:count links have no text: search engines and screen readers can’t tell where they go.",
-    ":count image has no alt attribute at all: give it alt text, or alt=\"\" if it’s only decoration.|:count images have no alt attribute at all: give them alt text, or alt=\"\" if they’re only decoration.": ":count image has no alt attribute at all: give it alt text, or alt=\"\" if it’s only decoration.|:count images have no alt attribute at all: give them alt text, or alt=\"\" if they’re only decoration."
+    ":count image has no alt attribute at all: give it alt text, or alt=\"\" if it’s only decoration.|:count images have no alt attribute at all: give them alt text, or alt=\"\" if they’re only decoration.": ":count image has no alt attribute at all: give it alt text, or alt=\"\" if it’s only decoration.|:count images have no alt attribute at all: give them alt text, or alt=\"\" if they’re only decoration.",
+    "From code": "From code",
+    "Make default": "Make default",
+    "“:name” is the default layout": "“:name” is the default layout",
+    "Make default layout": "Make default layout"
 }

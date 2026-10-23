@@ -4,6 +4,7 @@ namespace Aurora\Tests\Feature;
 
 use Aurora\Filament\Resources\Pages\Pages\EditPage;
 use Aurora\Filament\Resources\Pages\Pages\ListPages;
+use Aurora\Layouts\PageLayout;
 use Aurora\Mcp\Servers\CmsServer;
 use Aurora\Mcp\Tools\CreatePage;
 use Aurora\Mcp\Tools\GetPage;
@@ -58,6 +59,7 @@ class LayoutsTest extends TestCase
     {
         Layouts::forgetSchema('fixtures::landing');
         Layouts::forgetSchema('fixtures::minimal');
+        Layouts::forget('spring');
         Model::preventAccessingMissingAttributes(false);
         File::delete(resource_path('views/layouts/campaign.blade.php'));
         File::deleteDirectory($this->views);
@@ -217,6 +219,67 @@ class LayoutsTest extends TestCase
         $this->assertSame(['tagline' => 'Up to 50% off', 'tone' => 'dark'], $page->fresh()->layoutSettings());
     }
 
+    public function test_a_layout_defined_in_code_is_offered_with_the_others_but_is_its_code_s(): void
+    {
+        Layouts::register([SpringLayout::class]);
+        Once::flush();
+
+        // Added the first time the layouts are read.
+        $this->assertContains('spring', Layout::cached()->pluck('handle')->all());
+        $spring = $this->layout('spring');
+        $this->assertTrue($spring->isFromCode());
+        $this->assertSame(['Spring campaign', 'fixtures::landing', SpringLayout::class], [$spring->name, $spring->view, $spring->class]);
+
+        // Pages pick it like any other, with its fields, and are drawn with its view.
+        $editor = $this->userWithRole('Editor');
+        $page = Page::factory()->published()->create(['slug' => 'spring', 'layout_id' => $spring->getKey(), 'settings' => ['layouts' => ['fixtures::landing' => ['tagline' => 'Bloom']]]]);
+        Livewire::actingAs($editor)->test(EditPage::class, ['record' => $page->getKey()])->assertFormFieldExists('settings.layouts.fixtures::landing.tagline');
+        $this->get('/spring')->assertOk()->assertSee('Landing: '.$page->title.' Bloom');
+
+        // In the dialog: from code, never edited or deleted there, but it can be the default.
+        $list = Livewire::actingAs($this->userWithRole(User::SUPER_ADMIN))->test(ListPages::class)->mountAction('layouts')->assertMountedActionModalSee('From code');
+        $list->assertActionDoesNotExist(TestAction::make('editLayout')->schemaComponent('layout-'.$spring->id, schema: 'mountedActionSchema0'))
+            ->assertActionDoesNotExist(TestAction::make('deleteLayout')->schemaComponent('layout-'.$spring->id, schema: 'mountedActionSchema0'))
+            ->callAction(TestAction::make('makeDefaultLayout')->schemaComponent('layout-'.$spring->id, schema: 'mountedActionSchema0'));
+
+        $this->assertTrue($spring->fresh()->is_default);
+        $this->assertFalse($this->layout('standard')->is_default);
+        $this->assertFalse(Layouts::remove($spring->fresh()));
+        Layouts::put($spring->fresh(), ['name' => 'Renamed', 'view' => 'fixtures::minimal']);
+        $this->assertSame('Spring campaign', $spring->fresh()->name);
+
+        // Its class changing changes it; its code going away takes it out of the offer.
+        Layouts::register([AutumnLayout::class]);
+        Once::flush();
+        Layout::cached();
+        $this->assertSame(['Autumn campaign', AutumnLayout::class], [$spring->fresh()->name, $spring->fresh()->class]);
+
+        Layouts::forget('spring');
+        Once::flush();
+        $this->assertNotContains('spring', Layout::cached()->pluck('handle')->all());
+        $this->assertSame('standard', $page->fresh()->layoutOrDefault()->handle);
+    }
+
+    public function test_a_layout_added_in_the_admin_keeps_its_handle_and_nothing_breaks_before_migrating(): void
+    {
+        // Added in the admin first: the one in code with its handle isn't offered.
+        Layouts::put(null, ['name' => 'Our spring', 'handle' => 'spring', 'view' => 'fixtures::minimal']);
+        Layouts::register([SpringLayout::class]);
+        Once::flush();
+        Layout::cached();
+        $this->assertSame(['Our spring', false], [$this->layout('spring')->name, $this->layout('spring')->isFromCode()]);
+        Layouts::forget('spring');
+
+        // Before the class column is there: only the layouts added in the admin.
+        $this->layout('spring')->delete();
+        Schema::table('layouts', fn (Blueprint $table) => $table->dropColumn('class'));
+        Layouts::register([SpringLayout::class]);
+        Once::flush();
+        Model::preventAccessingMissingAttributes();
+
+        $this->assertSame(['standard', 'landing', 'minimal', 'blank'], Layout::cached()->pluck('handle')->all());
+    }
+
     public function test_the_page_s_layout_is_picked_from_thumbnails_of_the_page_drawn_with_each(): void
     {
         $minimal = $this->layout('minimal');
@@ -309,5 +372,36 @@ class LayoutsTest extends TestCase
         $this->assertSame([], $page->layoutSettings());
         $this->assertArrayNotHasKey('settings', $page->toSnapshot());
         $this->get($page->previewUrl())->assertOk()->assertSee('Landing: Spring campaign');
+    }
+}
+
+class SpringLayout extends PageLayout
+{
+    public static function handle(): string
+    {
+        return 'spring';
+    }
+
+    public static function name(): string
+    {
+        return 'Spring campaign';
+    }
+
+    public static function view(): string
+    {
+        return 'fixtures::landing';
+    }
+
+    public static function schema(): array
+    {
+        return [TextInput::make('tagline')];
+    }
+}
+
+class AutumnLayout extends SpringLayout
+{
+    public static function name(): string
+    {
+        return 'Autumn campaign';
     }
 }

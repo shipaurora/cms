@@ -27,7 +27,8 @@ use Wallacemartinss\FilamentIconPicker\Forms\Components\IconPickerField;
 /**
  * The "Layouts" dialog, opened from the pages list's "More" menu: the layouts editors pick
  * for a page, one row each, changed one at a time in a dialog of their own. Each draws pages
- * with a Blade view (Aurora\Support\Layouts); changes save straight away.
+ * with a Blade view (Aurora\Support\Layouts); changes save straight away. Layouts defined in
+ * code are listed with the others and can be made the default, but are their code's to change.
  */
 trait ManagesLayouts
 {
@@ -66,11 +67,14 @@ trait ManagesLayouts
                         trans_choice(':count page|:count pages', (int) ($pages[$layout->getKey()] ?? 0)),
                     ])->filter()->implode(' · '))->size('sm'),
                 ]),
+                Text::make(__('From code'))->badge()->color('gray')->tooltip($layout->class)->visible($layout->isFromCode())->grow(false),
                 Text::make(__('Default'))->badge()->color('primary')->visible($layout->is_default)->grow(false),
-                Actions::make([
-                    $this->editLayoutAction($layout),
-                    $this->deleteLayoutAction($layout),
-                ])->key('layout-'.$layout->id)->grow(false),
+                // One defined in code is its code's: it can only be made the default.
+                Actions::make($layout->isFromCode()
+                    ? [$this->makeDefaultLayoutAction($layout)]
+                    : [$this->makeDefaultLayoutAction($layout), $this->editLayoutAction($layout), $this->deleteLayoutAction($layout)])
+                    ->key('layout-'.$layout->id)
+                    ->grow(false),
             ])->verticallyAlignCenter()->extraAttributes(['class' => 'cms-format-row']))->all())
                 ->extraAttributes(['class' => 'cms-format-list']),
             Actions::make([$this->editLayoutAction(null)])->key('add-layout'),
@@ -169,6 +173,23 @@ trait ManagesLayouts
                     ->title($isNew ? __('Added “:name”', ['name' => $data['name']]) : __('Saved “:name”', ['name' => $data['name']]))
                     ->success()
                     ->send();
+            });
+    }
+
+    protected function makeDefaultLayoutAction(Layout $layout): Action
+    {
+        return Action::make('makeDefaultLayout')
+            ->label(__('Make default'))
+            ->tooltip(__('Make default'))
+            ->icon('phosphor-star')
+            ->color('gray')
+            ->iconButton()
+            ->hidden($layout->is_default)
+            ->after(fn () => $this->refreshLayoutsDialog())
+            ->action(function () use ($layout): void {
+                Layouts::makeDefault($layout);
+
+                Notification::make()->title(__('“:name” is the default layout', ['name' => $layout->name]))->success()->send();
             });
     }
 
