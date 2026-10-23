@@ -396,6 +396,68 @@ class Page extends Model implements MenuPanelable
     }
 
     /**
+     * By address as it's shown (path()), in the content language: the homepage first, and
+     * each page followed by the pages under it. Addresses are made from the pages above, so
+     * they're worked out here, and the query takes their order by id.
+     */
+    #[Scope]
+    protected function orderByPath(Builder $query, string $direction = 'asc'): void
+    {
+        $ids = static::idsInPathOrder();
+
+        if ($ids === []) {
+            return;
+        }
+
+        $id = $query->getGrammar()->wrap($this->qualifyColumn($this->getKeyName()));
+        $cases = implode(' ', array_map(fn (int $position): string => "when ? then {$position}", array_keys($ids)));
+
+        $query->orderByRaw("case {$id} {$cases} else ".count($ids).' end '.($direction === 'desc' ? 'desc' : 'asc'), $ids);
+    }
+
+    /**
+     * Every page of the site, the bin's too, in the order of their addresses in a language.
+     *
+     * @return array<int, string>
+     */
+    public static function idsInPathOrder(?string $locale = null): array
+    {
+        $locale ??= ContentLocale::current();
+        $pages = static::query()->withTrashed()->get(['id', 'site_id', 'parent_id', 'slug', 'locales', 'is_homepage'])->keyBy('id');
+
+        // Not in this language: its address is in the one it's written in, which its translations tell.
+        $elsewhere = $pages->reject(fn (self $page): bool => $page->isAvailableIn($locale))->keys();
+
+        foreach ($elsewhere->isEmpty() ? [] : static::query()->withTrashed()->whereKey($elsewhere)->get(['id', 'block_translations']) as $full) {
+            $pages[$full->getKey()]->setRawAttributes([...$pages[$full->getKey()]->getAttributes(), 'block_translations' => $full->getAttributes()['block_translations']], sync: true);
+        }
+
+        // The pages above each one, from those already read: path() asks no more of the database.
+        foreach ($pages as $page) {
+            $page->setRelation('parent', $pages[$page->parent_id] ?? null);
+        }
+
+        $segments = $pages->map(fn (self $page): array => explode('/', trim($page->path($locale), '/')));
+
+        return $segments
+            ->sort(function (array $a, array $b): int {
+                foreach ($a as $index => $segment) {
+                    if (! isset($b[$index])) {
+                        return 1;
+                    }
+
+                    if (($compared = strnatcasecmp($segment, $b[$index])) !== 0) {
+                        return $compared;
+                    }
+                }
+
+                return count($a) <=> count($b);
+            })
+            ->keys()
+            ->all();
+    }
+
+    /**
      * By title as it's shown: in the content language, else the default one; ignoring case.
      */
     #[Scope]

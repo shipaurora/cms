@@ -22,6 +22,37 @@ class PageNestingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_the_pages_list_is_in_address_order_until_another_column_is_sorted(): void
+    {
+        $this->actingAs($this->userWithRole('Editor'));
+
+        // Made out of order, and titled unlike their addresses.
+        $us = Page::factory()->create(['title' => 'Alpha', 'slug' => 'about-us']);
+        $team = Page::factory()->create(['title' => 'Bravo', 'slug' => 'team']);
+        $about = Page::factory()->create(['title' => 'Delta', 'slug' => 'about']);
+        $team->update(['parent_id' => $about->id]);
+        $home = Page::factory()->homepage()->create(['title' => 'Echo']);
+        $contact = Page::factory()->create(['title' => 'Charlie', 'slug' => 'Contact']);
+
+        // /, /about, /about/team, /about-us, /Contact: each page followed by the ones under it.
+        $this->assertSame([$home->id, $about->id, $team->id, $us->id, $contact->id], Page::idsInPathOrder());
+
+        Livewire::test(ListPages::class)
+            ->assertCanSeeTableRecords([$home, $about, $team, $us, $contact], inOrder: true)
+            // The title still sorts by title.
+            ->sortTable('title')
+            ->assertCanSeeTableRecords([$us, $team, $contact, $about, $home], inOrder: true);
+
+        // In another language, by its addresses there: /nb/kontakt before /nb/om-oss.
+        $this->withEnglishAndNorwegian();
+        $about->setTranslation('slug', 'nb', 'om-oss')->save();
+        $contact->setTranslation('slug', 'nb', 'kontakt')->save();
+        $us->setTranslation('slug', 'nb', 'om-oss-alle')->save();
+        $team->setTranslation('slug', 'nb', 'laget')->save();
+
+        $this->assertSame([$home->id, $contact->id, $about->id, $team->id, $us->id], Page::idsInPathOrder('nb'));
+    }
+
     public function test_a_subpage_is_found_under_its_parents_address(): void
     {
         $docs = Page::factory()->published()->create(['slug' => 'docs']);

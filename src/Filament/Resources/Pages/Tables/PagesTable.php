@@ -40,7 +40,8 @@ class PagesTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->defaultSort('updated_at', 'desc')
+            // By address, as each title shows it: the homepage first, each page followed by its subpages.
+            ->defaultSort(fn (Builder $query, string $direction): Builder => $query->orderByPath($direction))
             ->recordUrl(fn (Page $record): ?string => PageResource::canEdit($record) ? PageResource::getUrl('edit', ['record' => $record]) : null)
             // Who last edited each row, loaded with the rows.
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['lastEditor', 'workingCopyBy']))
