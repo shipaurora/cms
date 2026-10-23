@@ -46,12 +46,41 @@ class CanvasStylesTest extends TestCase
         $this->assertSame(
             '@layer theme, base;'
             .'@layer theme{@scope (.fpb-canvas){:scope{ --font-body: Inter; }}}'
-            .'@scope (.fpb-canvas){:scope.dark .hero,.card{ color: red; }}'
-            .'@media (min-width: 40rem){@scope (.fpb-canvas){.card::after{ content: "{;}"; }}}'
+            .'@scope (.fpb-canvas){:scope.dark > .hero,.card{ color: red; }}'
+            .'@container fpb-canvas (min-width: 40rem){@scope (.fpb-canvas){.card::after{ content: "{;}"; }}}'
             .'@keyframes fade{ from { opacity: 0; } }'
             .'@font-face{ font-family: Inter; }',
             $css,
         );
+    }
+
+    public function test_the_canvas_is_painted_and_sized_as_the_site_s_page(): void
+    {
+        $css = CanvasStyles::scope(<<<'CSS'
+            @layer base { html, body { background-color: var(--color-zinc-950); color: #fafafa } }
+            .fpb-canvas > .fpb-block + .fpb-block { margin-top: 2rem }
+            body > .fpb-block { padding: 1rem }
+            .text-\[9vw\] { font-size: 9vw; width: calc(100svw - 2rem) }
+            @media (width >= 48rem) { .md\:flex { display: flex } }
+            @media screen and (min-width: 40rem) and (max-width: 64rem), (width < 20rem) { .a { color: red } }
+            @media (prefers-color-scheme: dark) { .b { color: white } }
+            @media print { .c { display: none } }
+            @media (min-width: 40rem) and (hover: hover) { .d { color: red } }
+            CSS);
+
+        // The page's colours are the canvas's, though they're in a layer.
+        $this->assertStringContainsString(':scope{ background-color: var(--color-zinc-950); color: #fafafa ;--fpb-canvas-bg:var(--color-zinc-950);--fpb-canvas-fg:#fafafa;}', $css);
+        // The canvas by name is the scope, and combinators are kept.
+        $this->assertStringContainsString(':scope > .fpb-block + .fpb-block{', $css);
+        $this->assertStringContainsString(':scope > .fpb-block{', $css);
+        // Widths of the window are the canvas's, in values only.
+        $this->assertStringContainsString('.text-\[9vw\]{ font-size: 9cqw; width: calc(100cqw - 2rem) }', $css);
+        $this->assertStringContainsString('@container fpb-canvas (width >= 48rem){', $css);
+        $this->assertStringContainsString('@container fpb-canvas (min-width: 40rem) and (max-width: 64rem) or (width < 20rem){', $css);
+        // Anything else asked of the window stays a media query.
+        $this->assertStringContainsString('@media (prefers-color-scheme: dark){', $css);
+        $this->assertStringContainsString('@media print{', $css);
+        $this->assertStringContainsString('@media (min-width: 40rem) and (hover: hover){', $css);
     }
 
     public function test_the_canvas_loads_the_website_s_built_stylesheet_scoped_to_it(): void
@@ -70,7 +99,7 @@ class CanvasStylesTest extends TestCase
             ->assertOk()
             ->assertHeader('Content-Type', 'text/css; charset=UTF-8')
             ->assertHeader('Cache-Control', 'immutable, max-age=31536000, private')
-            ->assertContent('@scope (.fpb-canvas){:scope{color:red}}');
+            ->assertContent('@scope (.fpb-canvas){:scope{color:red;--fpb-canvas-fg:red;}}');
     }
 
     public function test_while_vite_runs_the_canvas_takes_the_stylesheet_from_the_dev_server(): void

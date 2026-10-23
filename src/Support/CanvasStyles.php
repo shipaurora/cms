@@ -15,8 +15,15 @@ use Throwable;
  * they do on the website, whatever the site builds its CSS with. The canvas sits inside the
  * admin page, so its rules are wrapped in @scope first: they apply only inside the canvas,
  * just as they would on the website, and what they say of the page itself (:root, html,
- * body) they say of the canvas. Found through Vite (config('aurora.website_css')): the built
- * file, or the dev server while it runs.
+ * body, or the canvas by name) they say of the canvas, keeping how what follows relates to
+ * it (body > .fpb-block is a block straight in the canvas). Found through Vite
+ * (config('aurora.website_css')): the built file, or the dev server while it runs.
+ *
+ * The canvas is narrower than the admin window, and the device previews narrower still: the
+ * site's width breakpoints (@media (width >= 48rem)) are asked of the canvas instead
+ * (@container), and vw sizes are the canvas's width (cqw). The page's background and text
+ * colour become the canvas's (--fpb-canvas-bg, --fpb-canvas-fg), which a site's colours in a
+ * cascade layer (Tailwind's @layer base) wouldn't otherwise outweigh.
  */
 class CanvasStyles
 {
@@ -24,6 +31,11 @@ class CanvasStyles
      * The element the website's styles are scoped to.
      */
     public const ROOT = '.fpb-canvas';
+
+    /**
+     * The canvas as a container (the page builder's container-name): width breakpoints ask it.
+     */
+    public const CONTAINER = 'fpb-canvas';
 
     /**
      * At-rules whose blocks hold rules to scope; any other block (@keyframes, @font-face,
@@ -156,12 +168,15 @@ class CanvasStyles
             [$body, $i] = static::readBlock($css, $i);
 
             if (! str_starts_with($prelude, '@')) {
-                $rules .= implode(',', array_unique(array_map(static::scopeSelector(...), static::splitSelectors($prelude)))).'{'.$body.'}';
+                $selectors = array_unique(array_map(static::scopeSelector(...), static::splitSelectors($prelude)));
+                $body = static::canvasWidths($body);
+                $rules .= implode(',', $selectors).'{'.$body.(in_array(':scope', $selectors, true) ? static::canvasColours($body) : '').'}';
 
                 continue;
             }
 
             $name = strtolower((string) preg_replace('/^@(?:-[a-z]+-)?([a-z-]+).*$/s', '$1', $prelude));
+            $prelude = $name === 'media' ? static::containerQuery($prelude) : $prelude;
             $out .= static::scoped($rules, $root).$prelude.'{'.(in_array($name, self::GROUPING, true) ? static::scopeBlock($body, $root) : $body).'}';
             $rules = '';
         }
@@ -178,19 +193,22 @@ class CanvasStyles
     }
 
     /**
-     * One selector, for inside the canvas: the page itself (:root, :host, html, body) is the
-     * canvas, keeping what qualifies it (html.dark is the canvas with that class, which it
-     * never has: the canvas shows the site as visitors first see it).
+     * One selector, for inside the canvas: the page itself (:root, :host, html, body, or the
+     * canvas by name) is the canvas, keeping what qualifies it (html.dark is the canvas with
+     * that class, which it never has: the canvas shows the site as visitors first see it) and
+     * how the rest relates to it (body > .fpb-block: a block straight in the canvas).
      */
     protected static function scopeSelector(string $selector): string
     {
         $selector = trim($selector);
         $page = false;
         $qualifiers = '';
+        $combinator = '';
 
-        while (preg_match('/^(?::root|:host|html|body)(?![\w-])([^\s>+~]*)\s*>?\s*/i', $selector, $match)) {
+        while (preg_match('/^(?::root|:host|html|body|'.preg_quote(self::ROOT, '/').')(?![\w-])([^\s>+~]*)\s*([>+~]?)\s*/i', $selector, $match)) {
             $page = true;
             $qualifiers .= $match[1];
+            $combinator = $match[2];
             $selector = substr($selector, strlen($match[0]));
         }
 
@@ -198,7 +216,80 @@ class CanvasStyles
             return $selector;
         }
 
-        return ':scope'.$qualifiers.($selector === '' ? '' : ' '.$selector);
+        return ':scope'.$qualifiers.($selector === '' ? '' : ' '.($combinator === '' ? '' : $combinator.' ').$selector);
+    }
+
+    /**
+     * The page's background and text colour, as the canvas's: the page builder paints the
+     * canvas with these variables, in a rule no cascade layer outweighs.
+     */
+    protected static function canvasColours(string $body): string
+    {
+        $colours = '';
+
+        foreach (static::declarations($body) as $property => $value) {
+            $colours .= match ($property) {
+                'background', 'background-color' => '--fpb-canvas-bg:'.$value.';',
+                'color' => '--fpb-canvas-fg:'.$value.';',
+                default => '',
+            };
+        }
+
+        return $colours === '' ? '' : (str_ends_with(rtrim($body), ';') || trim($body) === '' ? '' : ';').$colours;
+    }
+
+    /**
+     * A rule's own declarations, property => value (nested rules left out).
+     *
+     * @return array<string, string>
+     */
+    protected static function declarations(string $body): array
+    {
+        $declarations = [];
+
+        foreach (explode(';', str_contains($body, '{') ? '' : $body) as $declaration) {
+            [$property, $value] = array_pad(explode(':', $declaration, 2), 2, null);
+
+            if ($value !== null && trim($value) !== '') {
+                $declarations[strtolower(trim($property))] = trim($value);
+            }
+        }
+
+        return $declarations;
+    }
+
+    /**
+     * A media query that only asks the window's width, asked of the canvas instead: the
+     * device previews show the site's tablet and mobile layouts. Any other query (print,
+     * prefers-color-scheme, hover) is left as it is.
+     */
+    protected static function containerQuery(string $prelude): string
+    {
+        $query = trim((string) preg_replace('/^@media\s+/i', '', $prelude));
+        $query = (string) preg_replace('/^(?:only\s+)?(?:screen|all)\s+and\s+/i', '', $query);
+        $conditions = preg_split('/\s+and\s+|\s+or\s+|\s*,\s*/i', $query) ?: [];
+
+        foreach ($conditions as $condition) {
+            if (! preg_match('/^\(\s*(?:(?:min-|max-)?width\s*:[^()]+|[^()]*\bwidth\b[^()]*)\)$/i', trim($condition)) || preg_match('/device-width|height|aspect/i', $condition)) {
+                return $prelude;
+            }
+        }
+
+        // A list (,) is "or" for a container.
+        return '@container '.self::CONTAINER.' '.preg_replace('/\s*,\s*/', ' or ', $query);
+    }
+
+    /**
+     * Sizes in parts of the window's width (vw, and vmin and vmax) as parts of the canvas's,
+     * in the rule's own declarations: never in a selector (a class like .text-\[9vw\]).
+     */
+    protected static function canvasWidths(string $body): string
+    {
+        if (str_contains($body, '{')) {
+            return $body;
+        }
+
+        return (string) preg_replace_callback('/(?<=[\d.])(s|l|d)?v(w|min|max)\b/i', fn (array $unit): string => 'cq'.strtolower($unit[2]), $body);
     }
 
     /**
