@@ -26,10 +26,17 @@ use Spatie\MediaLibrary\MediaCollections\FileAdder;
 class AssetLibrary
 {
     /**
-     * @param  array<string, mixed>  $attributes
+     * A file into the library (an import's). With an "id" (a UUID, say one kept from the
+     * source), running the import again finds the asset it added instead of a second copy.
+     *
+     * @param  array<string, mixed>  $attributes  title, alt, caption, credit, folder (a path) or folder_id, id
      */
     public static function fromFile(string $path, array $attributes = []): Asset
     {
+        if (filled($attributes['id'] ?? null) && ($existing = Asset::query()->find($attributes['id'])) !== null) {
+            return $existing;
+        }
+
         return static::store($attributes, fn (Asset $asset) => $asset->addMedia($path)->preservingOriginal(), basename($path), $path);
     }
 
@@ -51,7 +58,8 @@ class AssetLibrary
         $size = static::imageSize($localPath);
 
         $asset = DB::transaction(function () use ($attributes, $adder, $title, $size): Asset {
-            $asset = Asset::query()->create([
+            $asset = Asset::query()->forceCreate([
+                ...(filled($attributes['id'] ?? null) ? ['id' => (string) $attributes['id']] : []),
                 'uploaded_by_id' => auth()->id(),
                 ...Arr::only($attributes, ['alt', 'caption', 'credit', 'folder_id']),
                 // A folder may also be given as a path ("Photos/Norway"), created when missing.

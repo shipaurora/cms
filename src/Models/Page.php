@@ -6,6 +6,7 @@ use Aurora\Database\Factories\PageFactory;
 use Aurora\Enums\PageStatus;
 use Aurora\Events\PagePublished;
 use Aurora\Models\Concerns\BelongsToSite;
+use Aurora\Models\Concerns\HasPublishing;
 use Aurora\Observers\PageObserver;
 use Aurora\Support\BlockTranslations;
 use Aurora\Support\ContentLocale;
@@ -43,7 +44,7 @@ use Spatie\Translatable\HasTranslations;
 class Page extends Model implements MenuPanelable
 {
     /** @use HasFactory<PageFactory> */
-    use BelongsToSite, HasBlocks, HasFactory, HasTranslations, Searchable, SoftDeletes;
+    use BelongsToSite, HasBlocks, HasFactory, HasPublishing, HasTranslations, Searchable, SoftDeletes;
 
     // Pages are found by id in the admin and by address on the website (whereSlug).
     use HasTranslatableSlug, HasUuids {
@@ -231,14 +232,16 @@ class Page extends Model implements MenuPanelable
 
     /**
      * The page's settings with these values in a layout's fields (the page's own layout, by
-     * default), for saving: the layout's other fields and other views' settings are kept.
+     * default, or a layout or its handle), for saving: the layout's other fields and other
+     * views' settings are kept.
      *
      * @param  array<string, mixed>  $values
      * @return array<string, mixed>
      */
-    public function settingsWithLayoutValues(array $values, ?Layout $layout = null): array
+    public function settingsWithLayoutValues(array $values, Layout|string|null $layout = null): array
     {
         $settings = $this->settings();
+        $layout = is_string($layout) ? Layout::cached()->firstWhere('handle', $layout) : $layout;
         $view = ($layout ?? $this->layoutOrDefault())?->view;
 
         if (filled($view)) {
@@ -351,33 +354,12 @@ class Page extends Model implements MenuPanelable
     /* ── Scopes ────────────────────────────────────────── */
 
     /**
-     * Pages a visitor may see: published, the publish date has arrived, and the unpublish
-     * date (if any) hasn't.
-     */
-    #[Scope]
-    protected function live(Builder $query): void
-    {
-        $query->where('status', PageStatus::Published)
-            ->where(fn (Builder $query) => $query->whereNull('published_at')->orWhere('published_at', '<=', now()))
-            ->where(fn (Builder $query) => $query->whereNull('unpublish_at')->orWhere('unpublish_at', '>', now()));
-    }
-
-    /**
      * Live pages anyone may see: not behind a password or sign-in (the website’s APIs, search).
      */
     #[Scope]
     protected function public(Builder $query): void
     {
         $query->live()->whereNull('password')->where('members_only', false);
-    }
-
-    /**
-     * Published pages whose unpublish date has passed.
-     */
-    #[Scope]
-    protected function ended(Builder $query): void
-    {
-        $query->where('status', PageStatus::Published)->where('unpublish_at', '<=', now());
     }
 
     /**
@@ -471,25 +453,7 @@ class Page extends Model implements MenuPanelable
 
     /* ── State ─────────────────────────────────────────── */
 
-    public function isLive(): bool
-    {
-        return $this->status === PageStatus::Published
-            && ($this->published_at === null || $this->published_at->isPast())
-            && ! $this->hasEnded();
-    }
-
-    /**
-     * Published, but its unpublish date has passed: it came down by itself.
-     */
-    public function hasEnded(): bool
-    {
-        return $this->status === PageStatus::Published && $this->unpublish_at !== null && ! $this->unpublish_at->isFuture();
-    }
-
-    public function isScheduled(): bool
-    {
-        return $this->status === PageStatus::Published && $this->published_at?->isFuture();
-    }
+    // Live, scheduled and ended: HasPublishing.
 
     /**
      * Changes to the live page that aren't on the website yet (Aurora\Support\WorkingCopies).

@@ -30,10 +30,12 @@ use Aurora\Models\Page;
 use Aurora\Models\Setting;
 use Aurora\Models\Site;
 use Aurora\Models\User;
+use Aurora\Support\AdminPanel;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\Copilot;
 use Aurora\Support\CopilotTools;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\Menus;
 use Aurora\Support\PaletteCommands;
 use Aurora\Support\Themes;
 use CarlJanzell\FilamentPageBuilder\FilamentPageBuilderPlugin;
@@ -166,17 +168,21 @@ class AdminPanelProvider extends PanelProvider
             // Not on the pages that make people add a passkey or an authenticator app first.
             ->databaseNotifications(fn (): bool => ! request()->routeIs('filament.admin.auth.*'))
             ->databaseNotificationsPolling('30s')
-            ->navigationGroups([
+            ->navigationGroups(AdminPanel::navigationGroups([
                 // Daily work first; set-up and administration last, with Settings at the very end.
-                // Keyed by the name resources use; labelled in the person's language.
+                // Keyed by the name resources use; labelled in the person's language. The
+                // website's own groups (AdminPanel::navigationGroup()) go among them.
                 'Content' => NavigationGroup::make()->label(fn (): string => __('Content'))->icon(null),
                 'AI' => NavigationGroup::make()->label(fn (): string => __('AI'))->icon(null),
                 'Administration' => NavigationGroup::make()->label(fn (): string => __('Administration'))->icon(null),
-            ])
+            ]))
             ->discoverResources(in: __DIR__.'/../Filament/Resources', for: 'Aurora\Filament\Resources')
             ->discoverPages(in: __DIR__.'/../Filament/Pages', for: 'Aurora\Filament\Pages')
+            // The website's own screens (AdminPanel::resources(), ::pages(), ::discover()).
+            ->resources(AdminPanel::registeredResources())
             ->pages([
                 Dashboard::class,
+                ...AdminPanel::registeredPages(),
             ])
             ->discoverWidgets(in: __DIR__.'/../Filament/Widgets', for: 'Aurora\Filament\Widgets')
             ->widgets([])
@@ -196,7 +202,7 @@ class AdminPanelProvider extends PanelProvider
                         'width' => ['narrow' => 'Narrow', 'default' => 'Default', 'wide' => 'Wide', 'full' => 'Full'],
                         'align' => ['start' => 'Start', 'center' => 'Centre', 'end' => 'End'],
                     ])
-                                        // The page builder's own shortcodes, which come with its blocks when it adds them itself.
+                    // The page builder's own shortcodes, which come with its blocks when it adds them itself.
                     ->shortcode('year', fn (): string => date('Y'), fn (): string => __('page-builder::blocks.shortcode.builtin_year'), '[year]')
                     ->shortcode('date', fn (array $attributes): string => e(now()->format(is_string($attributes['format'] ?? null) ? $attributes['format'] : 'F j, Y')), fn (): string => __('page-builder::blocks.shortcode.builtin_date'), '[date format="F j, Y"]')
                     ->shortcode('site_name', fn (): string => e(Setting::get('site_name', config('app.name'))), fn (): string => __('The site name from Site settings.'), '[site_name]')
@@ -222,6 +228,8 @@ class AdminPanelProvider extends PanelProvider
                             ->collapsed()
                             ->add('Home', '/')
                             ->add('Sitemap', '/sitemap.xml'),
+                        // The website's own (Aurora\Support\Menus::panels()).
+                        ...Menus::registeredPanels(),
                     ])
                     ->showCustomLinkPanel(true)
                     ->showCustomTextPanel(true)

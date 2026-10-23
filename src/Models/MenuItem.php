@@ -3,6 +3,7 @@
 namespace Aurora\Models;
 
 use Aurora\Support\ContentLocale;
+use Aurora\Support\Menus;
 use Aurora\Support\SafeUrl;
 use Datlechin\FilamentMenuBuilder\Models\MenuItem as BaseMenuItem;
 use Illuminate\Database\Eloquent\Builder;
@@ -63,9 +64,16 @@ class MenuItem extends BaseMenuItem
     /**
      * The package's link (a page's address, or the one typed in), never an unsafe one
      * (javascript: and the like): those were refused when saved, and are dropped here too.
+     * One to the website's own section in every language (Menus::localized()) goes to the
+     * language being shown.
      */
     protected function url(): Attribute
     {
-        return Attribute::get(fn (?string $value): ?string => SafeUrl::href(parent::url()->get->__invoke($value)));
+        return Attribute::get(function (?string $value): ?string {
+            $url = parent::url()->get->__invoke($value);
+
+            // A page's own address is in the language already; a typed-in one may need it.
+            return SafeUrl::href(blank($this->getAttributes()['linkable_type'] ?? null) ? Menus::localize($url) : $url);
+        });
     }
 }

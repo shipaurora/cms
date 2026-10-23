@@ -11,6 +11,7 @@ use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\Layouts;
 use Aurora\Support\PagePassword;
+use Aurora\Support\Sitemap;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -107,7 +108,7 @@ class PageController
         $pages = Page::query()->live()->where('noindex', false)->whereNull('password')->where('members_only', false)->latest('updated_at')->get();
 
         return response()
-            ->view('aurora::sitemap', ['pages' => $pages])
+            ->view('aurora::sitemap', ['pages' => $pages, 'entries' => Sitemap::entries()])
             ->header('Content-Type', 'application/xml');
     }
 

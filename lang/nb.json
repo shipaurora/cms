@@ -2091,6 +2091,8 @@
     "Make default": "Gjør til standard",
     "“:name” is the default layout": "«:name» er standardoppsettet",
     "Make default layout": "Gjør til standardoppsett",
+    "Scheduled: it goes live automatically at this time.": "Planlagt: publiseres automatisk på dette tidspunktet.",
+    "It comes down by itself at this time.": "Tas ned av seg selv på dette tidspunktet.",
     "Same in :language": "Lik på :language",
     "The text stays as it is in this language, and counts as translated.": "Teksten blir stående som den er på dette språket, og regnes som oversatt.",
     "Keep block text": "Behold blokkteksten"
