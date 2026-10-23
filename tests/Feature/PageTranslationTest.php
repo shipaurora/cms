@@ -97,6 +97,41 @@ class PageTranslationTest extends TestCase
         $this->get($page->url('en'))->assertSee('Small team, big craft')->assertDontSee('Lite team');
     }
 
+    public function test_text_the_same_in_both_languages_is_kept_as_its_translation(): void
+    {
+        $page = $this->page();
+        [$first, $second] = collect($page->blocks)->pluck('id')->all();
+        $this->actingAs($this->userWithRole(User::SUPER_ADMIN));
+
+        Livewire::test(DesignPage::class, ['record' => $page->getRouteKey(), 'language' => 'nb'])
+            ->call('setBlockField', $first, 'text', 'Lite team, stort håndverk')
+            ->call('selectBlock', $second)
+            ->assertSee('Same in Norsk bokmål')
+            ->call('keepBlockText', $second)
+            ->assertSee('Fully translated')
+            ->assertSet('isDirty', true)
+            ->call('save');
+
+        $page->refresh()->publishWorkingCopy();
+        $this->assertSame([$first => ['text' => 'Lite team, stort håndverk'], $second => ['text' => 'Since 2014']], $page->refresh()->block_translations['nb']);
+        $this->assertSame(0, BlockTranslations::missing($page->blocks, $page->block_translations['nb']));
+
+        // Still translated the next time, and kept through another save.
+        Livewire::test(DesignPage::class, ['record' => $page->getRouteKey(), 'language' => 'nb'])
+            ->assertSee('Fully translated')
+            ->call('setBlockField', $first, 'text', 'Lite team')
+            ->call('save');
+
+        $page->refresh()->publishWorkingCopy();
+        $this->assertSame('Since 2014', $page->refresh()->block_translations['nb'][$second]['text']);
+    }
+
+    public function test_a_list_of_chosen_records_is_the_same_in_every_language(): void
+    {
+        $this->assertFalse((fn (array $field): bool => static::isText($field))->call(new BlockTranslations, ['type' => 'list of objects', 'item_fields' => [['name' => 'event', 'type' => 'choice']]]));
+        $this->assertTrue((fn (array $field): bool => static::isText($field))->call(new BlockTranslations, ['type' => 'list of objects', 'item_fields' => [['name' => 'question', 'type' => 'text']]]));
+    }
+
     public function test_the_whole_page_is_translated_with_ai_for_review(): void
     {
         Setting::put(['copilot' => ['provider' => 'anthropic', 'model' => 'claude-sonnet-5-5']]);

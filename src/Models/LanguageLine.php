@@ -21,13 +21,26 @@ class LanguageLine extends SpatieLanguageLine
     ];
 
     /**
-     * Only this locale's own text. (The package falls back to the fallback locale here,
-     * which would put an English override over a package's own Norwegian text.) Laravel
-     * still falls back to the default language for labels missing in a locale.
+     * This locale's text as edited in the admin, laid over the lang files (TranslationLoader).
+     * Text still as it was imported follows the files instead, where the app's own beat
+     * Aurora's and the packages': a site's "Events": "Events" in its lang/nb.json is its
+     * label straight away, without importing, whatever Aurora's says. Only this locale's
+     * own (the package falls back to the fallback locale here, which would put an English
+     * override over a package's own Norwegian text).
      */
     public function getTranslation(string $locale): ?string
     {
-        return $this->text[$locale] ?? null;
+        $text = $this->text[$locale] ?? null;
+
+        return $text !== null && $text !== ($this->imported[$locale] ?? null) ? $text : null;
+    }
+
+    /**
+     * Versioned: caches from when every imported text was laid over the files aren't read.
+     */
+    public static function getCacheKey(string $group, string $locale): string
+    {
+        return 'aurora.translation-loader.v2.'.$group.'.'.$locale;
     }
 
     /**

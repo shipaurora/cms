@@ -8,6 +8,7 @@ use Aurora\Enums\RevisionSource;
 use Aurora\Filament\Resources\Pages\Concerns\TranslatesBlocks;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Support\BlockTranslations;
+use Aurora\Support\ContentLocale;
 use Aurora\Support\EditLocks;
 use Aurora\Support\InlineRichText;
 use Aurora\Support\Layouts;
@@ -25,6 +26,7 @@ use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Illuminate\Support\Js;
 use Illuminate\Support\Str;
@@ -137,6 +139,18 @@ class DesignPage extends BaseDesignPage
 
         if ($this->isTranslating() && $components !== []) {
             $this->lockSharedFields($components, (string) $this->selectedBlockType());
+
+            // Text that's the same in this language (a name, a title): translated as it is.
+            array_unshift($components, Actions::make([
+                Action::make('keepBlockText')
+                    ->label(__('Same in :language', ['language' => ContentLocale::all()[$this->language] ?? $this->language]))
+                    ->icon('phosphor-equals')
+                    ->color('gray')
+                    ->size('sm')
+                    ->tooltip(__('The text stays as it is in this language, and counts as translated.'))
+                    ->visible(fn (): bool => in_array($this->selectedId, $this->untranslatedBlockIds(), true))
+                    ->action(fn () => $this->keepBlockText((string) $this->selectedId)),
+            ])->key('keep-block-text'));
         }
 
         return $components;

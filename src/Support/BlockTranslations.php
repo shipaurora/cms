@@ -34,10 +34,25 @@ class BlockTranslations
         $same = $block !== null ? $block::sameInEveryLanguage() : [];
 
         return static::$fields[$type] ??= collect(BlockCatalogue::describe($type)['fields'] ?? [])
-            ->filter(fn (array $field): bool => in_array($field['type'], self::TEXT_TYPES, true) && ! str_ends_with($field['name'], '_url') && ! in_array($field['name'], $same, true))
+            ->filter(fn (array $field): bool => static::isText($field) && ! str_ends_with($field['name'], '_url') && ! in_array($field['name'], $same, true))
             ->pluck('name')
             ->values()
             ->all();
+    }
+
+    /**
+     * Whether a described field holds text: a list of items only when its items have some
+     * (a list of chosen records' ids is the same in every language).
+     *
+     * @param  array<string, mixed>  $field
+     */
+    protected static function isText(array $field): bool
+    {
+        if (! in_array($field['type'] ?? null, self::TEXT_TYPES, true)) {
+            return false;
+        }
+
+        return ($field['type'] !== 'list of objects') || collect($field['item_fields'] ?? [])->contains(fn (array $item): bool => static::isText($item));
     }
 
     /**
@@ -66,14 +81,17 @@ class BlockTranslations
 
     /**
      * A language's text from blocks edited in that language: every text field that differs
-     * from the structure's own. Anything else that changed (blocks added, moved or restyled)
-     * is not kept: the structure is shared and edited in the page's own language.
+     * from the structure's own, and text the same in both that was confirmed as its
+     * translation ($same: "<block id>.<field>", a name or a title that doesn't change).
+     * Anything else that changed (blocks added, moved or restyled) is not kept: the structure
+     * is shared and edited in the page's own language.
      *
      * @param  array<int, array<string, mixed>>  $structure
      * @param  array<int, array<string, mixed>>  $translated
+     * @param  array<int, string>  $same
      * @return array<string, array<string, mixed>>
      */
-    public static function extract(array $structure, array $translated): array
+    public static function extract(array $structure, array $translated, array $same = []): array
     {
         $original = collect($structure)->keyBy('id');
         $translations = [];
@@ -88,13 +106,37 @@ class BlockTranslations
             foreach (static::fieldsOf((string) $source['type']) as $field) {
                 $value = $block['data'][$field] ?? null;
 
-                if (filled($value) && $value !== ($source['data'][$field] ?? null)) {
+                if (filled($value) && ($value !== ($source['data'][$field] ?? null) || in_array($source['id'].'.'.$field, $same, true))) {
                     $translations[$source['id']][$field] = $value;
                 }
             }
         }
 
         return $translations;
+    }
+
+    /**
+     * The translations that are the same as the page's own text: confirmed as such, they
+     * stay translated ("<block id>.<field>", as extract() takes them).
+     *
+     * @param  array<int, array<string, mixed>>  $structure
+     * @param  array<string, array<string, mixed>>  $translations
+     * @return array<int, string>
+     */
+    public static function sameAsSource(array $structure, array $translations): array
+    {
+        $original = collect($structure)->keyBy('id');
+        $same = [];
+
+        foreach ($translations as $id => $fields) {
+            foreach ((array) $fields as $field => $value) {
+                if (filled($value) && $value === ($original->get($id)['data'][$field] ?? null)) {
+                    $same[] = $id.'.'.$field;
+                }
+            }
+        }
+
+        return $same;
     }
 
     /**

@@ -2090,5 +2090,8 @@
     "From code": "Fra kode",
     "Make default": "Gjør til standard",
     "“:name” is the default layout": "«:name» er standardoppsettet",
-    "Make default layout": "Gjør til standardoppsett"
+    "Make default layout": "Gjør til standardoppsett",
+    "Same in :language": "Lik på :language",
+    "The text stays as it is in this language, and counts as translated.": "Teksten blir stående som den er på dette språket, og regnes som oversatt.",
+    "Keep block text": "Behold blokkteksten"
 }

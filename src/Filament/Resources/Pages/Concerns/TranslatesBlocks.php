@@ -33,6 +33,21 @@ use Throwable;
  */
 trait TranslatesBlocks
 {
+    /**
+     * Text kept the same as the page's own language's on purpose ("<block id>.<field>"):
+     * translated, though it doesn't differ.
+     *
+     * @var array<int, string>
+     */
+    #[Locked]
+    public array $sameText = [];
+
+    /**
+     * @var array<int, string>
+     */
+    #[Locked]
+    public array $savedSameText = [];
+
     #[Locked]
     #[Url]
     public ?string $language = null;
@@ -91,8 +106,51 @@ trait TranslatesBlocks
         $page = $this->getRecord();
 
         $this->blocks = $this->prepareBlocks($page->localizedBlocks($this->language));
+        $this->sameText = BlockTranslations::sameAsSource($this->prepareBlocks($page->blocks ?? []), $page->block_translations[$this->language] ?? []);
         $this->history()->clear();
         $this->markSaved();
+    }
+
+    /**
+     * Keep a block's text as the page's own language's in the one being translated into: a
+     * name or a title that's the same in both, counted as translated from now on.
+     */
+    public function keepBlockText(string $id): void
+    {
+        $index = $this->indexOf($id);
+
+        if (! $this->isTranslating() || $index === null) {
+            return;
+        }
+
+        $source = collect($this->prepareBlocks($this->getRecord()->blocks ?? []))->firstWhere('id', $id);
+
+        foreach (BlockTranslations::fieldsOf((string) $this->blocks[$index]['type']) as $field) {
+            $value = $this->blocks[$index]['data'][$field] ?? null;
+
+            if (filled($value) && $value === ($source['data'][$field] ?? null) && ! in_array("{$id}.{$field}", $this->sameText, true)) {
+                $this->sameText[] = "{$id}.{$field}";
+            }
+        }
+
+        $this->syncDirty();
+    }
+
+    /**
+     * Unsaved: blocks changed, or text kept the same since the last save.
+     */
+    protected function syncDirty(): void
+    {
+        parent::syncDirty();
+
+        $this->isDirty = $this->isDirty || $this->sameText !== $this->savedSameText;
+    }
+
+    protected function markSaved(): void
+    {
+        parent::markSaved();
+
+        $this->savedSameText = $this->sameText;
     }
 
     protected function saveTranslation(): void
@@ -112,7 +170,7 @@ trait TranslatesBlocks
         RevisionContext::as(RevisionSource::Canvas, 'Translated into '.ContentLocale::all()[$this->language], function () use ($page): void {
             $page->block_translations = [
                 ...($page->block_translations ?? []),
-                $this->language => BlockTranslations::extract($this->prepareBlocks($page->blocks ?? []), $this->blocks),
+                $this->language => BlockTranslations::extract($this->prepareBlocks($page->blocks ?? []), $this->blocks, $this->sameText),
             ];
             $page->save();
         });
@@ -307,7 +365,8 @@ trait TranslatesBlocks
                 $source = $structure->get($block['id']);
 
                 return $source !== null && collect(BlockTranslations::fieldsOf($block['type']))->contains(
-                    fn (string $field): bool => filled($source['data'][$field] ?? null) && ($block['data'][$field] ?? null) === $source['data'][$field],
+                    fn (string $field): bool => filled($source['data'][$field] ?? null) && ($block['data'][$field] ?? null) === $source['data'][$field]
+                        && ! in_array($block['id'].'.'.$field, $this->sameText, true),
                 );
             })
             ->pluck('id')

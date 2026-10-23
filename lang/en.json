@@ -2090,5 +2090,8 @@
     "From code": "From code",
     "Make default": "Make default",
     "“:name” is the default layout": "“:name” is the default layout",
-    "Make default layout": "Make default layout"
+    "Make default layout": "Make default layout",
+    "Same in :language": "Same in :language",
+    "The text stays as it is in this language, and counts as translated.": "The text stays as it is in this language, and counts as translated.",
+    "Keep block text": "Keep block text"
 }

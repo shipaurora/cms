@@ -29,6 +29,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -142,6 +143,30 @@ class TranslationsTest extends TestCase
         app('translator')->setLoaded([]);
 
         $this->assertSame('Logg ut', __('filament-panels::layout.actions.logout.label', [], 'nb'), 'Clearing an edit falls back to the lang file.');
+    }
+
+    public function test_the_site_s_own_lang_files_beat_aurora_s_labels_until_one_is_edited_in_the_admin(): void
+    {
+        app(TranslationSync::class)->import();
+        $this->assertSame('Innhold', __('Content', [], 'nb'));
+
+        // The site means its own section by it: its lang file says so, and that's the label at once.
+        File::ensureDirectoryExists(lang_path());
+        $file = lang_path('nb.json');
+        $before = File::exists($file) ? File::get($file) : null;
+        File::put($file, json_encode(['Content' => 'Content']));
+
+        try {
+            app('translator')->setLoaded([]);
+            $this->assertSame('Content', __('Content', [], 'nb'));
+
+            // Edited in the admin, the edit wins over every file.
+            $this->line('*', 'Content')->putTranslation('nb', 'Innhald')->save();
+            app('translator')->setLoaded([]);
+            $this->assertSame('Innhald', __('Content', [], 'nb'));
+        } finally {
+            $before === null ? File::delete($file) : File::put($file, $before);
+        }
     }
 
     public function test_the_website_speaks_the_default_language(): void
