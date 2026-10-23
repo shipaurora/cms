@@ -19,6 +19,7 @@ use CarlJanzell\FilamentPageBuilder\Concerns\HasBlocks;
 use CarlJanzell\FilamentPageBuilder\Support\BlockTree;
 use Closure;
 use Datlechin\FilamentMenuBuilder\Contracts\MenuPanelable;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -35,6 +36,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Laravel\Scout\Engines\DatabaseEngine;
 use Laravel\Scout\Searchable;
+use LogicException;
 use Spatie\Sluggable\HasTranslatableSlug;
 use Spatie\Sluggable\SlugOptions;
 use Spatie\Translatable\HasTranslations;
@@ -65,6 +67,11 @@ class Page extends Model implements MenuPanelable
     public const RESERVED_SLUGS = ['admin', 'api', 'mcp', 'livewire', 'storage', 'filament', 'up', 'sitemap.xml', 'robots.txt', 'preview', 'oauth'];
 
     protected string $blocksAttribute = 'blocks';
+
+    /**
+     * A stand-in page's content (standIn()).
+     */
+    protected ?Htmlable $standInContent = null;
 
     protected $guarded = ['id'];
 
@@ -592,6 +599,10 @@ class Page extends Model implements MenuPanelable
     {
         $locale ??= ContentLocale::current();
 
+        if ($this->isStandIn()) {
+            return static::requestPath($locale);
+        }
+
         // Not in that language: links go to the page in its own language.
         if (! $this->isAvailableIn($locale)) {
             $locale = $this->primaryLocale();
@@ -769,6 +780,67 @@ class Page extends Model implements MenuPanelable
     public function blockCount(): int
     {
         return count(BlockTree::hydrate($this->blocks ?? []));
+    }
+
+    /**
+     * A page that isn't one, for drawing a layout around a website route's own content
+     * (<x-aurora::layout>, Layouts::wrap()): the title and SEO text it's given, the default
+     * layout or the one named, and the request's address. Its content stands where a page's
+     * blocks would (<x-aurora::blocks>). Never saved.
+     */
+    public static function standIn(string $title, Htmlable $content, ?string $description = null, bool $noindex = false, ?Layout $layout = null): static
+    {
+        $page = new static;
+        $page->forceFill([
+            'title' => $title,
+            'meta_description' => $description,
+            'noindex' => $noindex,
+            'status' => PageStatus::Published,
+            'layout_id' => $layout?->getKey(),
+        ]);
+        $page->standInContent = $content;
+
+        return $page;
+    }
+
+    public function isStandIn(): bool
+    {
+        return $this->standInContent !== null;
+    }
+
+    /**
+     * What a stand-in page shows in place of blocks.
+     */
+    public function standInContent(): ?Htmlable
+    {
+        return $this->standInContent;
+    }
+
+    public function save(array $options = []): bool
+    {
+        if ($this->isStandIn()) {
+            throw new LogicException('A stand-in page (Page::standIn()) is never saved.');
+        }
+
+        return parent::save($options);
+    }
+
+    /**
+     * The request's address in a language: its language prefix swapped for that one's (a
+     * website route has the same address under every prefix).
+     */
+    protected static function requestPath(string $locale): string
+    {
+        $path = '/'.trim(rawurldecode(request()->path()), '/');
+        $current = ContentLocale::prefix();
+
+        if ($current !== '' && ($path === $current || str_starts_with($path, $current.'/'))) {
+            $path = substr($path, strlen($current)) ?: '/';
+        }
+
+        $prefix = ContentLocale::prefix($locale);
+
+        return $path === '/' ? ($prefix ?: '/') : $prefix.$path;
     }
 
     public function seoTitle(): string

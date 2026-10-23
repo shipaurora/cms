@@ -8,8 +8,11 @@ use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Closure;
 use Filament\Schemas\Components\Component;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\HtmlString;
 use InvalidArgumentException;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
@@ -252,6 +255,37 @@ class Layouts
         $view = $page->layoutOrDefault()?->view;
 
         return filled($view) && view()->exists($view) ? $view : 'aurora::layouts.standard';
+    }
+
+    /**
+     * A layout drawn around a website route's own content, as around a page's blocks: the
+     * site's head, header, menu and footer around an events list, say (<x-aurora::layout>).
+     * The layout gets a stand-in page (Page::standIn()) with the title and SEO text given;
+     * its content stands where the blocks would. The default layout, or the one with the
+     * handle given.
+     *
+     * @param  array<string, mixed>  $settings  the layout's own fields, as a page's would be ($settings)
+     */
+    public static function wrap(Htmlable $content, string $title, ?string $description = null, ?string $layout = null, bool $noindex = false, array $settings = []): HtmlString
+    {
+        $chosen = (filled($layout) ? Layout::cached()->firstWhere('handle', $layout) : null) ?? Layout::default();
+        $page = Page::standIn($title, $content, $description, $noindex, $chosen);
+        $shared = array_intersect_key(View::getShared(), array_flip(['currentPage', 'previewing']));
+
+        // What blocks and partials ask of the page being drawn (Blocks::page()), as on a page.
+        View::share(['currentPage' => $page, 'previewing' => false]);
+
+        try {
+            return new HtmlString(view(static::viewFor($page), [
+                'page' => $page,
+                'layout' => $chosen,
+                'settings' => $settings,
+                'preview' => false,
+                'embedded' => false,
+            ])->render());
+        } finally {
+            View::share(['currentPage' => $shared['currentPage'] ?? null, 'previewing' => $shared['previewing'] ?? false]);
+        }
     }
 
     /**

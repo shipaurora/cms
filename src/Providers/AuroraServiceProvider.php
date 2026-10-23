@@ -62,6 +62,7 @@ use Aurora\Support\Search\DatabaseEngine as SearchDatabaseEngine;
 use Aurora\Support\SiteIcon;
 use Aurora\Support\TranslationLoader;
 use Aurora\Support\Webhooks;
+use Aurora\View\Components\Layout as LayoutComponent;
 use BladeUI\Icons\Factory as IconFactory;
 use EslamRedaDiv\FilamentCopilot\Agent\ContextBuilder;
 use EslamRedaDiv\FilamentCopilot\Agent\CopilotAgent;
@@ -416,6 +417,8 @@ class AuroraServiceProvider extends ServiceProvider
         $views = __DIR__.'/../../resources/views';
 
         $this->loadViewsFrom($views, 'aurora');
+        // A class among the views' components: its stand-in page is there before its content is drawn.
+        Blade::component('aurora::layout', LayoutComponent::class);
 
         $this->app->booted(function () use ($views): void {
             foreach (File::directories($views.'/vendor') as $directory) {
