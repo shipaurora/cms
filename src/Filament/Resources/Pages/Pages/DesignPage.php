@@ -28,6 +28,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
+use Illuminate\Support\Facades\View as ViewFacade;
 use Illuminate\Support\Js;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
@@ -61,6 +62,15 @@ class DesignPage extends BaseDesignPage
 
         $this->useWorkingCopy();
         $this->loadTranslation();
+    }
+
+    /**
+     * Blocks that need to know which page they're on (Blocks::page()) know it on the canvas
+     * too, as on the website (PageController).
+     */
+    public function booted(): void
+    {
+        ViewFacade::share('currentPage', $this->getRecord());
     }
 
     /**

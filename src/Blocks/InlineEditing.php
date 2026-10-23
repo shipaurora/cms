@@ -21,6 +21,15 @@ class InlineEditing extends PageBuilder
         return static::$blockType;
     }
 
+    /**
+     * How deep the block being drawn sits: 0 straight on the page (or outside any block),
+     * 1 in a container's slot, and so on. Each block drawn keeps the one around it.
+     */
+    public static function depth(): int
+    {
+        return max(0, count(static::$stack) - 1);
+    }
+
     public static function itemEditableFor(string $repeater, string $field): ?Editable
     {
         if (! static::isEditing()) {

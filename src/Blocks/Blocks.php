@@ -2,10 +2,13 @@
 
 namespace Aurora\Blocks;
 
+use Aurora\Models\Page;
 use Aurora\Models\Setting;
 use CarlJanzell\FilamentPageBuilder\BlockRegistries;
+use CarlJanzell\FilamentPageBuilder\FilamentPageBuilderPlugin;
 use CarlJanzell\FilamentPageBuilder\PageBuilder;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use InvalidArgumentException;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
@@ -40,6 +43,13 @@ class Blocks
     protected static array $blocks = [];
 
     /**
+     * Blocks a site left out (forget()): the page builder's own, by type.
+     *
+     * @var array<string, true>
+     */
+    protected static array $forgotten = [];
+
+    /**
      * Add blocks, in the order the block palette shows them. Registering a block's type
      * again replaces it.
      *
@@ -53,9 +63,44 @@ class Blocks
             }
 
             static::$blocks[$block::type()] = $block;
+            unset(static::$forgotten[$block::type()]);
         }
 
         app(BlockRegistries::class)->for(self::PANEL)->register($blocks);
+    }
+
+    /**
+     * Leave blocks out of the palette, by type: the page builder's own (section, text, list,
+     * quote, image, button, video, embed, spacer, divider, shortcode, code) that a site's
+     * stylesheet doesn't style, or one registered before. Pages that have one draw nothing in
+     * its place. Registering the type again brings it back.
+     *
+     *     Blocks::forget('text', 'quote', 'divider');
+     */
+    public static function forget(string ...$types): void
+    {
+        foreach ($types as $type) {
+            static::$forgotten[$type] = true;
+            unset(static::$blocks[$type]);
+        }
+
+        // Given to the page builder already (its panel built first): taken back from it too.
+        $registry = app(BlockRegistries::class)->for(self::PANEL);
+        (fn () => $this->blocks = array_diff_key($this->blocks, array_flip($types)))->call($registry);
+    }
+
+    /**
+     * The page builder's own blocks, less those a site left out (forget()): what Aurora's
+     * panel offers before the website's own.
+     *
+     * @return array<int, class-string>
+     */
+    public static function library(): array
+    {
+        return array_values(array_filter(
+            FilamentPageBuilderPlugin::layoutBlockClasses(),
+            fn (string $block): bool => ! isset(static::$forgotten[$block::type()]),
+        ));
     }
 
     /**
@@ -153,6 +198,35 @@ class Blocks
     public static function isEditing(): bool
     {
         return PageBuilder::isEditing();
+    }
+
+    /**
+     * The page being drawn: on the website, in previews and on the visual editor's canvas.
+     * Null when blocks are drawn for no page (a block's preview in the palette).
+     */
+    public static function page(): ?Page
+    {
+        $page = View::shared('currentPage');
+
+        return $page instanceof Page ? $page : null;
+    }
+
+    /**
+     * How deep the block being drawn sits: 0 straight on the page, 1 in a column (or any
+     * container's slot), and so on.
+     */
+    public static function depth(): int
+    {
+        return InlineEditing::depth();
+    }
+
+    /**
+     * Whether the block being drawn is in a container (a column, a band) rather than straight
+     * on the page: a site that wraps top-level blocks in its page container skips those.
+     */
+    public static function isNested(): bool
+    {
+        return static::depth() > 0;
     }
 
     /**

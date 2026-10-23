@@ -182,8 +182,10 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([])
             ->plugins([
                 FilamentPageBuilderPlugin::make()
-                    // The website's blocks (Aurora\Blocks\Blocks::register(), in its service provider).
-                    ->blocks(array_values(Blocks::all()))
+                    // The page builder's own blocks, less those the website left out (Blocks::forget()),
+                    // then the website's (Aurora\Blocks\Blocks::register(), in its service provider).
+                    ->includeLayoutBlocks(false)
+                    ->blocks([...Blocks::library(), ...array_values(Blocks::all())])
                     ->recordModel(Page::class)
                     ->blocksAttribute('blocks')
                     ->canvasStylesView('aurora::filament.page-builder.canvas-styles')
@@ -194,6 +196,9 @@ class AdminPanelProvider extends PanelProvider
                         'width' => ['narrow' => 'Narrow', 'default' => 'Default', 'wide' => 'Wide', 'full' => 'Full'],
                         'align' => ['start' => 'Start', 'center' => 'Centre', 'end' => 'End'],
                     ])
+                                        // The page builder's own shortcodes, which come with its blocks when it adds them itself.
+                    ->shortcode('year', fn (): string => date('Y'), fn (): string => __('page-builder::blocks.shortcode.builtin_year'), '[year]')
+                    ->shortcode('date', fn (array $attributes): string => e(now()->format(is_string($attributes['format'] ?? null) ? $attributes['format'] : 'F j, Y')), fn (): string => __('page-builder::blocks.shortcode.builtin_date'), '[date format="F j, Y"]')
                     ->shortcode('site_name', fn (): string => e(Setting::get('site_name', config('app.name'))), fn (): string => __('The site name from Site settings.'), '[site_name]')
                     ->shortcode('page_count', fn (): string => (string) Page::query()->live()->count(), fn (): string => __('Number of live pages.'), '[page_count]'),
                 // Translating pages and other content: a language switcher on their edit pages.

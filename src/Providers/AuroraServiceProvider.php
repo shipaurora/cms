@@ -382,6 +382,7 @@ class AuroraServiceProvider extends ServiceProvider
             'linkHref' => 'link_href',
             'linkTarget' => 'link_target',
             'blockSlot' => 'block_slot',
+            'blockDepth' => 'block_depth',
         ];
 
         foreach ($echoes as $directive => $helper) {
@@ -390,6 +391,7 @@ class AuroraServiceProvider extends ServiceProvider
 
         Blade::if('editing', fn (): bool => is_editing());
         Blade::if('shows', fn (string $field, mixed $value): bool => shows_field($field, $value));
+        Blade::if('nested', fn (): bool => is_nested_block());
     }
 
     /**

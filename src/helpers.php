@@ -2,6 +2,7 @@
 
 use Aurora\Blocks\Blocks;
 use Aurora\Blocks\Fields;
+use Aurora\Models\Page;
 use Aurora\Support\Markup;
 use Illuminate\Support\HtmlString;
 
@@ -94,5 +95,35 @@ if (! function_exists('block_slot')) {
     function block_slot(string $name): HtmlString
     {
         return new HtmlString(Blocks::slot($name));
+    }
+}
+
+if (! function_exists('current_page')) {
+    /**
+     * The page being drawn (Blocks::page()): on the website, in previews and on the canvas.
+     */
+    function current_page(): ?Page
+    {
+        return Blocks::page();
+    }
+}
+
+if (! function_exists('block_depth')) {
+    /**
+     * How deep the block being drawn sits (Blocks::depth()): 0 straight on the page.
+     */
+    function block_depth(): int
+    {
+        return Blocks::depth();
+    }
+}
+
+if (! function_exists('is_nested_block')) {
+    /**
+     * Whether the block being drawn is in a container (Blocks::isNested()).
+     */
+    function is_nested_block(): bool
+    {
+        return Blocks::isNested();
     }
 }
