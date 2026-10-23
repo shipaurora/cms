@@ -22,6 +22,7 @@ use Aurora\Livewire\SitesTable;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
 use Aurora\Support\Copilot;
+use Aurora\Support\CustomShortcodes;
 use Aurora\Support\ImageDescriptions;
 use Aurora\Support\PageCache;
 use Aurora\Support\Passkeys;
@@ -39,6 +40,7 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -182,7 +184,7 @@ class SiteSettings extends Page implements HasSchemas
      * @var array<string, array{label: string, icon: string, tabs: array<int, string>, saves: bool}>
      */
     protected const PAGES = [
-        'website' => ['label' => 'Website', 'icon' => 'phosphor-browser', 'tabs' => ['branding', 'publishing'], 'saves' => true],
+        'website' => ['label' => 'Website', 'icon' => 'phosphor-browser', 'tabs' => ['branding', 'publishing', 'shortcodes'], 'saves' => true],
         'templates' => ['label' => 'Templates', 'icon' => 'phosphor-layout', 'tabs' => ['layouts', 'blocks', 'menu-locations'], 'saves' => false],
         'media' => ['label' => 'Media', 'icon' => 'phosphor-image', 'tabs' => ['image-formats'], 'saves' => false],
         'languages-sites' => ['label' => 'Languages & sites', 'icon' => 'phosphor-translate', 'tabs' => ['languages', 'sites'], 'saves' => false],
@@ -351,6 +353,44 @@ class SiteSettings extends Page implements HasSchemas
                         Toggle::make(WorkingCopies::SETTING)
                             ->label(__('Changes go live when they’re saved'))
                             ->helperText(__('Off: saved changes wait until someone publishes them, so they can be checked first. On: they’re on the website straight away. Either way, people who aren’t allowed to publish a page only save changes for someone else to publish.')),
+                    ]),
+            ]),
+            // Text editors type as [name] anywhere on the website (Aurora\Support\CustomShortcodes).
+            'shortcodes' => Tab::make(__('Shortcodes'))->icon('phosphor-brackets-square')->schema([
+                Section::make(__('Shortcodes'))
+                    ->icon('phosphor-brackets-square')
+                    ->description(__('Text editors can put anywhere on the website by its name in square brackets, such as [phone]: change it here, and it changes everywhere. The same on every site.'))
+                    ->schema([
+                        Repeater::make(CustomShortcodes::SETTING)
+                            ->hiddenLabel()
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label(__('Name'))
+                                    ->prefix('[')
+                                    ->suffix(']')
+                                    ->required()
+                                    ->maxLength(40)
+                                    ->regex('/^[A-Za-z][A-Za-z0-9_-]*$/')
+                                    ->validationMessages(['regex' => __('Start with a letter; use letters, numbers, dashes and underscores.')])
+                                    ->distinct()
+                                    ->notIn(fn (): array => CustomShortcodes::reserved())
+                                    ->live(onBlur: true),
+                                Textarea::make('text')
+                                    ->label(__('Text'))
+                                    ->helperText(__('Shown as written, line breaks included.'))
+                                    ->rows(2)
+                                    ->required(),
+                                TextInput::make('description')
+                                    ->label(__('Description'))
+                                    ->helperText(__('Shown in the visual editor’s list of shortcodes.'))
+                                    ->maxLength(120),
+                            ])
+                            ->columns(1)
+                            ->itemLabel(fn (array $state): ?string => filled($state['name'] ?? null) ? '['.$state['name'].']' : null)
+                            ->collapsible()
+                            ->reorderable(false)
+                            ->addActionLabel(__('Add shortcode'))
+                            ->defaultItems(0),
                     ]),
             ]),
             // The layouts pages are drawn with, and the sizes made of every image: each saved as
@@ -831,6 +871,8 @@ class SiteSettings extends Page implements HasSchemas
         $themeBefore = Themes::active();
 
         Setting::put($this->form->getState());
+        // New shortcodes work on this request's canvas too, not only the next.
+        CustomShortcodes::register();
 
         if (filled($key = $this->data['copilot_api_key_input'] ?? null)) {
             $hadKey = Copilot::hasApiKey();

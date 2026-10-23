@@ -2095,5 +2095,12 @@
     "It comes down by itself at this time.": "Tas ned av seg selv på dette tidspunktet.",
     "Same in :language": "Lik på :language",
     "The text stays as it is in this language, and counts as translated.": "Teksten blir stående som den er på dette språket, og regnes som oversatt.",
-    "Keep block text": "Behold blokkteksten"
+    "Keep block text": "Behold blokkteksten",
+    "Shortcodes": "Kortkoder",
+    "Text editors can put anywhere on the website by its name in square brackets, such as [phone]: change it here, and it changes everywhere. The same on every site.": "Tekst redaktørene kan sette inn hvor som helst på nettstedet med navnet i hakeparenteser, for eksempel [telefon]: endre den her, så endres den overalt. Lik på alle nettsteder.",
+    "Start with a letter; use letters, numbers, dashes and underscores.": "Start med en bokstav; bruk bokstaver, tall, bindestrek og understrek.",
+    "Shown as written, line breaks included.": "Vises slik den er skrevet, med linjeskift.",
+    "Shown in the visual editor’s list of shortcodes.": "Vises i den visuelle editorens liste over kortkoder.",
+    "Add shortcode": "Legg til kortkode",
+    "Text from Settings › Shortcodes.": "Tekst fra Innstillinger › Kortkoder."
 }

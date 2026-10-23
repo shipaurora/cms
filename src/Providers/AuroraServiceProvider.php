@@ -53,6 +53,7 @@ use Aurora\Support\Copilot;
 use Aurora\Support\CopilotContext;
 use Aurora\Support\CopilotToolRegistry;
 use Aurora\Support\CurrentSite;
+use Aurora\Support\CustomShortcodes;
 use Aurora\Support\FormFields;
 use Aurora\Support\Layouts;
 use Aurora\Support\MissingLabels;
@@ -224,6 +225,8 @@ class AuroraServiceProvider extends ServiceProvider
 
         // Provider, model and API key come from Site settings, not .env.
         $this->app->booted(fn () => Copilot::applyConfig());
+        // Shortcodes written in Settings › Website (none before the database is set up).
+        $this->app->booted(fn () => rescue(fn () => CustomShortcodes::register(), report: false));
 
         // The copilot package loads its routes from a booted callback, after this provider's,
         // so the stream route does not exist yet to attach middleware to. Add it when the
