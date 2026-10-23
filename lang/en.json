@@ -1958,7 +1958,6 @@
     "The description is :count characters: search results cut it off after about :max.": "The description is :count characters: search results cut it off after about :max.",
     "The description is short: :count characters. Around :min to :max says more.": "The description is short: :count characters. Around :min to :max says more.",
     "No main heading (H1, or a hero): search engines read it as what the page is about.": "No main heading (H1, or a hero): search engines read it as what the page is about.",
-    ":count main headings: one says best what the page is about.": ":count main headings: one says best what the page is about.",
     ":count image has no alt text: search engines and screen readers can’t tell what it shows.|:count images have no alt text: search engines and screen readers can’t tell what they show.": ":count image has no alt text: search engines and screen readers can’t tell what it shows.|:count images have no alt text: search engines and screen readers can’t tell what they show.",
     "No share image: links to the page on social media show none.": "No share image: links to the page on social media show none.",
     "Another page has the same title: search engines can’t tell them apart.": "Another page has the same title: search engines can’t tell them apart.",
@@ -2079,5 +2078,13 @@
     "Strikethrough": "Strikethrough",
     "Subheading": "Subheading",
     "Bulleted list": "Bulleted list",
-    "Numbered list": "Numbered list"
+    "Numbered list": "Numbered list",
+    "The title is short: :count characters. Around :min to :max tells searchers more.": "The title is short: :count characters. Around :min to :max tells searchers more.",
+    ":count H1 headings: a page should have one, saying what it is about. Make the others H2.": ":count H1 headings: a page should have one, saying what it is about. Make the others H2.",
+    "A heading skips a level (H:from to H:to): search engines and screen readers follow headings as an outline.": "A heading skips a level (H:from to H:to): search engines and screen readers follow headings as an outline.",
+    "The page says little: :count words. Pages meant to be found in search usually say :min or more.": "The page says little: :count words. Pages meant to be found in search usually say :min or more.",
+    ":count link leads nowhere (a page that isn’t live, or was removed): :links|:count links lead nowhere (pages that aren’t live, or were removed): :links": ":count link leads nowhere (a page that isn’t live, or was removed): :links|:count links lead nowhere (pages that aren’t live, or were removed): :links",
+    ":count link goes through a redirect: link to the page’s address itself. :links|:count links go through a redirect: link to the pages’ addresses themselves. :links": ":count link goes through a redirect: link to the page’s address itself. :links|:count links go through a redirect: link to the pages’ addresses themselves. :links",
+    ":count link has no text: search engines and screen readers can’t tell where it goes.|:count links have no text: search engines and screen readers can’t tell where they go.": ":count link has no text: search engines and screen readers can’t tell where it goes.|:count links have no text: search engines and screen readers can’t tell where they go.",
+    ":count image has no alt attribute at all: give it alt text, or alt=\"\" if it’s only decoration.|:count images have no alt attribute at all: give them alt text, or alt=\"\" if they’re only decoration.": ":count image has no alt attribute at all: give it alt text, or alt=\"\" if it’s only decoration.|:count images have no alt attribute at all: give them alt text, or alt=\"\" if they’re only decoration."
 }

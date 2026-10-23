@@ -1958,7 +1958,6 @@
     "The description is :count characters: search results cut it off after about :max.": "Beskrivelsen er :count tegn: søkeresultater kutter den etter omtrent :max.",
     "The description is short: :count characters. Around :min to :max says more.": "Beskrivelsen er kort: :count tegn. Rundt :min til :max sier mer.",
     "No main heading (H1, or a hero): search engines read it as what the page is about.": "Ingen hovedoverskrift (H1, eller en hero): søkemotorer leser den som hva siden handler om.",
-    ":count main headings: one says best what the page is about.": ":count hovedoverskrifter: én sier best hva siden handler om.",
     ":count image has no alt text: search engines and screen readers can’t tell what it shows.|:count images have no alt text: search engines and screen readers can’t tell what they show.": ":count bilde mangler alt-tekst: søkemotorer og skjermlesere kan ikke vite hva det viser.|:count bilder mangler alt-tekst: søkemotorer og skjermlesere kan ikke vite hva de viser.",
     "No share image: links to the page on social media show none.": "Ikke noe delingsbilde: lenker til siden i sosiale medier viser ikke noe bilde.",
     "Another page has the same title: search engines can’t tell them apart.": "En annen side har samme tittel: søkemotorer kan ikke skille dem.",
@@ -2079,5 +2078,13 @@
     "Strikethrough": "Gjennomstreking",
     "Subheading": "Underoverskrift",
     "Bulleted list": "Punktliste",
-    "Numbered list": "Nummerert liste"
+    "Numbered list": "Nummerert liste",
+    "The title is short: :count characters. Around :min to :max tells searchers more.": "Tittelen er kort: :count tegn. Rundt :min til :max forteller søkerne mer.",
+    ":count H1 headings: a page should have one, saying what it is about. Make the others H2.": ":count H1-overskrifter: en side bør ha én, som sier hva den handler om. Gjør de andre til H2.",
+    "A heading skips a level (H:from to H:to): search engines and screen readers follow headings as an outline.": "En overskrift hopper over et nivå (H:from til H:to): søkemotorer og skjermlesere følger overskriftene som en disposisjon.",
+    "The page says little: :count words. Pages meant to be found in search usually say :min or more.": "Siden sier lite: :count ord. Sider som skal bli funnet i søk, har vanligvis :min eller flere.",
+    ":count link leads nowhere (a page that isn’t live, or was removed): :links|:count links lead nowhere (pages that aren’t live, or were removed): :links": ":count lenke fører ingen steder (en side som ikke er publisert, eller som er fjernet): :links|:count lenker fører ingen steder (sider som ikke er publisert, eller som er fjernet): :links",
+    ":count link goes through a redirect: link to the page’s address itself. :links|:count links go through a redirect: link to the pages’ addresses themselves. :links": ":count lenke går via en omdirigering: lenk direkte til sidens adresse. :links|:count lenker går via en omdirigering: lenk direkte til sidenes adresser. :links",
+    ":count link has no text: search engines and screen readers can’t tell where it goes.|:count links have no text: search engines and screen readers can’t tell where they go.": ":count lenke har ingen tekst: søkemotorer og skjermlesere kan ikke se hvor den fører.|:count lenker har ingen tekst: søkemotorer og skjermlesere kan ikke se hvor de fører.",
+    ":count image has no alt attribute at all: give it alt text, or alt=\"\" if it’s only decoration.|:count images have no alt attribute at all: give them alt text, or alt=\"\" if they’re only decoration.": ":count bilde mangler alt-attributt helt: gi det alt-tekst, eller alt=\"\" hvis det bare er pynt.|:count bilder mangler alt-attributt helt: gi dem alt-tekst, eller alt=\"\" hvis de bare er pynt."
 }
