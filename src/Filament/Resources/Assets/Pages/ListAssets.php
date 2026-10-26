@@ -261,13 +261,21 @@ class ListAssets extends ListRecords
      */
     public function folderItems(): string
     {
+        return $this->showsFolderItems() ? view('aurora::filament.assets.folder-items', ['page' => $this])->render() : '';
+    }
+
+    /**
+     * Whether folders are drawn among the files on this page. Then, with no files, the table's
+     * "no files" message is left out too: the folders are there to open.
+     */
+    public function showsFolderItems(): bool
+    {
         $records = $this->getTableRecords();
 
-        if (! $this->showsFoldersInline() || $this->isLookingEverywhere() || $this->subfolders()->isEmpty() || (method_exists($records, 'currentPage') && $records->currentPage() > 1)) {
-            return '';
-        }
-
-        return view('aurora::filament.assets.folder-items', ['page' => $this])->render();
+        return $this->showsFoldersInline()
+            && ! $this->isLookingEverywhere()
+            && $this->subfolders()->isNotEmpty()
+            && ! (method_exists($records, 'currentPage') && $records->currentPage() > 1);
     }
 
     public function showsFoldersInline(): bool

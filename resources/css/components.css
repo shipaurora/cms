@@ -2366,6 +2366,18 @@ tr.cms-asset-record,
     border-top-width: 0;
 }
 
+/* Folders that end the table, with no files after them: its rounded bottom corners, inherited
+   from the table (each theme has its own), so their rows' backgrounds stay inside them. */
+.fi-ta-main:has(> [data-cms-folder-items]:not(.cms-folder-items)) {
+    border-radius: inherit;
+}
+
+[data-cms-folder-items]:not(.cms-folder-items) {
+    overflow: hidden;
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+
 .cms-folder-items > .fi-ta-content-grid {
     padding-bottom: 0;
 }

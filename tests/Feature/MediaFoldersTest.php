@@ -12,6 +12,7 @@ use Aurora\Mcp\Servers\CmsServer;
 use Aurora\Mcp\Tools\ListImages;
 use Aurora\Models\Asset;
 use Aurora\Models\AssetFolder;
+use Aurora\Models\Setting;
 use Aurora\Models\User;
 use Aurora\Support\AssetLibrary;
 use Aurora\Tests\TestCase;
@@ -115,6 +116,33 @@ class MediaFoldersTest extends TestCase
         $this->assertStringNotContainsString('cms-folder-items', $html);
         $this->assertStringNotContainsString('cms-media-select-page', $html);
         $this->assertStringContainsString('fi-ta-content-header', $html);
+    }
+
+    public function test_folders_among_the_files_leave_out_the_no_files_message(): void
+    {
+        $this->asset('fjord', 'Photos/Norway');
+        $photos = AssetFolder::query()->where('name', 'Photos')->sole();
+        $norway = AssetFolder::query()->where('name', 'Norway')->sole();
+        $empty = AssetFolder::findOrCreatePath('Empty');
+        $editor = $this->userWithRole('Editor');
+
+        // Photos has a folder and no files of its own: the folder is what's there.
+        Livewire::actingAs($editor)
+            ->test(ListAssets::class, ['folder' => $photos->id])
+            ->assertSeeHtml('wire:key="folder-'.$norway->id.'"')
+            ->assertDontSee('No files directly in this folder');
+
+        // A folder with nothing in it still says so.
+        Livewire::actingAs($editor)
+            ->test(ListAssets::class, ['folder' => $empty->id])
+            ->assertSee('This folder is empty');
+
+        // With the folders apart, above the files, the message points to them.
+        Setting::put([ListAssets::FOLDERS_INLINE_SETTING => false]);
+
+        Livewire::actingAs($editor)
+            ->test(ListAssets::class, ['folder' => $photos->id])
+            ->assertSee('No files directly in this folder');
     }
 
     public function test_folders_are_left_out_of_a_search_and_of_later_pages(): void

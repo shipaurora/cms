@@ -11,7 +11,10 @@
      (ListAssets::folderItems(), drawn by the table before its records). They use the table's
      own record classes, so the themes draw them as they draw files. Opened with a click; files
      and folders are dropped on them (resources/js/admin/media-drag.js). --}}
-<div class="fi-ta-content-ctn cms-folder-items">
+{{-- Followed by files, the two meet without a gap or a line (.cms-folder-items in
+     components.css); with none, the folders end the table as its records would, with its
+     usual space and corners. --}}
+<div @class(['fi-ta-content-ctn', 'cms-folder-items' => $page->getTableRecords()->isNotEmpty()]) data-cms-folder-items>
     <div
         aria-label="{{ __('Folders') }}"
         {{

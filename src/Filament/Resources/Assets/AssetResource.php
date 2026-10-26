@@ -364,6 +364,8 @@ class AssetResource extends Resource
                     ActionGroup::make([AccessAction::bulk()])->dropdown(false),
                 ]),
             ])
+            // Folders drawn among the files are what's in it: no "no files here" under them.
+            ->emptyState(fn ($livewire): ?HtmlString => $livewire instanceof ListAssets && $livewire->showsFolderItems() ? new HtmlString('') : null)
             ->emptyStateIcon('phosphor-images')
             ->emptyStateHeading(fn ($livewire): string => match (true) {
                 $livewire instanceof ListAssets && $livewire->isLookingEverywhere() => __('No files match your search'),
