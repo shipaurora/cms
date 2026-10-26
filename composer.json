@@ -31,7 +31,7 @@
     "require": {
         "php": "^8.4",
         "althinect/filament-spatie-roles-permissions": "^4.0",
-        "shipaurora/borealis": "^1.0",
+        "shipaurora/borealis": "^1.0.9",
         "blade-ui-kit/blade-heroicons": "^2.7",
         "blade-ui-kit/blade-icons": "^1.10",
         "carljanzell/filament-page-builder": "^0.4.2",
@@ -69,6 +69,9 @@
         "mockery/mockery": "^1.6",
         "orchestra/testbench": "^11.3",
         "phpunit/phpunit": "^12.5.12"
+    },
+    "conflict": {
+        "shipaurora/minimal": "<1.0.9"
     },
     "autoload": {
         "psr-4": {
