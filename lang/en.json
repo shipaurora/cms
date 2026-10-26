@@ -2106,5 +2106,12 @@
     "Edit credit": "Edit credit",
     "Replaces the credit on every selected file. Leave it empty to remove it.": "Replaces the credit on every selected file. Leave it empty to remove it.",
     "Credit saved": "Credit saved",
-    "Up to :folder": "Up to :folder"
+    "Up to :folder": "Up to :folder",
+    "Write alt text with AI": "Write alt text with AI",
+    "The assistant writes alt text for the selected images that have none. Images that already have alt text are left as they are.": "The assistant writes alt text for the selected images that have none. Images that already have alt text are left as they are.",
+    "e.g. these are from the spring workshop in Bergen": "e.g. these are from the spring workshop in Bergen",
+    "All the selected images already have alt text": "All the selected images already have alt text",
+    "Writing alt text for :count image|Writing alt text for :count images": "Writing alt text for :count image|Writing alt text for :count images",
+    "It appears on each image as soon as the assistant is done.": "It appears on each image as soon as the assistant is done.",
+    "Write alt text": "Write alt text"
 }

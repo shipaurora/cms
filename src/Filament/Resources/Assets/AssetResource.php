@@ -6,6 +6,7 @@ use Aurora\Enums\AssetType;
 use Aurora\Filament\Actions\AccessAction;
 use Aurora\Filament\Concerns\TranslatesResourceLabels;
 use Aurora\Filament\Forms\Components\FolderSelect;
+use Aurora\Filament\Forms\Components\WriteWithAi;
 use Aurora\Filament\Resources\Assets\Pages\EditAsset;
 use Aurora\Filament\Resources\Assets\Pages\ListAssets;
 use Aurora\Filament\Resources\Assets\Pages\ViewAsset;
@@ -17,6 +18,7 @@ use Aurora\Models\AssetTag;
 use Aurora\Support\AssetAccess;
 use Aurora\Support\AudioMetadata;
 use Aurora\Support\ContentLocale;
+use Aurora\Support\ImageDescriptions;
 use Aurora\Support\ImageMetadata;
 use Aurora\Support\SearchThumbnail;
 use Aurora\Support\UserBadge;
@@ -322,6 +324,38 @@ class AssetResource extends Resource
                             ->each->update(['credit' => filled($data['credit'] ?? null) ? $data['credit'] : null]))
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle(__('Credit saved')),
+                    // Alt text for the selected images that have none, on the queue (ImageDescriptions).
+                    BulkAction::make('writeAltText')
+                        ->label(__('Write alt text with AI'))
+                        ->icon('phosphor-sparkle')
+                        ->visible(fn (): bool => WriteWithAi::isAvailable())
+                        ->modalHeading(__('Write alt text with AI'))
+                        ->modalDescription(__('The assistant writes alt text for the selected images that have none. Images that already have alt text are left as they are.'))
+                        ->modalIcon('phosphor-sparkle')
+                        ->modalWidth('md')
+                        ->modalSubmitActionLabel(__('Write it'))
+                        ->schema([
+                            Textarea::make('instruction')
+                                ->label(__('Instruction (optional)'))
+                                ->placeholder(__('e.g. these are from the spring workshop in Bergen'))
+                                ->rows(2)
+                                ->maxLength(500),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                            $count = ImageDescriptions::queueFor(
+                                $records->filter(fn (Asset $asset): bool => auth()->user()->can('update', $asset)),
+                                filled($data['instruction'] ?? null) ? $data['instruction'] : null,
+                            );
+
+                            $count === 0
+                                ? Notification::make()->title(__('All the selected images already have alt text'))->info()->send()
+                                : Notification::make()
+                                    ->title(trans_choice('Writing alt text for :count image|Writing alt text for :count images', $count))
+                                    ->body(__('It appears on each image as soon as the assistant is done.'))
+                                    ->success()
+                                    ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make()
                         ->authorizeIndividualRecords('delete')
                         ->modalDescription(__('Files that are in use leave an empty space on those pages. Check "Used on" first.')),

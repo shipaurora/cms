@@ -3,6 +3,7 @@
 namespace Aurora\Tests\Feature;
 
 use Aurora\Filament\Pages\SiteSettings;
+use Aurora\Filament\Resources\Assets\Pages\ListAssets;
 use Aurora\Jobs\DescribeImage;
 use Aurora\Models\Asset;
 use Aurora\Models\Setting;
@@ -97,5 +98,39 @@ class ImageDescriptionsTest extends TestCase
         // Saved again while on: nothing more to send.
         Livewire::withQueryParams(['tab' => 'ai'])->test(SiteSettings::class)->call('save');
         Queue::assertPushed(DescribeImage::class, 1);
+    }
+
+    public function test_selected_images_without_alt_text_can_be_described_in_bulk_with_an_instruction(): void
+    {
+        // Asked for by hand: the automatic setting doesn't need to be on.
+        $this->switchOnTheAssistant(describeImages: false);
+        $missing = $this->image();
+        $written = $this->image('Written by hand');
+        $pdf = AssetLibrary::fromUpload(UploadedFile::fake()->createWithContent('notes.pdf', "%PDF-1.4\n%%EOF"));
+        Queue::fake();
+
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(ListAssets::class)
+            ->assertTableBulkActionVisible('writeAltText')
+            ->callTableBulkAction('writeAltText', [$missing, $written, $pdf], ['instruction' => 'From the spring workshop in Bergen'])
+            ->assertNotified('Writing alt text for 1 image');
+
+        Queue::assertPushed(DescribeImage::class, 1);
+        Queue::assertPushed(DescribeImage::class, fn (DescribeImage $job): bool => $job->assetId === $missing->id && $job->asked);
+
+        AiWriter::fake(['Workshop tables under a spring sky.']);
+        Queue::pushedJobs()[DescribeImage::class][0]['job']->handle();
+
+        $this->assertSame('Workshop tables under a spring sky.', $missing->fresh()->alt);
+        AiWriter::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->contains('From the spring workshop in Bergen'));
+    }
+
+    public function test_bulk_alt_text_is_offered_only_with_the_assistant_set_up(): void
+    {
+        $this->image();
+
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(ListAssets::class)
+            ->assertTableBulkActionHidden('writeAltText');
     }
 }

@@ -2106,5 +2106,12 @@
     "Edit credit": "Endre kreditering",
     "Replaces the credit on every selected file. Leave it empty to remove it.": "Erstatter krediteringen på alle valgte filer. La stå tomt for å fjerne den.",
     "Credit saved": "Kreditering lagret",
-    "Up to :folder": "Opp til :folder"
+    "Up to :folder": "Opp til :folder",
+    "Write alt text with AI": "Skriv alt-tekst med KI",
+    "The assistant writes alt text for the selected images that have none. Images that already have alt text are left as they are.": "Assistenten skriver alt-tekst for de valgte bildene som mangler det. Bilder som allerede har alt-tekst, blir ikke endret.",
+    "e.g. these are from the spring workshop in Bergen": "f.eks. disse er fra vårverkstedet i Bergen",
+    "All the selected images already have alt text": "Alle de valgte bildene har allerede alt-tekst",
+    "Writing alt text for :count image|Writing alt text for :count images": "Skriver alt-tekst for :count bilde|Skriver alt-tekst for :count bilder",
+    "It appears on each image as soon as the assistant is done.": "Den dukker opp på hvert bilde så snart assistenten er ferdig.",
+    "Write alt text": "Skriv alt-tekst"
 }

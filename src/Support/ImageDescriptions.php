@@ -80,11 +80,32 @@ class ImageDescriptions
     }
 
     /**
-     * Write an image's alt text in the website's language, unless it has some by now.
+     * Have the assistant describe the given images that have no alt text, because someone
+     * asked (the media library's bulk action), with their instruction: how many it was given.
+     *
+     * @param  iterable<Asset>  $assets
      */
-    public static function describe(Asset $asset): void
+    public static function queueFor(iterable $assets, ?string $instruction = null): int
     {
-        if (! static::isOn() || ! static::needsDescription($asset) || ($image = AiWriter::imageOf($asset)) === null) {
+        $count = 0;
+
+        foreach ($assets as $asset) {
+            if (static::needsDescription($asset)) {
+                DescribeImage::dispatch($asset->getKey(), $instruction, asked: true);
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Write an image's alt text in the website's language, unless it has some by now. Done
+     * by itself only while the setting is on; when someone $asked, whenever the assistant is set up.
+     */
+    public static function describe(Asset $asset, ?string $instruction = null, bool $asked = false): void
+    {
+        if (! ($asked ? Copilot::isConfigured() : static::isOn()) || ! static::needsDescription($asset) || ($image = AiWriter::imageOf($asset)) === null) {
             return;
         }
 
@@ -94,6 +115,7 @@ class ImageDescriptions
         $text = AiWriter::write(
             field: 'Alt text',
             context: ['Purpose' => self::GUIDANCE, 'Title' => (string) $asset->title],
+            instruction: $instruction,
             maxLength: 255,
             images: [$image],
             language: $locale,
@@ -105,7 +127,7 @@ class ImageDescriptions
         }
     }
 
-    protected static function needsDescription(Asset $asset): bool
+    public static function needsDescription(Asset $asset): bool
     {
         return $asset->isImage() && blank($asset->getTranslation('alt', ContentLocale::default(), false));
     }

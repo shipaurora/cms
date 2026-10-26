@@ -11,7 +11,7 @@ use Illuminate\Foundation\Queue\Queueable;
 /**
  * The AI assistant writing one image's alt text (Aurora\Support\ImageDescriptions), on the
  * queue so uploading never waits for it. Once per image at a time, and tried again a little
- * later when the AI provider is busy.
+ * later when the AI provider is busy. $asked when someone asked for it, with their instruction.
  */
 class DescribeImage implements ShouldBeUnique, ShouldQueue
 {
@@ -21,7 +21,7 @@ class DescribeImage implements ShouldBeUnique, ShouldQueue
 
     public int $backoff = 60;
 
-    public function __construct(public string $assetId) {}
+    public function __construct(public string $assetId, public ?string $instruction = null, public bool $asked = false) {}
 
     public function uniqueId(): string
     {
@@ -31,7 +31,7 @@ class DescribeImage implements ShouldBeUnique, ShouldQueue
     public function handle(): void
     {
         if (($asset = Asset::query()->find($this->assetId)) !== null) {
-            ImageDescriptions::describe($asset);
+            ImageDescriptions::describe($asset, $this->instruction, $this->asked);
         }
     }
 }
