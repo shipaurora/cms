@@ -3,8 +3,14 @@
     $page = $this;
     // The whole library, or (a breadcrumb's tree) what's under one folder: $under.
     $under ??= null;
-    $scope = $under?->id ?? 'root';
+    // The open folder's breadcrumb: only the folders next to it (its parent's own), as a flat list.
+    $siblings ??= false;
+    $scope = ($siblings ? 'siblings-' : '').($under?->id ?? 'root');
     ['rows' => $rows, 'expanded' => $expanded] = $page->folderTree($under?->id);
+
+    if ($siblings) {
+        $rows = array_values(array_map(fn (array $row): array => [...$row, 'hasChildren' => false], array_filter($rows, fn (array $row): bool => $row['depth'] === 0)));
+    }
     $current = $page->currentFolder();
     $totals = \Aurora\Models\AssetFolder::assetTotals();
     $canManageFolders = auth()->user()->can('update Asset');
@@ -12,7 +18,7 @@
 
 {{--
     Every folder as a tree, in the "Library" breadcrumb's dropdown (folder-browser.blade.php), or
-    the folders under one folder, in the dropdown of each breadcrumb below it.
+    ($siblings) the open folder and the folders next to it, in its own breadcrumb's dropdown.
     A folder opens on click, like a tile (closing the dropdown), and takes drops like one: the
     drag state is on the layout around the page (ListAssets::content()).
 --}}
@@ -36,7 +42,8 @@
     <span hidden wire:key="folder-tree-{{ $scope }}-expand-{{ $current?->id ?? 'root' }}" x-init="active = @js($current?->id); @js($expanded).forEach((id) => (open[id] = true))"></span>
 
     <ul class="cms-folder-tree-list" role="tree">
-        {{-- At the top: the library, or the folder this tree is under. --}}
+        {{-- At the top: the library, or the folder this tree is under (not for the folders next to one). --}}
+        @unless ($siblings)
         <li role="treeitem" x-bind:aria-selected="active === @js($under?->id) ? 'true' : 'false'">
             <button
                 type="button"
@@ -58,6 +65,7 @@
                 <span class="cms-folder-tree-name">{{ $under?->name ?? __('Library') }}</span>
             </button>
         </li>
+        @endunless
 
         @foreach ($rows as ['folder' => $folder, 'depth' => $depth, 'ancestors' => $ancestors, 'hasChildren' => $hasChildren])
             @php($folderActions = implode(',', array_filter(['open', \Aurora\Support\AssetAccess::canWrite(auth()->user(), $folder) ? 'renameFolder,moveFolder,deleteFolder' : null, auth()->user()->can('manage-access Asset') && \Aurora\Support\AssetAccess::canWrite(auth()->user(), $folder) ? 'folderAccess' : null])))

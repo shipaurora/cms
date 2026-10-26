@@ -155,6 +155,22 @@ class MediaFoldersTest extends TestCase
             ->assertSeeHtml('wire:key="folder-tree-dropdown-'.$photos->id.'"');
     }
 
+    public function test_the_open_folders_dropdown_lists_only_the_folders_next_to_it(): void
+    {
+        $this->asset('fjord', 'Photos/Norway/Fjords');
+        AssetFolder::findOrCreatePath('Photos/Iceland');
+        [$photos, $norway, $iceland, $fjords] = collect(['Photos', 'Norway', 'Iceland', 'Fjords'])->map(fn (string $name): AssetFolder => AssetFolder::query()->where('name', $name)->sole());
+
+        $html = Livewire::actingAs($this->userWithRole('Editor'))->test(ListAssets::class, ['folder' => $norway->id])->html();
+
+        // Norway's own dropdown: Norway and Iceland, Photos's folders, without Photos above them or Fjords below.
+        $this->assertStringContainsString('wire:key="folder-tree-siblings-'.$photos->id.'-'.$norway->id.'"', $html);
+        $this->assertStringContainsString('wire:key="folder-tree-siblings-'.$photos->id.'-'.$iceland->id.'"', $html);
+        $this->assertStringNotContainsString('wire:key="folder-tree-siblings-'.$photos->id.'-'.$fjords->id.'"', $html);
+        // "Library" still holds the whole tree.
+        $this->assertStringContainsString('wire:key="folder-tree-root-'.$fjords->id.'"', $html);
+    }
+
     public function test_the_browsers_back_button_returns_to_the_folder_before(): void
     {
         $loose = $this->asset('loose');

@@ -105,7 +105,7 @@
 
             @include('aurora::filament.assets.folder-tree')
         </x-filament::dropdown>
-        {{-- The open folder opens the tree of its parent: itself and the folders next to it. The
+        {{-- The open folder lists the folders next to it (its parent's), to switch to one. The
              folders above it simply open, like links; all of them still take drops. --}}
         @foreach ($page->currentTrail() as $crumb)
             @php
@@ -126,7 +126,7 @@
                         </button>
                     </x-slot>
 
-                    @include('aurora::filament.assets.folder-tree', ['under' => $crumb->parent_id ? $page->folderById($crumb->parent_id) : null])
+                    @include('aurora::filament.assets.folder-tree', ['under' => $crumb->parent_id ? $page->folderById($crumb->parent_id) : null, 'siblings' => true])
                 </x-filament::dropdown>
             @else
                 <button type="button" data-drop-name="{{ $crumb->name }}"
