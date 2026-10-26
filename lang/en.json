@@ -2113,5 +2113,15 @@
     "All the selected images already have alt text": "All the selected images already have alt text",
     "Writing alt text for :count image|Writing alt text for :count images": "Writing alt text for :count image|Writing alt text for :count images",
     "It appears on each image as soon as the assistant is done.": "It appears on each image as soon as the assistant is done.",
-    "Write alt text": "Write alt text"
+    "Write alt text": "Write alt text",
+    "Open :folder": "Open :folder",
+    "Select every file on this page": "Select every file on this page",
+    "Sort by": "Sort by",
+    "Newest first": "Newest first",
+    "Oldest first": "Oldest first",
+    ":column, A to Z": ":column, A to Z",
+    ":column, Z to A": ":column, Z to A",
+    "How the media library looks, for everyone. The same on every site.": "How the media library looks, for everyone. The same on every site.",
+    "Show folders among the files": "Show folders among the files",
+    "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.": "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files."
 }

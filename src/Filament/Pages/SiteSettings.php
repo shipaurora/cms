@@ -13,6 +13,7 @@ use Aurora\Filament\Concerns\ManagesWebhooks;
 use Aurora\Filament\Concerns\TranslatesPageLabels;
 use Aurora\Filament\Forms\Components\AssetPicker;
 use Aurora\Filament\Pages\Auth\SetUpRequiredPasskey;
+use Aurora\Filament\Resources\Assets\Pages\ListAssets;
 use Aurora\Filament\Resources\LanguageLines\LanguageLineResource;
 use Aurora\Filament\Resources\Pages\Actions\ReindexAllAction;
 use Aurora\Filament\Resources\Pages\Actions\SearchPagesAction;
@@ -169,11 +170,19 @@ class SiteSettings extends Page implements HasSchemas
     {
         // The API key is never sent back to the browser, even encrypted.
         // The site being worked on: its own settings, with the CMS's (the AI assistant) beside them.
-        $this->form->fill(Arr::except(Setting::forCurrentSite(), [Copilot::KEY_SETTING]));
+        // Settings that are on until someone switches them off, under what's saved.
+        $this->form->fill([...self::DEFAULTS, ...Arr::except(Setting::forCurrentSite(), [Copilot::KEY_SETTING])]);
 
         // What the form holds now, to tell unsaved changes by (HasUnsavedDataChangesAlert).
         $this->rememberData();
     }
+
+    /**
+     * What a setting is until it's saved, where that isn't off or empty.
+     *
+     * @var array<string, mixed>
+     */
+    protected const DEFAULTS = [ListAssets::FOLDERS_INLINE_SETTING => true];
 
     /**
      * The pages of Settings, in the side menu's order: each a few tabs that belong together,
@@ -186,7 +195,7 @@ class SiteSettings extends Page implements HasSchemas
     protected const PAGES = [
         'website' => ['label' => 'Website', 'icon' => 'phosphor-browser', 'tabs' => ['branding', 'publishing', 'shortcodes'], 'saves' => true],
         'templates' => ['label' => 'Templates', 'icon' => 'phosphor-layout', 'tabs' => ['layouts', 'blocks', 'menu-locations'], 'saves' => false],
-        'media' => ['label' => 'Media', 'icon' => 'phosphor-image', 'tabs' => ['image-formats'], 'saves' => false],
+        'media' => ['label' => 'Media', 'icon' => 'phosphor-image', 'tabs' => ['media-library', 'image-formats'], 'saves' => true],
         'languages-sites' => ['label' => 'Languages & sites', 'icon' => 'phosphor-translate', 'tabs' => ['languages', 'sites'], 'saves' => false],
         'search-seo' => ['label' => 'Search & SEO', 'icon' => 'phosphor-magnifying-glass', 'tabs' => ['search', 'seo'], 'saves' => false],
         'performance' => ['label' => 'Performance', 'icon' => 'phosphor-lightning', 'tabs' => ['page-cache'], 'saves' => true],
@@ -400,6 +409,17 @@ class SiteSettings extends Page implements HasSchemas
                     ->icon('phosphor-layout')
                     ->description(__('How pages are drawn on the website. Each page picks one; new pages start with the default.'))
                     ->schema(fn (): array => $this->layoutRows()),
+            ]),
+            // How the media library shows its folders (Aurora\Filament\Resources\Assets\Pages\ListAssets).
+            'media-library' => Tab::make(__('Media library'))->icon('phosphor-images')->schema([
+                Section::make(__('Media library'))
+                    ->icon('phosphor-images')
+                    ->description(__('How the media library looks, for everyone. The same on every site.'))
+                    ->schema([
+                        Toggle::make(ListAssets::FOLDERS_INLINE_SETTING)
+                            ->label(__('Show folders among the files'))
+                            ->helperText(__('On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.')),
+                    ]),
             ]),
             'image-formats' => Tab::make(__('Image formats'))->icon('phosphor-frame-corners')->schema([
                 Section::make(__('Image formats'))

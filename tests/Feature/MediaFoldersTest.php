@@ -4,6 +4,7 @@ namespace Aurora\Tests\Feature;
 
 use Aurora\Enums\AssetType;
 use Aurora\Filament\Forms\Components\AssetPicker;
+use Aurora\Filament\Pages\SiteSettings;
 use Aurora\Filament\Resources\Assets\AssetResource;
 use Aurora\Filament\Resources\Assets\Pages\EditAsset;
 use Aurora\Filament\Resources\Assets\Pages\ListAssets;
@@ -11,6 +12,7 @@ use Aurora\Mcp\Servers\CmsServer;
 use Aurora\Mcp\Tools\ListImages;
 use Aurora\Models\Asset;
 use Aurora\Models\AssetFolder;
+use Aurora\Models\User;
 use Aurora\Support\AssetLibrary;
 use Aurora\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,6 +68,74 @@ class MediaFoldersTest extends TestCase
             ->searchTable('fjord')
             ->assertCanSeeTableRecords([$fjord])
             ->assertSee('Searching all folders');
+    }
+
+    public function test_folders_are_the_first_cards_of_the_grid_and_rows_of_the_list(): void
+    {
+        $editor = $this->userWithRole('Editor');
+        $this->asset('loose');
+        $this->asset('fjord', 'Photos/Norway');
+        $photos = AssetFolder::query()->where('name', 'Photos')->sole();
+
+        // In the table, before its files, as its own records are: not in a grid of their own above it.
+        $grid = Livewire::actingAs($editor)->test(ListAssets::class)->html();
+        $this->assertMatchesRegularExpression('/cms-folder-items.*fi-ta-content-grid.*wire:key="folder-'.$photos->id.'".*cms-asset-record/s', $grid);
+        // Select all is in the toolbar, so nothing stands between the folders and the files.
+        $this->assertStringContainsString('cms-media-select-page', $grid);
+
+        // The list has no heading row between them, and sorts from the toolbar instead.
+        Livewire::actingAs($editor)
+            ->withQueryParams(['view' => 'list'])
+            ->test(ListAssets::class)
+            ->assertSeeHtml('wire:key="folder-'.$photos->id.'"')
+            ->assertSeeHtml('cms-folder-record-spacer')
+            ->assertDontSeeHtml('<thead')
+            ->assertSee('Oldest first');
+    }
+
+    public function test_folders_can_be_shown_apart_from_the_files_as_before(): void
+    {
+        $editor = $this->userWithRole('Editor');
+        $this->asset('loose');
+        $this->asset('fjord', 'Photos/Norway');
+        $photos = AssetFolder::query()->where('name', 'Photos')->sole();
+
+        Livewire::actingAs($this->userWithRole(User::SUPER_ADMIN))
+            ->withQueryParams(['tab' => 'media'])
+            ->test(SiteSettings::class)
+            ->assertFormSet([ListAssets::FOLDERS_INLINE_SETTING => true])
+            ->fillForm([ListAssets::FOLDERS_INLINE_SETTING => false])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $html = Livewire::actingAs($editor)->test(ListAssets::class)->html();
+
+        // A grid of its own above the table, and the table's own select-all bar.
+        $this->assertStringContainsString('wire:key="folder-'.$photos->id.'"', $html);
+        $this->assertStringNotContainsString('cms-folder-items', $html);
+        $this->assertStringNotContainsString('cms-media-select-page', $html);
+        $this->assertStringContainsString('fi-ta-content-header', $html);
+    }
+
+    public function test_folders_are_left_out_of_a_search_and_of_later_pages(): void
+    {
+        $editor = $this->userWithRole('Editor');
+        $this->asset('fjord', 'Photos/Norway');
+        $photos = AssetFolder::query()->where('name', 'Photos')->sole();
+
+        foreach (range(1, 21) as $number) {
+            $this->asset('loose-'.$number);
+        }
+
+        Livewire::actingAs($editor)
+            ->test(ListAssets::class)
+            ->set('tableRecordsPerPage', 20)
+            ->assertSeeHtml('wire:key="folder-'.$photos->id.'"')
+            ->call('gotoPage', 2)
+            ->assertDontSeeHtml('wire:key="folder-'.$photos->id.'"')
+            ->call('gotoPage', 1)
+            ->searchTable('fjord')
+            ->assertDontSeeHtml('wire:key="folder-'.$photos->id.'"');
     }
 
     public function test_the_browsers_back_button_returns_to_the_folder_before(): void

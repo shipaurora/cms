@@ -42,6 +42,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
+use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
@@ -376,46 +377,62 @@ class AssetResource extends Resource
     }
 
     /**
-     * The media library as rows instead of cards: the same records, filters and actions.
+     * The media library as rows instead of cards: the same records, filters and actions. A list
+     * without a header row, its columns a set width, so the open folder's folders can be drawn
+     * as rows above the files that line up with them (aurora::filament.assets.folder-items).
+     * Sorting is in the toolbar (aurora::filament.assets.table-toolbar).
      */
     public static function listLayout(Table $table): Table
     {
         return $table
             ->contentGrid(null)
             ->columns([
-                ViewColumn::make('thumbnail')
-                    ->label('')
-                    ->view('aurora::filament.assets.thumbnail')
-                    ->viewData(['compact' => true]),
-                TextColumn::make('title')
+                Split::make([
+                    ViewColumn::make('thumbnail')
+                        ->label('')
+                        ->view('aurora::filament.assets.thumbnail')
+                        ->viewData(['compact' => true])
+                        ->grow(false),
+                    TextColumn::make('title')
                         // A lock when the file has its own access.
-                    ->icon(fn (Asset $record): ?string => $record->access === AssetAccess::CUSTOM ? 'phosphor-lock-key-fill' : null)
-                    ->iconPosition('after')
-                    ->iconColor('gray')
-                    ->weight(FontWeight::SemiBold)
-                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->search($search))
-                    ->sortable()
-                    ->description(fn (Asset $record): string => $record->isImage() ? ($record->alt ?: __('Missing alt text')) : $record->type()->getLabel())
-                    ->limit(50)
-                    ->wrap()
-                    ->extraAttributes(['class' => '[overflow-wrap:anywhere]']),
-                TextColumn::make('folder')
-                    ->state(fn (Asset $record): ?string => $record->folder?->path())
-                    ->placeholder(__('Top level'))
-                    ->color('gray')
-                    ->visible(fn ($livewire): bool => $livewire instanceof ListAssets && $livewire->isLookingEverywhere()),
-                ViewColumn::make('tags')->view('aurora::filament.assets.tag-dots'),
-                TextColumn::make('size')
-                    ->state(fn (Asset $record): ?string => $record->file() ? Number::fileSize($record->file()->size, 1) : null)
-                    ->color('gray')
-                    ->toggleable(),
-                TextColumn::make('created_at')
-                    ->label(__('Uploaded'))
-                    ->since()
-                    ->dateTimeTooltip()
-                    ->sortable()
-                    ->color('gray')
-                    ->toggleable(),
+                        ->icon(fn (Asset $record): ?string => $record->access === AssetAccess::CUSTOM ? 'phosphor-lock-key-fill' : null)
+                        ->iconPosition('after')
+                        ->iconColor('gray')
+                        ->weight(FontWeight::SemiBold)
+                        ->searchable(query: fn (Builder $query, string $search): Builder => $query->search($search))
+                        ->sortable()
+                        ->description(fn (Asset $record): string => $record->isImage() ? ($record->alt ?: __('Missing alt text')) : $record->type()->getLabel())
+                        ->limit(50)
+                        ->wrap()
+                        ->extraAttributes(['class' => '[overflow-wrap:anywhere]']),
+                    TextColumn::make('folder')
+                        ->state(fn (Asset $record): ?string => $record->folder?->path())
+                        ->placeholder(__('Top level'))
+                        ->color('gray')
+                        ->limit(30)
+                        ->grow(false)
+                        ->extraAttributes(['class' => 'cms-media-list-folder'])
+                        ->visible(fn ($livewire): bool => $livewire instanceof ListAssets && $livewire->isLookingEverywhere()),
+                    ViewColumn::make('tags')
+                        ->view('aurora::filament.assets.tag-dots')
+                        ->viewData(['list' => true])
+                        ->grow(false),
+                    TextColumn::make('size')
+                        ->state(fn (Asset $record): ?string => $record->file() ? Number::fileSize($record->file()->size, 1) : null)
+                        ->color('gray')
+                        ->grow(false)
+                        ->alignEnd()
+                        ->extraAttributes(['class' => 'cms-media-list-size']),
+                    TextColumn::make('created_at')
+                        ->label(__('Uploaded'))
+                        ->since()
+                        ->dateTimeTooltip()
+                        ->sortable()
+                        ->color('gray')
+                        ->grow(false)
+                        ->alignEnd()
+                        ->extraAttributes(['class' => 'cms-media-list-date']),
+                ]),
             ]);
     }
 

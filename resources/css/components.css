@@ -2284,13 +2284,6 @@ body.fpb-edit-mode .fi-main {
     gap: 0.5rem;
 }
 
-.cms-folder-tile:hover {
-    transform: translateY(-2px);
-    box-shadow:
-        0 18px 40px -18px color-mix(in oklch, var(--primary-600) 55%, transparent),
-        0 0 0 1px color-mix(in oklch, var(--primary-500) 35%, transparent);
-}
-
 /* Breadcrumb trail and the grid/list switch as glass pills. */
 .cms-folder-trail > button {
     border-radius: 9999px;
@@ -2302,7 +2295,8 @@ body.fpb-edit-mode .fi-main {
 }
 
 /* ── Image cards ──────────────────────────────────────────────────────── */
-.fi-ta-record.cms-asset-record {
+/* Folders are cards of the same grid (aurora::filament.assets.folder-items): .cms-folder-record. */
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) {
     /* Flat at rest: no edge or shadow until hovered or selected. */
     border: 1px solid transparent;
     border-radius: 1.25rem;
@@ -2318,8 +2312,101 @@ body.fpb-edit-mode .fi-main {
 
 /* In the list layout the rows stay rows. */
 tr.cms-asset-record,
-.fi-ta-table .cms-asset-record {
+.fi-ta-table .cms-asset-record,
+.fi-ta-content:not(.fi-ta-content-grid) > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) {
     transform: none !important;
+}
+
+/* The list's columns have set widths, so the folders' rows line up with the files'. Size and
+   date make way on narrow screens. */
+.cms-media-list-tags {
+    display: flex;
+    width: 6rem;
+}
+
+.cms-media-list-folder {
+    width: 12rem;
+}
+
+.cms-media-list-size {
+    display: block;
+    width: 4.5rem;
+    text-align: end;
+}
+
+.cms-media-list-date {
+    display: block;
+    width: 7.5rem;
+    text-align: end;
+}
+
+@media (width < 40rem) {
+    .cms-media-list-size,
+    .cms-media-list-date {
+        display: none;
+    }
+}
+
+/* ── Folders among the files (aurora::filament.assets.folder-items) ─────────
+   Drawn by the table just before its files, in a content container of their own: no edge,
+   corner or padding between the two, so they read as one grid or one list. The table's own
+   bar between its toolbar and its files (select all, sort) moves into the toolbar
+   (aurora::filament.assets.table-toolbar) so it can't stand between them. */
+.cms-media-folders-inline .fi-ta-content-header {
+    display: none;
+}
+
+.fi-ta-content-ctn.cms-folder-items {
+    overflow: visible;
+    border-top-width: 0;
+    border-radius: 0;
+}
+
+.cms-folder-items + .fi-ta-content-ctn {
+    border-top-width: 0;
+}
+
+.cms-folder-items > .fi-ta-content-grid {
+    padding-bottom: 0;
+}
+
+.cms-folder-items > .fi-ta-content:not(.fi-ta-content-grid) {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.dark .cms-folder-items > .fi-ta-content:not(.fi-ta-content-grid) {
+    border-bottom-color: rgb(255 255 255 / 0.1);
+}
+
+.cms-folder-record {
+    cursor: pointer;
+    outline: none;
+}
+
+.cms-folder-record:focus-visible {
+    box-shadow: 0 0 0 2px var(--primary-500) !important;
+}
+
+/* In place of a file row's checkbox (.fi-ta-record-checkbox: mx-3 my-4, 1rem square). */
+.cms-folder-record-spacer {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    margin: 1rem 0.75rem;
+}
+
+/* Something dragged over a folder: drop here. Others it could go to show faintly. */
+.fi-ta-record.cms-folder-record.cms-folder-record-over {
+    background: color-mix(in oklch, var(--primary-500) 10%, transparent) !important;
+    box-shadow: 0 0 0 2px var(--primary-500) !important;
+}
+
+.fi-ta-content-grid > .fi-ta-record.cms-folder-record.cms-folder-record-over {
+    transform: scale(1.02);
+}
+
+.fi-ta-record.cms-folder-record.cms-folder-record-target {
+    box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary-500) 40%, transparent);
 }
 
 /* ── Image picker ─────────────────────────────────────────────────────── */
@@ -2340,36 +2427,36 @@ tr.cms-asset-record,
 
 /* Grid cards: the checkbox floats over the image's top-left corner and only shows on hover
    or once selected, so the image and text use the full width of the card. */
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record {
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) {
     position: relative;
     padding: 0.625rem !important;
 }
 
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content-ctn,
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content {
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-record-content-ctn,
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-record-content {
     padding: 0 !important;
 }
 
 /* Grid cards fill their row, and the tags sit at the bottom of each card, so they line up
    across a row whatever the length of the title and alt text above them. */
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content-ctn {
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-record-content-ctn {
     align-self: stretch;
 }
 
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content-ctn > div,
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content,
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-record-content > .fi-grid-col,
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-stack {
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-record-content-ctn > div,
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-record-content,
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-record-content > .fi-grid-col,
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-stack {
     display: flex;
     flex: 1;
     flex-direction: column;
 }
 
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record .fi-ta-stack > .fi-ta-col:has(.cms-asset-tags) {
+.fi-ta-content-grid > .fi-ta-record:is(.cms-asset-record, .cms-folder-record) .fi-ta-stack > .fi-ta-col:has(.cms-asset-tags) {
     margin-top: auto;
 }
 
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox {
+.fi-ta-content-grid > .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox {
     position: absolute;
     top: 1.125rem;
     left: 1.125rem;
@@ -2380,15 +2467,15 @@ tr.cms-asset-record,
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
 }
 
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record:hover > .fi-ta-record-checkbox,
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:checked,
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:focus-visible,
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record.fi-selected > .fi-ta-record-checkbox {
+.fi-ta-content-grid > .fi-ta-record.cms-asset-record:hover > .fi-ta-record-checkbox,
+.fi-ta-content-grid > .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:checked,
+.fi-ta-content-grid > .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:focus-visible,
+.fi-ta-content-grid > .fi-ta-record.cms-asset-record.fi-selected > .fi-ta-record-checkbox {
     opacity: 1;
 }
 
 /* Unchecked, over a photo: a dark glass square with a white edge, visible on light and dark images. */
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:not(:checked) {
+.fi-ta-content-grid > .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:not(:checked) {
     width: 1.25rem;
     height: 1.25rem;
     border: 2px solid rgb(255 255 255 / 0.9);
@@ -2398,7 +2485,7 @@ tr.cms-asset-record,
     --tw-ring-shadow: 0 0 #0000;
 }
 
-.fi-ta-ctn-with-content-layout .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:checked {
+.fi-ta-content-grid > .fi-ta-record.cms-asset-record > .fi-ta-record-checkbox:checked {
     width: 1.25rem;
     height: 1.25rem;
 }

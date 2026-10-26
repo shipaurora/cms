@@ -9,6 +9,7 @@ use Aurora\Filament\Forms\Components\FolderSelect;
 use Aurora\Filament\Resources\Assets\AssetResource;
 use Aurora\Models\Asset;
 use Aurora\Models\AssetFolder;
+use Aurora\Models\Setting;
 use Aurora\Support\AssetAccess;
 use Aurora\Support\AssetLibrary;
 use Filament\Actions\Action;
@@ -26,7 +27,9 @@ use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Table;
+use Filament\Tables\View\TablesRenderHook;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Http\UploadedFile;
@@ -38,6 +41,7 @@ use Illuminate\Support\Number;
 use Illuminate\Validation\Rules\Unique;
 use Livewire\Attributes\Url;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\Livewire;
 
 /**
  * The media library, browsed like a file manager: breadcrumbs, the folders in the open
@@ -50,6 +54,12 @@ class ListAssets extends ListRecords
     protected static string $resource = AssetResource::class;
 
     protected static ?string $title = 'Media library';
+
+    /**
+     * Whether folders are drawn among the files, as their grid's first cards (on by default), or
+     * in a grid of their own above them (Settings › Media › Media library).
+     */
+    public const FOLDERS_INLINE_SETTING = 'media_folders_inline';
 
     /**
      * The open folder (null = top level). Kept in the URL so folders can be bookmarked, one
@@ -72,6 +82,24 @@ class ListAssets extends ListRecords
      * @var array<string, TemporaryUploadedFile>
      */
     public array $dropped = [];
+
+    /**
+     * Its folders drawn among the files, and the select-all checkbox in the toolbar: render
+     * hooks of its table, for this page only. Registered once, by the first one drawn.
+     */
+    public function boot(): void
+    {
+        $hooks = [
+            TablesRenderHook::CONTENT_BEFORE => fn (): string => ($page = Livewire::current()) instanceof self ? $page->folderItems() : '',
+            TablesRenderHook::TOOLBAR_REORDER_TRIGGER_BEFORE => fn (): string => ($page = Livewire::current()) instanceof self ? $page->tableToolbar() : '',
+        ];
+
+        foreach ($hooks as $name => $hook) {
+            if (! FilamentView::hasRenderHook($name, static::class)) {
+                FilamentView::registerRenderHook($name, $hook, static::class);
+            }
+        }
+    }
 
     public function mount(): void
     {
@@ -224,6 +252,41 @@ class ListAssets extends ListRecords
     public function isLookingEverywhere(): bool
     {
         return filled($this->getTableSearch()) || filled($this->getTableFilterState('tags')['values'] ?? null);
+    }
+
+    /**
+     * The open folder's folders, drawn by the table before its files so they read as the first
+     * cards of the grid (or rows of the list). Only on the first page, and not while a search or
+     * tag filter looks in every folder. Registered as a table render hook (AdminPanelProvider).
+     */
+    public function folderItems(): string
+    {
+        $records = $this->getTableRecords();
+
+        if (! $this->showsFoldersInline() || $this->isLookingEverywhere() || $this->subfolders()->isEmpty() || (method_exists($records, 'currentPage') && $records->currentPage() > 1)) {
+            return '';
+        }
+
+        return view('aurora::filament.assets.folder-items', ['page' => $this])->render();
+    }
+
+    public function showsFoldersInline(): bool
+    {
+        return Setting::get(self::FOLDERS_INLINE_SETTING) !== false;
+    }
+
+    /**
+     * The select-all checkbox, and in the list the sort, at the start of the table's toolbar:
+     * with the folders inline, where the table's own bar for them would come between the
+     * folders and the files.
+     */
+    public function tableToolbar(): string
+    {
+        if (! $this->showsFoldersInline()) {
+            return '';
+        }
+
+        return view('aurora::filament.assets.table-toolbar', ['page' => $this])->render();
     }
 
     public function openFolder(?string $folder): void
@@ -401,7 +464,7 @@ class ListAssets extends ListRecords
         $size = fn (int $kilobytes): string => Number::fileSize($kilobytes * 1024);
 
         return [
-            'class' => 'cms-media-layout',
+            'class' => 'cms-media-layout'.($this->showsFoldersInline() ? ' cms-media-folders-inline' : ''),
             'x-data' => 'cmsMediaDrag('.Js::from([
                 'canUpload' => auth()->user()->can('create', Asset::class) && AssetAccess::canWrite(auth()->user(), $this->currentFolder()),
                 'strings' => [

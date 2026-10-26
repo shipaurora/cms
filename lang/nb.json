@@ -2113,5 +2113,15 @@
     "All the selected images already have alt text": "Alle de valgte bildene har allerede alt-tekst",
     "Writing alt text for :count image|Writing alt text for :count images": "Skriver alt-tekst for :count bilde|Skriver alt-tekst for :count bilder",
     "It appears on each image as soon as the assistant is done.": "Den dukker opp på hvert bilde så snart assistenten er ferdig.",
-    "Write alt text": "Skriv alt-tekst"
+    "Write alt text": "Skriv alt-tekst",
+    "Open :folder": "Åpne :folder",
+    "Select every file on this page": "Velg alle filene på denne siden",
+    "Sort by": "Sorter etter",
+    "Newest first": "Nyeste først",
+    "Oldest first": "Eldste først",
+    ":column, A to Z": ":column, A til Å",
+    ":column, Z to A": ":column, Å til A",
+    "How the media library looks, for everyone. The same on every site.": "Hvordan mediebiblioteket ser ut, for alle. Det samme på alle nettsteder.",
+    "Show folders among the files": "Vis mapper sammen med filene",
+    "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.": "På: mappene i en mappe er de første kortene i rutenettet, eller de første radene i listen, som på en datamaskin. Av: de ligger i en egen rad over filene."
 }

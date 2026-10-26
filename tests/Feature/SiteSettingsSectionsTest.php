@@ -106,7 +106,7 @@ class SiteSettingsSectionsTest extends TestCase
         $this->assertSame([SiteSettings::getUrl(['tab' => 'templates', 'section' => 'layouts'])], collect($results)->pluck('url')->all());
 
         $commands = collect(PaletteCommands::all())->filter(fn ($command) => $command->toArray()['group'] === 'Settings');
-        $this->assertContains(SiteSettings::getUrl(['tab' => 'media']), $commands->map(fn ($command) => $command->toArray()['url'])->all());
+        $this->assertContains(SiteSettings::getUrl(['tab' => 'media', 'section' => 'image-formats']), $commands->map(fn ($command) => $command->toArray()['url'])->all());
 
         // Only for those who may open Settings.
         $this->actingAs($this->userWithRole('Editor'));

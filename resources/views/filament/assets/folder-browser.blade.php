@@ -147,7 +147,9 @@
         </div>
     </nav>
 
-    @if ($folders->isNotEmpty() && ! $searching)
+    {{-- With folders shown apart (Settings › Media › Media library): a grid of their own above
+         the files. Otherwise they're the first cards of the files' grid (folder-items.blade.php). --}}
+    @if (! $page->showsFoldersInline() && $folders->isNotEmpty() && ! $searching)
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
             @foreach ($folders as $folder)
                 @php($folderActions = implode(',', array_filter(['open', \Aurora\Support\AssetAccess::canWrite(auth()->user(), $folder) ? 'renameFolder,moveFolder,deleteFolder' : null, auth()->user()->can('manage-access Asset') && \Aurora\Support\AssetAccess::canWrite(auth()->user(), $folder) ? 'folderAccess' : null])))

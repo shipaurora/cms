@@ -4,8 +4,13 @@
     $tags = $record->tags;
     $shown = $tags->take(6);
     $hidden = $tags->slice(6);
+    $list = $list ?? false;
 @endphp
 
+{{-- In the list, a box of a set width even without tags, so the columns after it line up. --}}
+@if ($list)
+    <div class="cms-media-list-tags">
+@endif
 @if ($tags->isNotEmpty())
     <div class="cms-asset-tags flex flex-wrap items-center gap-1.5 py-0.5" aria-label="Tags: {{ $tags->pluck('name')->join(', ') }}">
         @foreach ($shown as $tag)
@@ -22,5 +27,8 @@
                 x-tooltip="{ content: @js($hidden->pluck('name')->join(', ')), theme: $store.theme }"
             >+{{ $hidden->count() }}</span>
         @endif
+    </div>
+@endif
+@if ($list)
     </div>
 @endif
