@@ -23,7 +23,6 @@ use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 class PermissionGapsTest extends TestCase
@@ -123,13 +122,14 @@ class PermissionGapsTest extends TestCase
         $this->assertTrue($manager->can('update', $other));
     }
 
-    public function test_the_browser_cannot_change_the_folder_or_language_being_worked_on(): void
+    public function test_the_browser_can_only_set_the_folder_being_worked_on_to_one_that_exists(): void
     {
         $this->actingAs($this->userWithRole(User::SUPER_ADMIN));
 
-        $this->expectException(CannotUpdateLockedPropertyException::class);
-
-        Livewire::test(ListAssets::class)->set('folder', 'not-a-folder');
+        // Back and forward set it from the address (ListAssets::updatedFolder()).
+        Livewire::test(ListAssets::class)
+            ->set('folder', 'not-a-folder')
+            ->assertSet('folder', null);
     }
 
     public function test_a_role_editor_cannot_grant_permissions_they_do_not_have(): void

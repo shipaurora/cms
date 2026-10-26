@@ -68,6 +68,27 @@ class MediaFoldersTest extends TestCase
             ->assertSee('Searching all folders');
     }
 
+    public function test_the_browsers_back_button_returns_to_the_folder_before(): void
+    {
+        $loose = $this->asset('loose');
+        $fjord = $this->asset('fjord', 'Photos/Norway');
+        $photos = AssetFolder::query()->where('name', 'Photos')->sole();
+        $norway = AssetFolder::query()->where('name', 'Norway')->sole();
+
+        // Going back or forward sets the folder from the address, as Livewire does.
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(ListAssets::class)
+            ->call('openFolder', $photos->id)
+            ->call('openFolder', $norway->id)
+            ->assertCanSeeTableRecords([$fjord])
+            ->set('folder', $photos->id)
+            ->assertSet('folder', $photos->id)
+            ->assertSee('Norway')
+            ->assertCanNotSeeTableRecords([$fjord])
+            ->set('folder', null)
+            ->assertCanSeeTableRecords([$loose]);
+    }
+
     public function test_folders_can_be_created_renamed_moved_and_deleted_without_losing_images(): void
     {
         $editor = $this->userWithRole('Editor');

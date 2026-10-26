@@ -74,7 +74,11 @@ class AssetAccessTest extends TestCase
         Livewire::test(ListAssets::class)
             ->assertCanSeeTableRecords([$public])
             ->assertCanNotSeeTableRecords([$secret])
-            ->assertDontSee('Personnel files');
+            ->assertDontSee('Personnel files')
+            // Not by its address either, nor by going back to it.
+            ->set('folder', $hr->id)
+            ->assertSet('folder', null)
+            ->assertCanNotSeeTableRecords([$shared, $secret]);
 
         $this->get(route('filament.admin.resources.assets.edit', ['tenant' => 'main', 'record' => $secret]))->assertForbidden();
 

@@ -36,7 +36,6 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Js;
 use Illuminate\Support\Number;
 use Illuminate\Validation\Rules\Unique;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -53,10 +52,11 @@ class ListAssets extends ListRecords
     protected static ?string $title = 'Media library';
 
     /**
-     * The open folder (null = top level). Kept in the URL so folders can be bookmarked.
+     * The open folder (null = top level). Kept in the URL so folders can be bookmarked, one
+     * history entry per folder so the browser's back button returns to the folder before.
+     * Going back sets it from the browser: updatedFolder() checks it as openFolder() does.
      */
-    #[Locked]
-    #[Url]
+    #[Url(history: true)]
     public ?string $folder = null;
 
     /**
@@ -230,6 +230,14 @@ class ListAssets extends ListRecords
     {
         $this->folder = $folder !== null && $this->allFolders()->has($folder) ? $folder : null;
         $this->resetTable();
+    }
+
+    /**
+     * The folder set by the browser's back and forward buttons: one this person may see, or the top level.
+     */
+    public function updatedFolder(?string $folder): void
+    {
+        $this->openFolder($folder);
     }
 
     /**
