@@ -105,24 +105,40 @@
 
             @include('aurora::filament.assets.folder-tree')
         </x-filament::dropdown>
-        {{-- Each folder in the trail opens the tree of its parent: itself and the folders next to it. --}}
+        {{-- The open folder opens the tree of its parent: itself and the folders next to it. The
+             folders above it simply open, like links; all of them still take drops. --}}
         @foreach ($page->currentTrail() as $crumb)
+            @php
+                $crumbClasses = ['inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition hover:bg-gray-100 dark:hover:bg-white/5', 'text-gray-950 dark:text-white' => $crumb->is($current), 'text-gray-500 dark:text-gray-400' => ! $crumb->is($current)];
+            @endphp
             <x-filament::icon icon="phosphor-caret-right-bold" class="size-4 text-gray-400" />
-            <x-filament::dropdown placement="bottom-start" max-height="26rem" class="cms-folder-tree-dropdown" wire:key="folder-tree-dropdown-{{ $crumb->id }}">
-                <x-slot name="trigger">
-                    <button type="button" data-drop-name="{{ $crumb->name }}"
-                        data-drop-folder="{{ $crumb->id }}"
-                        aria-label="{{ __(':folder: choose a folder', ['folder' => $crumb->name]) }}"
-                        x-on:dragover="enter($event, @js($crumb->id))" x-on:dragleave="leave($event, @js($crumb->id))"
-                        x-bind:class="over === @js($crumb->id) ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-500/10' : ''"
-                        @class(['inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition hover:bg-gray-100 dark:hover:bg-white/5', 'text-gray-950 dark:text-white' => $crumb->is($current), 'text-gray-500 dark:text-gray-400' => ! $crumb->is($current)])>
-                        {{ $crumb->name }}
-                        <x-filament::icon icon="phosphor-caret-down-bold" class="size-3.5 opacity-60" />
-                    </button>
-                </x-slot>
+            @if ($loop->last)
+                <x-filament::dropdown placement="bottom-start" max-height="26rem" class="cms-folder-tree-dropdown" wire:key="folder-tree-dropdown-{{ $crumb->id }}">
+                    <x-slot name="trigger">
+                        <button type="button" data-drop-name="{{ $crumb->name }}"
+                            data-drop-folder="{{ $crumb->id }}"
+                            aria-label="{{ __(':folder: choose a folder', ['folder' => $crumb->name]) }}"
+                            x-on:dragover="enter($event, @js($crumb->id))" x-on:dragleave="leave($event, @js($crumb->id))"
+                            x-bind:class="over === @js($crumb->id) ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-500/10' : ''"
+                            @class($crumbClasses)>
+                            {{ $crumb->name }}
+                            <x-filament::icon icon="phosphor-caret-down-bold" class="size-3.5 opacity-60" />
+                        </button>
+                    </x-slot>
 
-                @include('aurora::filament.assets.folder-tree', ['under' => $crumb->parent_id ? $page->folderById($crumb->parent_id) : null])
-            </x-filament::dropdown>
+                    @include('aurora::filament.assets.folder-tree', ['under' => $crumb->parent_id ? $page->folderById($crumb->parent_id) : null])
+                </x-filament::dropdown>
+            @else
+                <button type="button" data-drop-name="{{ $crumb->name }}"
+                    data-drop-folder="{{ $crumb->id }}"
+                    wire:key="folder-crumb-{{ $crumb->id }}"
+                    wire:click="openFolder(@js($crumb->id))"
+                    x-on:dragover="enter($event, @js($crumb->id))" x-on:dragleave="leave($event, @js($crumb->id))"
+                    x-bind:class="over === @js($crumb->id) ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-500/10' : ''"
+                    @class($crumbClasses)>
+                    {{ $crumb->name }}
+                </button>
+            @endif
         @endforeach
         @if ($searching)
             <span class="ms-2 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">{{ filled($page->getTableSearch()) ? __('Searching all folders') : __('Showing all folders') }}</span>

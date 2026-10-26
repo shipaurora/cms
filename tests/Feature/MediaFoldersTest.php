@@ -138,6 +138,23 @@ class MediaFoldersTest extends TestCase
             ->assertDontSeeHtml('wire:key="folder-'.$photos->id.'"');
     }
 
+    public function test_only_the_library_and_the_open_folder_pick_a_folder_from_the_trail(): void
+    {
+        $this->asset('fjord', 'Photos/Norway');
+        $photos = AssetFolder::query()->where('name', 'Photos')->sole();
+        $norway = AssetFolder::query()->where('name', 'Norway')->sole();
+
+        // The folder above simply opens; the open one (and "Library") picks from the tree.
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(ListAssets::class, ['folder' => $norway->id])
+            ->assertSeeHtml('wire:key="folder-tree-dropdown"')
+            ->assertSeeHtml('wire:key="folder-tree-dropdown-'.$norway->id.'"')
+            ->assertDontSeeHtml('wire:key="folder-tree-dropdown-'.$photos->id.'"')
+            ->assertSeeHtml('wire:key="folder-crumb-'.$photos->id.'"')
+            ->call('openFolder', $photos->id)
+            ->assertSeeHtml('wire:key="folder-tree-dropdown-'.$photos->id.'"');
+    }
+
     public function test_the_browsers_back_button_returns_to_the_folder_before(): void
     {
         $loose = $this->asset('loose');
