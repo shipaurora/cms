@@ -2501,9 +2501,16 @@ tr.cms-asset-record,
 }
 
 /* ── Folder tree in the "Library" breadcrumb's dropdown (resources/views/filament/assets/folder-tree.blade.php) ── */
-.fi-dropdown-panel:has(> .cms-folder-tree) {
-    width: min(20rem, calc(100vw - 2rem));
-    max-width: none;
+/* As wide as its longest folder, count included, between a sensible minimum and the screen.
+   Filament caps every dropdown panel at max-width: 14rem !important, in its components layer,
+   and an !important in a layer beats one outside any: so this one is in that layer too, and
+   more specific than Filament's .fi-dropdown .fi-dropdown-panel. */
+@layer components {
+    .fi-dropdown .fi-dropdown-panel:has(> .cms-folder-tree) {
+        width: max-content;
+        min-width: 14rem;
+        max-width: min(28rem, calc(100vw - 2rem)) !important;
+    }
 }
 
 .cms-folder-tree {
