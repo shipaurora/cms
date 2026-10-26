@@ -2102,5 +2102,8 @@
     "Shown as written, line breaks included.": "Vises slik den er skrevet, med linjeskift.",
     "Shown in the visual editor’s list of shortcodes.": "Vises i den visuelle editorens liste over kortkoder.",
     "Add shortcode": "Legg til kortkode",
-    "Text from Settings › Shortcodes.": "Tekst fra Innstillinger › Kortkoder."
+    "Text from Settings › Shortcodes.": "Tekst fra Innstillinger › Kortkoder.",
+    "Edit credit": "Endre kreditering",
+    "Replaces the credit on every selected file. Leave it empty to remove it.": "Erstatter krediteringen på alle valgte filer. La stå tomt for å fjerne den.",
+    "Credit saved": "Kreditering lagret"
 }

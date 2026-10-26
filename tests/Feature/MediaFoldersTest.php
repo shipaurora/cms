@@ -114,6 +114,25 @@ class MediaFoldersTest extends TestCase
         $this->assertSame(2, $folder->assets()->count());
     }
 
+    public function test_the_credit_of_selected_files_can_be_set_or_cleared_in_bulk(): void
+    {
+        $one = $this->asset('one');
+        $two = $this->asset('two');
+        $untouched = $this->asset('three');
+        $one->update(['credit' => 'Photo: Kari']);
+        $untouched->update(['credit' => 'Photo: Ola']);
+
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(ListAssets::class)
+            ->callTableBulkAction('credit', [$one, $two], ['credit' => 'Photo: Nordic Agency'])
+            ->assertHasNoTableBulkActionErrors()
+            ->callTableBulkAction('credit', [$two], ['credit' => '']);
+
+        $this->assertSame('Photo: Nordic Agency', $one->fresh()->credit);
+        $this->assertNull($two->fresh()->credit);
+        $this->assertSame('Photo: Ola', $untouched->fresh()->credit);
+    }
+
     public function test_dragging_images_onto_a_folder_moves_them(): void
     {
         $editor = $this->userWithRole('Editor');

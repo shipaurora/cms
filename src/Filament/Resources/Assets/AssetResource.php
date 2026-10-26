@@ -303,6 +303,25 @@ class AssetResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle(__('Moved')),
+                    BulkAction::make('credit')
+                        ->label(__('Edit credit'))
+                        ->icon('phosphor-copyright')
+                        ->modalWidth('md')
+                        // Their shared credit to start from, when they all have the same one.
+                        ->fillForm(fn (Collection $records): array => ['credit' => $records->pluck('credit')->unique()->count() === 1 ? $records->first()->credit : null])
+                        ->schema([
+                            TextInput::make('credit')
+                                ->label(__('Credit'))
+                                ->placeholder(__('Photo: Name / Agency'))
+                                ->maxLength(255)
+                                ->helperText(__('Replaces the credit on every selected file. Leave it empty to remove it.')),
+                        ])
+                        // Only the files they may change.
+                        ->action(fn (Collection $records, array $data) => $records
+                            ->filter(fn (Asset $asset): bool => auth()->user()->can('update', $asset))
+                            ->each->update(['credit' => filled($data['credit'] ?? null) ? $data['credit'] : null]))
+                        ->deselectRecordsAfterCompletion()
+                        ->successNotificationTitle(__('Credit saved')),
                     DeleteBulkAction::make()
                         ->authorizeIndividualRecords('delete')
                         ->modalDescription(__('Files that are in use leave an empty space on those pages. Check "Used on" first.')),

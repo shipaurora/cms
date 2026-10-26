@@ -2102,5 +2102,8 @@
     "Shown as written, line breaks included.": "Shown as written, line breaks included.",
     "Shown in the visual editor’s list of shortcodes.": "Shown in the visual editor’s list of shortcodes.",
     "Add shortcode": "Add shortcode",
-    "Text from Settings › Shortcodes.": "Text from Settings › Shortcodes."
+    "Text from Settings › Shortcodes.": "Text from Settings › Shortcodes.",
+    "Edit credit": "Edit credit",
+    "Replaces the credit on every selected file. Leave it empty to remove it.": "Replaces the credit on every selected file. Leave it empty to remove it.",
+    "Credit saved": "Credit saved"
 }
