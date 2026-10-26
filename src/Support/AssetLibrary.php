@@ -57,11 +57,13 @@ class AssetLibrary
         $title = $attributes['title'] ?? Str::of(pathinfo($fileName, PATHINFO_FILENAME))->replace(['-', '_'], ' ')->squish()->ucfirst()->toString();
         $size = static::imageSize($localPath);
 
-        $asset = DB::transaction(function () use ($attributes, $adder, $title, $size): Asset {
+        $asset = DB::transaction(function () use ($attributes, $adder, $title, $size, $localPath): Asset {
             $asset = Asset::query()->forceCreate([
                 ...(filled($attributes['id'] ?? null) ? ['id' => (string) $attributes['id']] : []),
                 'uploaded_by_id' => auth()->id(),
                 ...Arr::only($attributes, ['alt', 'caption', 'credit', 'folder_id']),
+                // A photo's credit from its EXIF (Artist, else Copyright), unless one is given.
+                ...(blank($attributes['credit'] ?? null) ? ['credit' => ImageMetadata::credit($localPath)] : []),
                 // A folder may also be given as a path ("Photos/Norway"), created when missing.
                 ...(filled($attributes['folder'] ?? null) ? ['folder_id' => AssetFolder::findOrCreatePath($attributes['folder'])?->id] : []),
                 'title' => $title,

@@ -62,10 +62,27 @@ class ImageMetadataTest extends TestCase
             ->assertDontSee('EXIF data', 'A JPEG without any: no section.');
     }
 
+    public function test_a_photos_credit_comes_from_its_exif_artist_else_its_copyright(): void
+    {
+        $both = AssetLibrary::fromUpload($this->jpegWithExif(['Artist' => 'Kari Nordmann', 'Copyright' => 'NTB']));
+        $copyright = AssetLibrary::fromUpload($this->jpegWithExif(['Copyright' => "Ola Normann\0Redaksjonen"]));
+        $neither = AssetLibrary::fromUpload($this->jpegWithExif());
+        $given = AssetLibrary::fromUpload($this->jpegWithExif(['Artist' => 'Kari Nordmann']), ['credit' => 'Photo: Agency']);
+
+        $this->assertSame('Kari Nordmann', $both->credit);
+        $this->assertSame('Ola Normann', $copyright->credit, 'The photographer, not the editor after the NUL.');
+        $this->assertNull($neither->credit);
+        $this->assertSame('Photo: Agency', $given->credit, 'A credit given wins over the file\'s.');
+        $this->assertNull(AssetLibrary::fromUpload(UploadedFile::fake()->image('logo.png', 8, 8))->credit);
+    }
+
     /**
-     * A small JPEG with an EXIF block: camera, exposure, date taken and where.
+     * A small JPEG with an EXIF block: camera, exposure, date taken and where, and any IFD0
+     * text tags given (Artist, Copyright).
+     *
+     * @param  array<string, string>  $text
      */
-    protected function jpegWithExif(): UploadedFile
+    protected function jpegWithExif(array $text = []): UploadedFile
     {
         $jpeg = UploadedFile::fake()->image('photo.jpg', 64, 48)->getContent();
 
@@ -108,12 +125,13 @@ class ImageMetadataTest extends TestCase
         ];
 
         // IFD0 first: its size doesn't depend on where the other two land, only its pointers do.
+        $tags = ['Artist' => 0x013B, 'Copyright' => 0x8298];
         $ifd0Entries = fn (int $exifAt, int $gpsAt): array => [
             0x010F => $ascii('Fujifilm'),
             0x0110 => $ascii('X-T5'),
             0x8769 => ['type' => 4, 'count' => 1, 'data' => pack('V', $exifAt)],
             0x8825 => ['type' => 4, 'count' => 1, 'data' => pack('V', $gpsAt)],
-        ];
+        ] + collect($text)->mapWithKeys(fn (string $value, string $name): array => [$tags[$name] => $ascii($value)])->all();
         $ifd0Length = strlen($ifd($ifd0Entries(0, 0), 8));
         $exifAt = 8 + $ifd0Length;
         $exifIfd = $ifd($exifEntries, $exifAt);

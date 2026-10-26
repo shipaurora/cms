@@ -5,6 +5,7 @@ namespace Aurora\Support;
 use Aurora\Models\Asset;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -46,6 +47,36 @@ class ImageMetadata
     public static function supports(?Asset $asset): bool
     {
         return $asset !== null && function_exists('exif_read_data') && in_array($asset->mime_type, self::READABLE_MIME_TYPES, true);
+    }
+
+    /**
+     * Who to credit for a photo, from its EXIF: the Artist, else the Copyright, or null when it
+     * has neither. Read from a file on this server, as it's added to the library.
+     */
+    public static function credit(?string $path): ?string
+    {
+        if ($path === null || ! function_exists('exif_read_data') || ! is_file($path) || ! in_array(mime_content_type($path), self::READABLE_MIME_TYPES, true)) {
+            return null;
+        }
+
+        try {
+            $tags = (@exif_read_data($path, 'IFD0', true) ?: [])['IFD0'] ?? [];
+        } catch (Throwable) {
+            return null;
+        }
+
+        foreach (['Artist', 'Copyright'] as $name) {
+            // A copyright can hold the photographer's and the editor's, apart by a NUL byte.
+            $value = is_string($tags[$name] ?? null) ? Str::before($tags[$name], "\0") : '';
+            $value = mb_check_encoding($value, 'UTF-8') ? $value : mb_convert_encoding($value, 'UTF-8', 'ISO-8859-1');
+            $value = trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value));
+
+            if ($value !== '') {
+                return Str::limit($value, 255, '');
+            }
+        }
+
+        return null;
     }
 
     /**
