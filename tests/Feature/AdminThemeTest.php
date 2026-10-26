@@ -33,6 +33,9 @@ class AdminThemeTest extends TestCase
 
         // Its prebuilt stylesheet: nothing for the app to compile.
         $this->assertStringContainsString('/css/shipaurora/borealis-theme/borealis.css', Themes::html());
+        // Its address carries the theme's own release, not Filament's, so an update reaches browsers.
+        $release = ltrim(InstalledVersions::getPrettyVersion('shipaurora/borealis'), 'v');
+        $this->assertStringContainsString('borealis.css?v='.$release.'"', Themes::html());
 
         // A theme an app builds with Vite, chosen in Settings: its entry is loaded instead.
         $public = sys_get_temp_dir().'/aurora-theme-'.Str::random(8);

@@ -4,7 +4,6 @@ namespace Aurora\Support;
 
 use Aurora\Models\Setting;
 use Composer\InstalledVersions;
-use Filament\Support\Assets\Theme;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Foundation\Vite;
 
@@ -64,7 +63,8 @@ class Themes
         unset(static::$versions[$id]);
 
         if ($stylesheet !== null) {
-            FilamentAsset::register([Theme::make($id, $stylesheet)], package: $package ?? 'app');
+            // Its address changes with the theme's own release (ThemeStylesheet), so an update reaches browsers.
+            FilamentAsset::register([ThemeStylesheet::make($id, $stylesheet)], package: $package ?? 'app');
         }
     }
 
