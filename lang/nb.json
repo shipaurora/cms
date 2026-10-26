@@ -2105,5 +2105,6 @@
     "Text from Settings › Shortcodes.": "Tekst fra Innstillinger › Kortkoder.",
     "Edit credit": "Endre kreditering",
     "Replaces the credit on every selected file. Leave it empty to remove it.": "Erstatter krediteringen på alle valgte filer. La stå tomt for å fjerne den.",
-    "Credit saved": "Kreditering lagret"
+    "Credit saved": "Kreditering lagret",
+    "Up to :folder": "Opp til :folder"
 }

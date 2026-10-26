@@ -2105,5 +2105,6 @@
     "Text from Settings › Shortcodes.": "Text from Settings › Shortcodes.",
     "Edit credit": "Edit credit",
     "Replaces the credit on every selected file. Leave it empty to remove it.": "Replaces the credit on every selected file. Leave it empty to remove it.",
-    "Credit saved": "Credit saved"
+    "Credit saved": "Credit saved",
+    "Up to :folder": "Up to :folder"
 }

@@ -32,6 +32,7 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Js;
 use Illuminate\Support\Number;
 use Illuminate\Validation\Rules\Unique;
@@ -113,6 +114,21 @@ class ListAssets extends ListRecords
     public function getTitle(): string|Htmlable
     {
         return $this->currentFolder()?->name ?? __('Media library');
+    }
+
+    /**
+     * Inside a folder, the heading starts with a back arrow that opens the folder above it.
+     */
+    public function getHeading(): string|Htmlable|null
+    {
+        if ($this->currentFolder() === null) {
+            return $this->getTitle();
+        }
+
+        return new HtmlString(view('aurora::filament.assets.heading', [
+            'folder' => $this->currentFolder(),
+            'parent' => $this->currentFolder()->parent_id ? $this->folderById($this->currentFolder()->parent_id) : null,
+        ])->render());
     }
 
     /**

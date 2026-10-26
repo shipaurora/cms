@@ -133,6 +133,25 @@ class MediaFoldersTest extends TestCase
         $this->assertSame('Photo: Ola', $untouched->fresh()->credit);
     }
 
+    public function test_a_folder_heading_has_a_button_up_one_level(): void
+    {
+        $editor = $this->userWithRole('Editor');
+        $this->asset('fjord', 'Photos/Norway');
+        $photos = AssetFolder::query()->where('name', 'Photos')->sole();
+        $norway = AssetFolder::query()->where('name', 'Norway')->sole();
+
+        Livewire::actingAs($editor)
+            ->test(ListAssets::class)
+            ->assertDontSee('Up to Library');
+
+        Livewire::actingAs($editor)
+            ->test(ListAssets::class, ['folder' => $norway->id])
+            ->assertSee('Up to Photos')
+            ->assertSeeHtml('wire:click="openFolder(\''.$photos->id.'\')"')
+            ->call('openFolder', $photos->id)
+            ->assertSee('Up to Library');
+    }
+
     public function test_dragging_images_onto_a_folder_moves_them(): void
     {
         $editor = $this->userWithRole('Editor');
