@@ -38,7 +38,7 @@ List, from the old site's templates and its data:
 
 **Block or model?** A block is how part of a page looks; a model is a thing that exists on its own. If the same facts (a person's name, title, phone and photo) would be typed into blocks on several pages, or a list of them is shown somewhere, they're a model, and the blocks only point at records. If it's only ever on one page, with no fields beyond what it shows, it's a block.
 
-Port the old markup into the block views as it is, then replace each hard-coded text, image and link with a field. Keep the old site's CSS classes in the site's stylesheet (`resources/css/app.css`): the visual editor draws blocks with it.
+Port the old markup into the block views as it is, then replace each hard-coded text, image and link with a field. Keep the old site's CSS classes in the site's stylesheet (`resources/css/app.css`): the visual editor draws blocks with it. Turn the old site's brand colours into the `brand` and `accent` theme colours (eleven shades each, `--color-brand-50` to `--color-brand-950`, as defaults in `@theme`), and paint the blocks with `brand-*` and `accent-*` instead of its fixed colours, so editors can change them under Settings › Website › Branding ("Brand colours" in `aurora-development`).
 
 ## 3. A model of the site's own: employees
 
