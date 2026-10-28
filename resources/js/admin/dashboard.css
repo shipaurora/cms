@@ -131,3 +131,49 @@
     background: var(--primary-600);
     color: white;
 }
+
+/*
+ * The welcome card lays itself out by its own width (a container query), not the screen's, so it
+ * reads at every size it can be given on the dashboard: shortcuts in two columns under the
+ * greeting when small, four in a row when there's room, and beside the greeting when it's wide.
+ */
+.aurora-welcome {
+    container-type: inline-size;
+}
+
+.aurora-welcome-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.aurora-welcome-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+@container (max-width: 20rem) {
+    .aurora-welcome-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@container (min-width: 40rem) {
+    .aurora-welcome-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@container (min-width: 72rem) {
+    .aurora-welcome-body {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+    }
+
+    .aurora-welcome-actions {
+        flex: none;
+        width: 46rem;
+    }
+}

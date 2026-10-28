@@ -1,8 +1,10 @@
-{{-- The dashboard's welcome card: its background is the theme's (.cms-welcome, .cms-welcome-grid). --}}
+{{-- The dashboard's welcome card: its background is the theme's (.cms-welcome, .cms-welcome-grid). It lays
+     itself out by its own width, not the screen's (.aurora-welcome, resources/js/admin/dashboard.css):
+     a small card on a wide screen stacks its shortcuts under the greeting. --}}
 <x-filament-widgets::widget>
-    <div class="cms-welcome relative overflow-hidden rounded-2xl bg-gray-950 p-6 text-white shadow-sm ring-1 ring-gray-950/5 md:p-8 dark:ring-white/10">
+    <div class="cms-welcome aurora-welcome relative overflow-hidden rounded-2xl bg-gray-950 p-6 text-white shadow-sm ring-1 ring-gray-950/5 md:p-8 dark:ring-white/10">
         <div class="cms-welcome-grid pointer-events-none absolute inset-0 opacity-30"></div>
-        <div class="relative flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
+        <div class="aurora-welcome-body relative">
             <div>
                 <p class="text-sm font-medium text-white/60">{{ str(now()->translatedFormat(__('l, F j')))->ucfirst() }}</p>
                 <h2 class="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{{ $greeting }}, {{ str($user->name)->before(' ') }}</h2>
@@ -21,7 +23,7 @@
                     @endif
                 </p>
             </div>
-            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 2xl:w-[46rem]">
+            <div class="aurora-welcome-actions">
                 @foreach ($actions as [$label, $description, $icon, $url])
                     <a href="{{ $url }}" @if (str_starts_with($url, \Aurora\Support\CurrentSite::url('/')) && ! str_contains($url, '/admin')) target="_blank" @endif class="group rounded-xl bg-white/5 p-4 ring-1 ring-white/10 backdrop-blur transition hover:bg-white/10">
                         <x-filament::icon :icon="$icon" class="size-6 text-white/80 transition group-hover:scale-110 group-hover:text-white" />
