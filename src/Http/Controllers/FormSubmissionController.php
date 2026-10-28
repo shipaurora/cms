@@ -13,7 +13,6 @@ use Aurora\Support\ContentLocale;
 use Aurora\Support\FormFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Notification;
 use Throwable;
@@ -61,19 +60,19 @@ class FormSubmissionController
             'status' => $looksLikeSpam ? SubmissionStatus::Spam : SubmissionStatus::New,
             'ip_address' => $request->ip(),
             'user_agent' => substr((string) $request->userAgent(), 0, 255),
+            // Each answer as its type keeps it; files and captchas aren't answers (FieldType::stores()).
             'data' => collect($fields)
-                ->reject(fn (array $field): bool => $field['type'] === 'file')
+                ->filter(fn (array $field): bool => FormFields::find($field['type'])::stores())
                 ->mapWithKeys(fn (array $field): array => [$field['name'] => [
                     'label' => $field['label'],
-                    'value' => $field['type'] === 'consent' ? ($request->boolean($field['name']) ? 'Yes' : 'No') : $request->input($field['name']),
+                    'value' => FormFields::find($field['type'])::value($field, $request),
                 ]])
                 ->all(),
         ]);
 
+        // What a type does with the saved submission, such as keeping an uploaded file.
         foreach ($fields as $field) {
-            if ($field['type'] === 'file' && ($file = $request->file($field['name'])) instanceof UploadedFile) {
-                $submission->addMedia($file)->withCustomProperties(['field' => $field['name'], 'label' => $field['label']])->toMediaCollection('files');
-            }
+            FormFields::find($field['type'])::afterSaving($field, $request, $submission);
         }
 
         // The people who read submissions hear about it in the admin; spam stays quiet.

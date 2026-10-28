@@ -186,7 +186,8 @@ class ApiContent
                 'name' => $field['name'],
                 'label' => $field['label'],
                 'required' => $field['required'],
-                ...Arr::only($field['data'], ['placeholder', 'help', 'options', 'width', 'accept', 'max_mb', 'text']),
+                // The settings its type lets the website see (FieldType::publicData()).
+                ...Arr::only($field['data'], FormFields::find($field['type'])::publicData()),
                 'show_if' => filled($field['data']['show_if_field'] ?? null)
                     ? ['field' => $field['data']['show_if_field'], 'value' => $field['data']['show_if_value'] ?? null]
                     : null,

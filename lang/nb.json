@@ -2154,5 +2154,18 @@
     "Same as the website (:theme)": "Samme som nettstedet (:theme)",
     "Drag the widgets into the order you want, choose how wide each one is, and remove the ones you don’t need. Add any widget, as often as you like. Only your own dashboard changes.": "Dra modulene i den rekkefølgen du vil, velg hvor brede de skal være, og fjern dem du ikke trenger. Legg til hvilken som helst modul, så mange ganger du vil. Bare din egen oversikt endres.",
     "Add a widget": "Legg til modul",
-    "The dashboard is empty. Add a widget above, or go back to the default.": "Oversikten er tom. Legg til en modul over, eller gå tilbake til standard."
+    "The dashboard is empty. Add a widget above, or go back to the default.": "Oversikten er tom. Legg til en modul over, eller gå tilbake til standard.",
+    "Multiple choice": "Flere valg",
+    "Add a choice, press Enter": "Legg til et valg, trykk Enter",
+    "Consent checkbox": "Samtykkeboks",
+    "I agree that you store my details to answer my request.": "Jeg godtar at dere lagrer opplysningene mine for å svare på henvendelsen.",
+    "Date": "Dato",
+    "File upload": "Filopplasting",
+    "File extensions, comma separated.": "Filendelser, skilt med komma.",
+    "Phone": "Telefon",
+    "Single choice": "Ett valg",
+    "Dropdown": "Nedtrekksliste",
+    "Short text": "Kort tekst",
+    "Long text": "Lang tekst",
+    "Half": "Halv bredde"
 }

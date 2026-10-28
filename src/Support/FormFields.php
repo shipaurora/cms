@@ -2,6 +2,8 @@
 
 namespace Aurora\Support;
 
+use Aurora\Forms\Fields;
+use Aurora\Forms\FieldType;
 use Aurora\Models\Form;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\Select;
@@ -15,11 +17,14 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 /**
- * The field types a form can contain, defined once: how editors configure them (Filament
- * Builder blocks), how answers are validated, and which view renders them on the site.
+ * The field types a form can contain (Aurora\Forms\FieldType), Aurora's own and the ones a
+ * website or package registers, and what every field shares: its label, key, help text, width,
+ * required switch and "Show only when". Register a type in a service provider's boot():
+ *
+ *     FormFields::register([Turnstile::class, AddressPicker::class]);
  */
 class FormFields
 {
@@ -36,36 +41,138 @@ class FormFields
     public const MAX_FILE_MB = 20;
 
     /**
-     * @var array<string, array{0: string, 1: string}>
+     * Aurora's own types, in the order the form builder lists them.
+     *
+     * @var array<int, class-string<FieldType>>
      */
-    public const TYPES = [
-        'text' => ['Short text', 'phosphor-pencil-simple'],
-        'email' => ['Email', 'phosphor-envelope-simple'],
-        'phone' => ['Phone', 'phosphor-phone'],
-        'textarea' => ['Long text', 'phosphor-text-align-left'],
-        'select' => ['Dropdown', 'phosphor-caret-up-down'],
-        'radio' => ['Single choice', 'phosphor-stop-circle'],
-        'checkboxes' => ['Multiple choice', 'phosphor-check-circle'],
-        'date' => ['Date', 'phosphor-calendar-dots'],
-        'file' => ['File upload', 'phosphor-paperclip'],
-        'consent' => ['Consent checkbox', 'phosphor-shield-check'],
+    public const BUILT_IN = [
+        Fields\Text::class,
+        Fields\Email::class,
+        Fields\Phone::class,
+        Fields\Textarea::class,
+        Fields\Select::class,
+        Fields\Radio::class,
+        Fields\Checkboxes::class,
+        Fields\Date::class,
+        Fields\File::class,
+        Fields\Consent::class,
     ];
+
+    /**
+     * Types the website or its packages registered, by their key. One with the key of one of
+     * Aurora's replaces it.
+     *
+     * @var array<string, class-string<FieldType>>
+     */
+    protected static array $registered = [];
+
+    /**
+     * @param  array<int, class-string<FieldType>>  $types
+     */
+    public static function register(array $types): void
+    {
+        foreach ($types as $type) {
+            if (! is_subclass_of($type, FieldType::class)) {
+                throw new InvalidArgumentException("{$type} is not a form field type: extend Aurora\Forms\FieldType.");
+            }
+
+            static::$registered[$type::type()] = $type;
+        }
+    }
+
+    public static function forget(string ...$types): void
+    {
+        foreach ($types as $type) {
+            unset(static::$registered[$type]);
+        }
+    }
+
+    /**
+     * Every type, by its key: Aurora's own first, then the registered ones.
+     *
+     * @return array<string, class-string<FieldType>>
+     */
+    public static function all(): array
+    {
+        $types = [];
+
+        foreach (self::BUILT_IN as $type) {
+            $types[$type::type()] = $type;
+        }
+
+        return array_replace($types, static::$registered);
+    }
+
+    /**
+     * A type by its key; a field of a type that's gone (a package removed) is treated as
+     * short text, so its form keeps working.
+     *
+     * @return class-string<FieldType>
+     */
+    public static function find(string $type): string
+    {
+        return static::all()[$type] ?? Fields\Text::class;
+    }
+
+    public static function exists(string $type): bool
+    {
+        return array_key_exists($type, static::all());
+    }
+
+    /**
+     * Whether a type is one of Aurora's own, drawn by the website's form view; any other is
+     * drawn by <x-aurora::form-field>.
+     */
+    public static function isBuiltIn(string $type): bool
+    {
+        return in_array(static::all()[$type] ?? null, self::BUILT_IN, true);
+    }
+
+    /**
+     * Whether a form with these fields has to be sent as multipart/form-data.
+     *
+     * @param  array<int, array{type: string}>  $fields
+     */
+    public static function uploads(array $fields): bool
+    {
+        return collect($fields)->contains(fn (array $field): bool => static::find($field['type'])::uploads());
+    }
+
+    /**
+     * The scripts a type needs that aren't on this page yet, marked as sent. Kept on the request,
+     * not in a static, so a long-running server (Octane) sends them again on the next page.
+     *
+     * @return array<int, string>
+     */
+    public static function scriptsOnce(string $type): array
+    {
+        $sent = request()->attributes->get('aurora.form_scripts', []);
+
+        if (isset($sent[$type])) {
+            return [];
+        }
+
+        request()->attributes->set('aurora.form_scripts', [...$sent, $type => true]);
+
+        return static::find($type)::scripts();
+    }
 
     /**
      * @return array<int, Block>
      */
     public static function builderBlocks(): array
     {
-        return collect(self::TYPES)->map(fn (array $type, string $name): Block => Block::make($name)
-            ->label(fn (?array $state): string => filled($state['label'] ?? null) ? $state['label'].' · '.$type[0] : $type[0])
-            ->icon($type[1])
+        return collect(static::all())->map(fn (string $type, string $key): Block => Block::make($key)
+            ->label(fn (?array $state): string => filled($state['label'] ?? null) ? $state['label'].' · '.$type::label() : $type::label())
+            ->icon($type::icon())
             ->columns(2)
-            ->schema(static::schemaFor($name)))
+            ->schema(static::schemaFor($type)))
             ->values()
             ->all();
     }
 
     /**
+     * @param  class-string<FieldType>  $type
      * @return array<int, mixed>
      */
     protected static function schemaFor(string $type): array
@@ -90,30 +197,14 @@ class FormFields
                 ->required(),
         ];
 
-        $specific = match ($type) {
-            'select', 'radio', 'checkboxes' => [
-                TagsInput::make('options')->label('Choices')->placeholder('Add a choice, press Enter')->required()->columnSpanFull(),
-            ],
-            'file' => [
-                TextInput::make('accept')->label('Allowed types')->placeholder('pdf, jpg, png')->helperText('File extensions, comma separated.'),
-                TextInput::make('max_mb')->label('Max size (MB)')->numeric()->minValue(1)->maxValue(static::MAX_FILE_MB)->default(10),
-            ],
-            'consent' => [
-                Textarea::make('text')->label('Text next to the box')->placeholder('I agree that you store my details to answer my request.')->rows(2)->columnSpanFull(),
-            ],
-            default => [
-                TextInput::make('placeholder')->maxLength(255)->withAi(),
-            ],
-        };
-
         return [
             ...$common,
-            ...$specific,
+            ...$type::settings(),
             Grid::make(3)->columnSpanFull()->schema([
-                TextInput::make('help')->label('Help text')->columnSpan(2)->withAi(),
-                ToggleButtons::make('width')->options(['full' => 'Full', 'half' => 'Half'])->default('full')->inline()->grouped(),
+                TextInput::make('help')->label(__('Help text'))->columnSpan(2)->withAi(),
+                ToggleButtons::make('width')->options(['full' => __('Full'), 'half' => __('Half')])->default('full')->inline()->grouped(),
             ]),
-            Toggle::make('required')->label('Required')->default($type === 'consent'),
+            Toggle::make('required')->label(__('Required'))->default($type::requiredByDefault()),
             // Shown only when another field has a given answer (Shared with the website's form
             // block and FormFields::visible()).
             Fieldset::make(__('Show only when'))
@@ -175,25 +266,41 @@ class FormFields
             $path = "field_translations.{$locale}.{$field['name']}";
             $data = $field['data'];
 
+            // The type says which of its text is translated; only text it has in the written language shows.
+            $inputs = collect(static::find($field['type'])::translatable())
+                ->map(fn (string $kind, string $key): mixed => match (true) {
+                    $kind === 'options' => TagsInput::make("{$path}.{$key}")
+                        ->label(__('Choices'))
+                        ->placeholder(implode(', ', (array) ($data[$key] ?? [])))
+                        ->helperText(__('The same choices, in the same order.')),
+                    blank($data[$key] ?? null) || ! is_string($data[$key]) => null,
+                    $kind === 'textarea' => static::translatedWithAi(Textarea::make("{$path}.{$key}")->label(static::textLabel($key))->placeholder($data[$key])->rows(2), $data[$key], $locale),
+                    default => static::translatedWithAi(TextInput::make("{$path}.{$key}")->label(static::textLabel($key))->placeholder($data[$key]), $data[$key], $locale),
+                })
+                ->filter()
+                ->values()
+                ->all();
+
             return Fieldset::make($field['label'])
                 ->columns(1)
-                ->schema(array_values(array_filter([
+                ->schema([
                     static::translatedWithAi(TextInput::make("{$path}.label")->label(__('Label'))->placeholder($field['label'])->maxLength(255), $field['label'], $locale),
-                    match ($field['type']) {
-                        'select', 'radio', 'checkboxes' => TagsInput::make("{$path}.options")
-                            ->label(__('Choices'))
-                            ->placeholder(implode(', ', (array) ($data['options'] ?? [])))
-                            ->helperText(__('The same choices, in the same order.')),
-                        'consent' => static::translatedWithAi(Textarea::make("{$path}.text")->label(__('Text next to the box'))->placeholder($data['text'] ?? '')->rows(2), $data['text'] ?? null, $locale),
-                        'file' => null,
-                        // Only text the field has in the default language needs translating.
-                        default => filled($data['placeholder'] ?? null) ? static::translatedWithAi(TextInput::make("{$path}.placeholder")->label(__('Placeholder'))->placeholder($data['placeholder']), $data['placeholder'], $locale) : null,
-                    },
-                    in_array($field['type'], ['select', 'radio', 'checkboxes', 'consent'], true) || blank($data['help'] ?? null)
-                        ? null
-                        : static::translatedWithAi(TextInput::make("{$path}.help")->label(__('Help text'))->placeholder($data['help']), $data['help'], $locale),
-                ])));
+                    ...$inputs,
+                ]);
         })->all();
+    }
+
+    /**
+     * The name of a field's translated text in the translations tab.
+     */
+    protected static function textLabel(string $key): string
+    {
+        return match ($key) {
+            'placeholder' => __('Placeholder'),
+            'help' => __('Help text'),
+            'text' => __('Text next to the box'),
+            default => Str::headline($key),
+        };
     }
 
     /**
@@ -227,30 +334,13 @@ class FormFields
     }
 
     /**
-     * Laravel validation rules for one field definition.
+     * Laravel validation rules for one field definition, from its type.
      *
-     * @param  array{type: string, required: bool, data: array<string, mixed>}  $field
+     * @param  array{type: string, name: string, label: string, required: bool, data: array<string, mixed>}  $field
      * @return array<int, mixed>
      */
     public static function rules(array $field): array
     {
-        $required = $field['required'] ? 'required' : 'nullable';
-        $options = array_values(array_filter((array) ($field['data']['options'] ?? []), 'is_string'));
-
-        return match ($field['type']) {
-            'email' => [$required, 'email:rfc', 'max:255'],
-            'phone' => [$required, 'string', 'max:40', 'regex:/^[0-9+()\\s.-]+$/'],
-            'textarea' => [$required, 'string', 'max:5000'],
-            'select', 'radio' => [$required, 'string', Rule::in($options)],
-            'checkboxes' => [$field['required'] ? 'required' : 'nullable', 'array', 'list', function (string $attribute, mixed $value, \Closure $fail) use ($options): void {
-                if (array_filter((array) $value, fn (mixed $choice): bool => ! is_string($choice)) !== [] || array_diff((array) $value, $options) !== []) {
-                    $fail('Choose from the options given.');
-                }
-            }],
-            'date' => [$required, 'date'],
-            'file' => [$required, 'file', 'max:'.(int) (($field['data']['max_mb'] ?? 10) * 1024), 'mimes:'.implode(',', static::acceptedExtensions($field['data']['accept'] ?? null))],
-            'consent' => $field['required'] ? ['accepted'] : ['nullable'],
-            default => [$required, 'string', 'max:255'],
-        };
+        return static::find($field['type'])::rules($field);
     }
 }

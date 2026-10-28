@@ -2154,5 +2154,18 @@
     "Same as the website (:theme)": "Same as the website (:theme)",
     "Drag the widgets into the order you want, choose how wide each one is, and remove the ones you don’t need. Add any widget, as often as you like. Only your own dashboard changes.": "Drag the widgets into the order you want, choose how wide each one is, and remove the ones you don’t need. Add any widget, as often as you like. Only your own dashboard changes.",
     "Add a widget": "Add a widget",
-    "The dashboard is empty. Add a widget above, or go back to the default.": "The dashboard is empty. Add a widget above, or go back to the default."
+    "The dashboard is empty. Add a widget above, or go back to the default.": "The dashboard is empty. Add a widget above, or go back to the default.",
+    "Multiple choice": "Multiple choice",
+    "Add a choice, press Enter": "Add a choice, press Enter",
+    "Consent checkbox": "Consent checkbox",
+    "I agree that you store my details to answer my request.": "I agree that you store my details to answer my request.",
+    "Date": "Date",
+    "File upload": "File upload",
+    "File extensions, comma separated.": "File extensions, comma separated.",
+    "Phone": "Phone",
+    "Single choice": "Single choice",
+    "Dropdown": "Dropdown",
+    "Short text": "Short text",
+    "Long text": "Long text",
+    "Half": "Half"
 }

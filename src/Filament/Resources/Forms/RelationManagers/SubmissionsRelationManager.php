@@ -5,6 +5,7 @@ namespace Aurora\Filament\Resources\Forms\RelationManagers;
 use Aurora\Enums\SubmissionStatus;
 use Aurora\Filament\Resources\Forms\FormResource;
 use Aurora\Models\FormSubmission;
+use Aurora\Support\FormFields;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -170,7 +171,7 @@ class SubmissionsRelationManager extends RelationManager
      */
     protected function export(Collection $submissions): StreamedResponse
     {
-        $fields = collect($this->getOwnerRecord()->definitions())->reject(fn (array $field): bool => $field['type'] === 'file');
+        $fields = collect($this->getOwnerRecord()->definitions())->filter(fn (array $field): bool => FormFields::find($field['type'])::stores());
 
         return response()->streamDownload(function () use ($submissions, $fields): void {
             $out = fopen('php://output', 'w');

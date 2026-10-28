@@ -2,6 +2,7 @@
 
 @php
     use Aurora\Models\Form;
+    use Aurora\Support\FormFields;
     use Illuminate\Support\Facades\Crypt;
 
     $currentPage ??= null;
@@ -11,7 +12,7 @@
     $errors = $bag ? (session('errors')?->getBag($bag) ?? new \Illuminate\Support\MessageBag) : new \Illuminate\Support\MessageBag;
     $sent = $bag && session($bag.'.sent');
     $fields = $form?->definitions() ?? [];
-    $hasFiles = collect($fields)->contains('type', 'file');
+    $hasFiles = FormFields::uploads($fields);
 
     $input = 'block w-full rounded-xl border-0 bg-white px-4 py-3 text-zinc-900 shadow-sm ring-1 ring-zinc-300 ring-inset placeholder:text-zinc-400 focus:ring-2 focus:ring-brand-500 focus:ring-inset';
 @endphp
@@ -83,7 +84,15 @@
                             x-cloak
                         @endif
                     >
-                        @if ($field['type'] === 'consent')
+                        @if (! FormFields::isBuiltIn($field['type']))
+                            {{-- A type a package or this site registered: it draws its own control. --}}
+                            @if (FormFields::find($field['type'])::labelled())
+                                <label for="{{ $id }}" class="mb-1.5 block text-sm font-medium text-zinc-900">
+                                    {{ $field['label'] }}@if ($field['required'])<span class="text-rose-500"> *</span>@endif
+                                </label>
+                            @endif
+                            <x-aurora::form-field :field="$field" :id="$id" :described="$described" />
+                        @elseif ($field['type'] === 'consent')
                             <label class="flex items-start gap-3 text-sm text-zinc-700">
                                 <input type="checkbox" name="{{ $name }}" value="1" @checked(old($name)) {!! $described !!} class="mt-0.5 size-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500">
                                 <span>{{ $field['data']['text'] ?? $field['label'] }}@if ($field['required'])<span class="text-rose-500"> *</span>@endif</span>
