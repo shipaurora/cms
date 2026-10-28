@@ -2019,7 +2019,7 @@
     "Dark only": "Bare mørk",
     "Light only": "Bare lys",
     "Light and dark: everyone picks theirs in the user menu": "Lys og mørk: alle velger sin egen i brukermenyen",
-    "How the admin looks, for everyone who works in it. Theme packages can add their own.": "Hvordan adminpanelet ser ut, for alle som jobber i det. Temapakker kan legge til sine egne.",
+    "How the admin looks for everyone who hasn’t picked a theme of their own in their profile. Theme packages can add their own.": "Hvordan adminpanelet ser ut for alle som ikke har valgt et eget tema i profilen sin. Temapakker kan legge til flere.",
     "Quiet and flat: neutral greys, thin lines and nothing that glows.": "Rolig og flatt: nøytrale gråtoner, tynne linjer og ingenting som gløder.",
     "What happens when someone saves changes to a page that’s already on the website.": "Hva som skjer når noen lagrer endringer på en side som allerede er på nettstedet.",
     "Changes go live when they’re saved": "Endringer publiseres når de lagres",
@@ -2152,5 +2152,7 @@
     "Drag the widgets into the order you want, choose how wide each one is, and hide the ones you don’t need. Only your own dashboard changes.": "Dra modulene i den rekkefølgen du vil, velg hvor brede de skal være, og skjul dem du ikke trenger. Bare din egen oversikt endres.",
     "Hidden": "Skjult",
     "Drag to move": "Dra for å flytte",
-    "Every widget is hidden. Add one back above, or go back to the default.": "Alle modulene er skjult. Legg til en igjen over, eller gå tilbake til standard."
+    "Every widget is hidden. Add one back above, or go back to the default.": "Alle modulene er skjult. Legg til en igjen over, eller gå tilbake til standard.",
+    "How the admin panel looks for you. Everyone else keeps their own.": "Hvordan adminpanelet ser ut for deg. Alle andre beholder sitt eget.",
+    "Same as the website (:theme)": "Samme som nettstedet (:theme)"
 }

@@ -37,7 +37,7 @@ class EditUser extends EditRecord
 
     /**
      * Your own profile: the top bar's user menu shows the new name and picture straight away,
-     * and a new preferred language applies straight away (a reload in it).
+     * and a new preferred language or admin theme applies straight away (a reload in it).
      */
     protected function afterSave(): void
     {
@@ -45,8 +45,9 @@ class EditUser extends EditRecord
             return;
         }
 
-        if ($this->record->wasChanged('locale')) {
-            $this->redirect(static::getUrl(['record' => $this->record]), navigate: true);
+        // A new admin theme is a stylesheet in the page's head: a full reload, not a navigation.
+        if ($this->record->wasChanged(['locale', 'admin_theme'])) {
+            $this->redirect(static::getUrl(['record' => $this->record]), navigate: ! $this->record->wasChanged('admin_theme'));
 
             return;
         }

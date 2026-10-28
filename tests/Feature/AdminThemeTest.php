@@ -4,6 +4,7 @@ namespace Aurora\Tests\Feature;
 
 use Aurora\Aurora;
 use Aurora\Filament\Pages\SiteSettings;
+use Aurora\Filament\Resources\Users\Pages\EditUser;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
 use Aurora\Support\Themes;
@@ -75,6 +76,59 @@ class AdminThemeTest extends TestCase
             ->fillForm([Themes::SETTING => 'unknown'])
             ->call('save')
             ->assertHasFormErrors([Themes::SETTING]);
+    }
+
+    public function test_each_person_can_pick_their_own_theme_and_otherwise_gets_the_websites(): void
+    {
+        Themes::register('acme', name: 'Acme', stylesheet: __FILE__, package: 'acme/admin-theme');
+        $editor = $this->userWithRole('Editor');
+        $colleague = $this->userWithRole('Editor');
+
+        Livewire::actingAs($editor)
+            ->test(EditUser::class, ['record' => $editor->getRouteKey()])
+            ->assertSee('Same as the website (Borealis)')
+            ->fillForm(['admin_theme' => 'acme'])
+            ->call('save')
+            ->assertHasNoFormErrors()
+            // Its stylesheet is in the page's head: the page is loaded again.
+            ->assertRedirect(EditUser::getUrl(['record' => $editor]));
+
+        $this->actingAs($editor->fresh());
+        $this->assertSame('acme', Themes::active());
+        $this->assertSame('borealis', Themes::siteDefault());
+
+        // Everyone else keeps the website's theme, and a removed theme falls back to it.
+        $this->actingAs($colleague);
+        $this->assertSame('borealis', Themes::active());
+        $colleague->forceFill(['admin_theme' => 'removed'])->save();
+        $this->assertSame('borealis', Themes::active());
+
+        Livewire::actingAs($editor->fresh())
+            ->test(EditUser::class, ['record' => $editor->getRouteKey()])
+            ->fillForm(['admin_theme' => 'unknown'])
+            ->call('save')
+            ->assertHasFormErrors(['admin_theme']);
+    }
+
+    public function test_the_admin_theme_is_only_offered_on_your_own_profile_and_with_more_than_one_theme(): void
+    {
+        $admin = $this->userWithRole(User::SUPER_ADMIN);
+        $editor = $this->userWithRole('Editor');
+
+        // Only Borealis: nothing to choose.
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $admin->getRouteKey()])
+            ->assertFormFieldHidden('admin_theme');
+
+        Themes::register('acme', name: 'Acme', stylesheet: __FILE__, package: 'acme/admin-theme');
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $admin->getRouteKey()])
+            ->assertFormFieldVisible('admin_theme');
+
+        Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $editor->getRouteKey()])
+            ->assertFormFieldHidden('admin_theme');
     }
 
     public function test_each_theme_shows_its_version_beside_its_name(): void

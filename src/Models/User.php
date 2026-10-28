@@ -30,7 +30,7 @@ use Spatie\LaravelPasskeys\Models\Concerns\HasPasskeys;
 use Spatie\LaravelPasskeys\Models\Concerns\InteractsWithPasskeys;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'locale', 'theme', 'password', 'avatar', 'job_title', 'is_active'])]
+#[Fillable(['name', 'email', 'locale', 'theme', 'admin_theme', 'password', 'avatar', 'job_title', 'is_active'])]
 #[Hidden(['password', 'remember_token', 'app_authentication_recovery_codes'])]
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasAvatar, HasPasskeys, HasTenants, OAuthenticatable
 {

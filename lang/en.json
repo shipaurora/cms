@@ -2019,7 +2019,7 @@
     "Dark only": "Dark only",
     "Light only": "Light only",
     "Light and dark: everyone picks theirs in the user menu": "Light and dark: everyone picks theirs in the user menu",
-    "How the admin looks, for everyone who works in it. Theme packages can add their own.": "How the admin looks, for everyone who works in it. Theme packages can add their own.",
+    "How the admin looks for everyone who hasn’t picked a theme of their own in their profile. Theme packages can add their own.": "How the admin looks for everyone who hasn’t picked a theme of their own in their profile. Theme packages can add their own.",
     "Quiet and flat: neutral greys, thin lines and nothing that glows.": "Quiet and flat: neutral greys, thin lines and nothing that glows.",
     "What happens when someone saves changes to a page that’s already on the website.": "What happens when someone saves changes to a page that’s already on the website.",
     "Changes go live when they’re saved": "Changes go live when they’re saved",
@@ -2152,5 +2152,7 @@
     "Drag the widgets into the order you want, choose how wide each one is, and hide the ones you don’t need. Only your own dashboard changes.": "Drag the widgets into the order you want, choose how wide each one is, and hide the ones you don’t need. Only your own dashboard changes.",
     "Hidden": "Hidden",
     "Drag to move": "Drag to move",
-    "Every widget is hidden. Add one back above, or go back to the default.": "Every widget is hidden. Add one back above, or go back to the default."
+    "Every widget is hidden. Add one back above, or go back to the default.": "Every widget is hidden. Add one back above, or go back to the default.",
+    "How the admin panel looks for you. Everyone else keeps their own.": "How the admin panel looks for you. Everyone else keeps their own.",
+    "Same as the website (:theme)": "Same as the website (:theme)"
 }

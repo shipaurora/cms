@@ -9,6 +9,7 @@ use Aurora\Models\Site;
 use Aurora\Models\User;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\Passkeys;
+use Aurora\Support\Themes;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
@@ -53,6 +54,16 @@ class UserForm
                                 ->placeholder(fn (): string => __('Site default (:language)', ['language' => Locale::options()[ContentLocale::default()] ?? ContentLocale::default()]))
                                 ->prefixIcon('phosphor-translate')
                                 ->in(fn (): array => array_keys(Locale::options()))
+                                ->columnSpanFull(),
+                            // Your own admin theme, when there's more than one to choose from.
+                            Select::make('admin_theme')
+                                ->label(__('Admin theme'))
+                                ->helperText(__('How the admin panel looks for you. Everyone else keeps their own.'))
+                                ->options(fn (): array => array_map(fn (array $theme): string => $theme['name'], Themes::all()))
+                                ->placeholder(fn (): string => __('Same as the website (:theme)', ['theme' => Themes::all()[Themes::siteDefault()]['name'] ?? Themes::siteDefault()]))
+                                ->prefixIcon('phosphor-paint-brush')
+                                ->in(fn (): array => array_keys(Themes::all()))
+                                ->visible(fn (?User $record): bool => $record?->is(auth()->user()) === true && count(Themes::all()) > 1)
                                 ->columnSpanFull(),
                         ]),
                     Section::make(__('Password'))

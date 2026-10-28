@@ -63,13 +63,13 @@ class ActivityLog
     protected const IGNORED = ['updated_at', 'created_at', 'search_text', 'indexed_at', 'last_edited_by_id', 'last_seen_at', 'last_signed_in_at', 'remember_token', 'last_status', 'last_error', 'last_sent_at', 'working_copy_at', 'working_copy_by_id'];
 
     /**
-     * A person's own preferences (the collapsed sidebar, their dashboard, light or dark, their language): theirs
+     * A person's own preferences (the collapsed sidebar, their dashboard, light or dark and their admin theme, their language): theirs
      * to change, nothing to account for.
      *
      * @var array<class-string<Model>, array<int, string>>
      */
     protected const PREFERENCES = [
-        User::class => ['sidebar_collapsed', 'dashboard', 'theme', 'locale', 'passkey_prompt_dismissed_at'],
+        User::class => ['sidebar_collapsed', 'dashboard', 'theme', 'admin_theme', 'locale', 'passkey_prompt_dismissed_at'],
     ];
 
     public static function listen(): void

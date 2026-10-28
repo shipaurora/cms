@@ -588,7 +588,7 @@ class SiteSettings extends Page implements HasSchemas
             'admin-theme' => Tab::make(__('Admin theme'))->icon('phosphor-paint-brush-broad')->schema([
                 Section::make(__('Admin theme'))
                     ->icon('phosphor-paint-brush-broad')
-                    ->description(__('How the admin looks, for everyone who works in it. Theme packages can add their own.'))
+                    ->description(__('How the admin looks for everyone who hasn’t picked a theme of their own in their profile. Theme packages can add their own.'))
                     ->headerActions([
                         Action::make('browseThemes')
                             ->label(__('Browse themes'))
@@ -601,8 +601,8 @@ class SiteSettings extends Page implements HasSchemas
                             ->hiddenLabel()
                             ->view('aurora::filament.pages.theme-picker')
                             ->viewData(['themes' => array_map(fn (array $theme): array => [...$theme, 'version' => Themes::version($theme['id'])], Themes::all())])
-                            ->default(fn (): ?string => Themes::active())
-                            ->formatStateUsing(fn (?string $state): ?string => $state ?? Themes::active())
+                            ->default(fn (): ?string => Themes::siteDefault())
+                            ->formatStateUsing(fn (?string $state): ?string => $state ?? Themes::siteDefault())
                             ->in(fn (): array => array_keys(Themes::all())),
                     ]),
             ]),
@@ -896,7 +896,7 @@ class SiteSettings extends Page implements HasSchemas
         $wasOn = Copilot::isConfigured();
         $wasDescribing = ImageDescriptions::isOn();
         $wasTagging = ImageTags::isOn();
-        $themeBefore = Themes::active();
+        $themeBefore = Themes::siteDefault();
 
         Setting::put($this->form->getState());
         // New shortcodes work on this request's canvas too, not only the next.
@@ -938,7 +938,7 @@ class SiteSettings extends Page implements HasSchemas
         }
 
         // Another theme: its stylesheet is in the page's head, so the page is loaded again.
-        if (array_key_exists(Themes::SETTING, $this->data ?? []) && $themeBefore !== Themes::active()) {
+        if (array_key_exists(Themes::SETTING, $this->data ?? []) && $themeBefore !== Themes::siteDefault()) {
             $this->redirect(static::getUrl(['tab' => 'appearance']));
 
             return;

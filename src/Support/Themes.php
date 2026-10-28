@@ -156,10 +156,21 @@ class Themes
     }
 
     /**
-     * The theme in use: the one chosen in Settings, else config('aurora.theme') (AURORA_THEME),
-     * else Borealis, else the first there is.
+     * The theme in use: the one the signed-in person picked for themselves (users.admin_theme),
+     * else the website's (siteDefault()).
      */
     public static function active(): ?string
+    {
+        $own = rescue(fn (): mixed => auth()->user()?->admin_theme, null, report: false);
+
+        return is_string($own) && isset(static::$themes[$own]) ? $own : static::siteDefault();
+    }
+
+    /**
+     * The website's theme, for everyone who picked none: the one chosen in Settings, else
+     * config('aurora.theme') (AURORA_THEME), else Borealis, else the first there is.
+     */
+    public static function siteDefault(): ?string
     {
         $chosen = rescue(fn (): mixed => Setting::get(self::SETTING), null, report: false);
 
