@@ -10,11 +10,12 @@ use Illuminate\Support\Str;
 use ReflectionProperty;
 
 /**
- * Each person's own dashboard: which widgets it shows, in what order and how wide. Saved on
- * the person (users.dashboard) as the widgets shown, in order, with their size, and the ones
- * hidden. A widget in neither (one added in an update, or by the website) is shown at the end,
- * so nobody misses something new. Widgets a person may not see are never shown, whatever
- * their layout says.
+ * Each person's own dashboard: the widgets it shows, in what order and how wide. The same widget
+ * can be on it more than once, so each one on the dashboard has an id of its own. Saved on the
+ * person (users.dashboard) as those widgets and the widgets that existed when they saved
+ * ("known"): a widget added since (in an update, or by the website) shows at the end, so nobody
+ * misses something new, while one they removed stays removed. Widgets a person may not see are
+ * never shown, whatever their layout says.
  */
 class DashboardLayout
 {
@@ -40,61 +41,43 @@ class DashboardLayout
     }
 
     /**
-     * The widgets the person's dashboard shows, in order, with their size.
+     * The widgets on the person's dashboard, in order, each with its id and size.
      *
-     * @return array<int, array{widget: class-string<Widget>, size: string}>
+     * @return array<int, array{id: string, widget: class-string<Widget>, size: string}>
      */
     public static function for(?User $user): array
     {
-        $available = static::available();
-        $saved = $user?->dashboard ?? [];
-        $hidden = $saved['hidden'] ?? [];
+        $saved = $user?->dashboard;
 
-        $shown = collect($saved['widgets'] ?? [])
-            ->filter(fn (mixed $item): bool => is_array($item) && in_array($item['widget'] ?? null, $available, true))
-            ->map(fn (array $item): array => ['widget' => $item['widget'], 'size' => static::size($item['size'] ?? null, $item['widget'])])
-            ->unique('widget')
-            ->values();
+        if (! is_array($saved) || ! is_array($saved['widgets'] ?? null)) {
+            return static::default();
+        }
 
-        // New widgets, in neither list, at the end.
-        $new = collect($available)
-            ->reject(fn (string $widget): bool => $shown->contains('widget', $widget) || in_array($widget, $hidden, true))
-            ->map(fn (string $widget): array => ['widget' => $widget, 'size' => static::defaultSize($widget)]);
+        $items = static::clean($saved['widgets']);
 
-        return $shown->concat($new)->values()->all();
+        // Before 1.3.9 a layout listed the hidden widgets instead: those and the shown ones were known.
+        $known = $saved['known'] ?? [...array_column($items, 'widget'), ...($saved['hidden'] ?? [])];
+
+        foreach (static::available() as $widget) {
+            if (! in_array($widget, $known, true)) {
+                $items[] = static::item($widget);
+            }
+        }
+
+        return $items;
     }
 
     /**
-     * The widgets the person hid, which they can add back.
+     * Save the person's dashboard from its widgets, in order, with their size. Widgets they may
+     * not see, and sizes that don't exist, are left out or put right.
      *
-     * @return array<int, class-string<Widget>>
-     */
-    public static function hidden(?User $user): array
-    {
-        $shown = array_column(static::for($user), 'widget');
-
-        return array_values(array_diff(static::available(), $shown));
-    }
-
-    /**
-     * Save the person's dashboard from the widgets to show, in order, with their size. Widgets
-     * they may not see, and sizes that don't exist, are left out.
-     *
-     * @param  array<int, array{widget: string, size?: string}>  $widgets
+     * @param  array<int, array{id?: string, widget: string, size?: string}>  $widgets
      */
     public static function save(User $user, array $widgets): void
     {
-        $available = static::available();
-
-        $shown = collect($widgets)
-            ->filter(fn (mixed $item): bool => is_array($item) && in_array($item['widget'] ?? null, $available, true))
-            ->map(fn (array $item): array => ['widget' => $item['widget'], 'size' => static::size($item['size'] ?? null, $item['widget'])])
-            ->unique('widget')
-            ->values();
-
         $user->forceFill(['dashboard' => [
-            'widgets' => $shown->all(),
-            'hidden' => array_values(array_diff($available, $shown->pluck('widget')->all())),
+            'widgets' => static::clean($widgets),
+            'known' => static::available(),
         ]])->save();
     }
 
@@ -107,13 +90,23 @@ class DashboardLayout
     }
 
     /**
-     * The default layout, as the panel orders and sizes its widgets.
+     * The default layout, as the panel orders and sizes its widgets, each once.
      *
-     * @return array<int, array{widget: class-string<Widget>, size: string}>
+     * @return array<int, array{id: string, widget: class-string<Widget>, size: string}>
      */
     public static function default(): array
     {
-        return array_map(fn (string $widget): array => ['widget' => $widget, 'size' => static::defaultSize($widget)], static::available());
+        return array_map(fn (string $widget): array => static::item($widget, Str::kebab(class_basename($widget))), static::available());
+    }
+
+    /**
+     * A widget to put on the dashboard, with a new id unless one is given, at its default size.
+     *
+     * @return array{id: string, widget: class-string<Widget>, size: string}
+     */
+    public static function item(string $widget, ?string $id = null): array
+    {
+        return ['id' => $id ?? Str::lower(Str::random(10)), 'widget' => $widget, 'size' => static::defaultSize($widget)];
     }
 
     /**
@@ -133,14 +126,6 @@ class DashboardLayout
     }
 
     /**
-     * A size that exists, else the widget's default.
-     */
-    protected static function size(mixed $size, string $widget): string
-    {
-        return is_string($size) && array_key_exists($size, self::SIZES) ? $size : static::defaultSize($widget);
-    }
-
-    /**
      * The size closest to the widget's own column span on a wide screen.
      */
     public static function defaultSize(string $widget): string
@@ -156,5 +141,38 @@ class DashboardLayout
             $span === 2 => 'medium',
             default => 'small',
         };
+    }
+
+    /**
+     * The widgets the person may see, each with a usable id (unique, plain) and a size that exists.
+     *
+     * @param  array<mixed>  $widgets
+     * @return array<int, array{id: string, widget: class-string<Widget>, size: string}>
+     */
+    protected static function clean(array $widgets): array
+    {
+        $available = static::available();
+        $ids = [];
+        $items = [];
+
+        foreach ($widgets as $item) {
+            if (! is_array($item) || ! in_array($item['widget'] ?? null, $available, true)) {
+                continue;
+            }
+
+            $id = $item['id'] ?? null;
+            $id = is_string($id) && preg_match('/^[a-z0-9-]{1,40}$/', $id) && ! isset($ids[$id]) ? $id : static::item($item['widget'])['id'];
+            $ids[$id] = true;
+
+            $size = $item['size'] ?? null;
+
+            $items[] = [
+                'id' => $id,
+                'widget' => $item['widget'],
+                'size' => is_string($size) && array_key_exists($size, self::SIZES) ? $size : static::defaultSize($item['widget']),
+            ];
+        }
+
+        return $items;
     }
 }

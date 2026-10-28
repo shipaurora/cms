@@ -3,6 +3,7 @@
 namespace Aurora\Models;
 
 use Aurora\Database\Factories\UserFactory;
+use Aurora\Models\Concerns\KeepsAuroraPreferences;
 use Aurora\Models\Pivots\RoleAssignment;
 use EslamRedaDiv\FilamentCopilot\Concerns\HasCopilotChat;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
@@ -35,7 +36,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasAvatar, HasPasskeys, HasTenants, OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasCopilotChat, HasFactory, HasUuids, InteractsWithPasskeys, Notifiable;
+    use HasApiTokens, HasCopilotChat, HasFactory, HasUuids, InteractsWithPasskeys, KeepsAuroraPreferences, Notifiable;
 
     use HasRoles {
         roles as assignedRoles;
@@ -58,7 +59,6 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'password' => 'hashed',
             'is_active' => 'boolean',
             'sidebar_collapsed' => 'boolean',
-            'dashboard' => 'array',
             'passkey_prompt_dismissed_at' => 'datetime',
             'app_authentication_recovery_codes' => 'encrypted:array',
         ];

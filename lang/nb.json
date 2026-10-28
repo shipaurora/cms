@@ -2149,10 +2149,10 @@
     "Every save, from every surface, with who made it.": "Hver lagring, fra alle steder, med hvem som gjorde den.",
     "Welcome": "Velkommen",
     "A greeting with shortcuts to what you do most, and your AI apps.": "En hilsen med snarveier til det du gjør mest, og KI-appene dine.",
-    "Drag the widgets into the order you want, choose how wide each one is, and hide the ones you don’t need. Only your own dashboard changes.": "Dra modulene i den rekkefølgen du vil, velg hvor brede de skal være, og skjul dem du ikke trenger. Bare din egen oversikt endres.",
-    "Hidden": "Skjult",
     "Drag to move": "Dra for å flytte",
-    "Every widget is hidden. Add one back above, or go back to the default.": "Alle modulene er skjult. Legg til en igjen over, eller gå tilbake til standard.",
     "How the admin panel looks for you. Everyone else keeps their own.": "Hvordan adminpanelet ser ut for deg. Alle andre beholder sitt eget.",
-    "Same as the website (:theme)": "Samme som nettstedet (:theme)"
+    "Same as the website (:theme)": "Samme som nettstedet (:theme)",
+    "Drag the widgets into the order you want, choose how wide each one is, and remove the ones you don’t need. Add any widget, as often as you like. Only your own dashboard changes.": "Dra modulene i den rekkefølgen du vil, velg hvor brede de skal være, og fjern dem du ikke trenger. Legg til hvilken som helst modul, så mange ganger du vil. Bare din egen oversikt endres.",
+    "Add a widget": "Legg til modul",
+    "The dashboard is empty. Add a widget above, or go back to the default.": "Oversikten er tom. Legg til en modul over, eller gå tilbake til standard."
 }

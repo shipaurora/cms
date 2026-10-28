@@ -13,7 +13,8 @@ use Illuminate\Contracts\Support\Htmlable;
 
 /**
  * The dashboard, laid out by each person: "Customise dashboard" turns the widgets into cards to
- * drag into another order, make small, medium or large, hide or add back (DashboardLayout).
+ * drag into another order, make small, medium or large, or remove, and adds any widget, as often
+ * as they like (DashboardLayout).
  * Nothing changes until they save; "Back to the default" starts again from the panel's layout.
  */
 class Dashboard extends BaseDashboard
@@ -26,9 +27,9 @@ class Dashboard extends BaseDashboard
     public bool $customizing = false;
 
     /**
-     * The layout being made: the widgets shown, in order, with their size.
+     * The layout being made: the widgets on it, in order, each with its id and size.
      *
-     * @var array<int, array{widget: string, size: string}>
+     * @var array<int, array{id: string, widget: string, size: string}>
      */
     public array $draft = [];
 
@@ -52,7 +53,7 @@ class Dashboard extends BaseDashboard
             ->viewData(fn (): array => [
                 'customizing' => $this->customizing,
                 'layout' => $this->customizing ? $this->draft : DashboardLayout::for(auth()->user()),
-                'hidden' => $this->customizing ? $this->hiddenInDraft() : [],
+                'catalogue' => $this->customizing ? DashboardLayout::available() : [],
             ]);
     }
 
@@ -97,52 +98,45 @@ class Dashboard extends BaseDashboard
     }
 
     /**
-     * Put the widgets in the order they were dragged into.
+     * Put the widgets in the order they were dragged into, by their ids.
      *
      * @param  array<int, string>  $order
      */
     public function reorderWidgets(array $order): void
     {
-        $sizes = array_column($this->draft, 'size', 'widget');
+        $byId = array_column($this->draft, null, 'id');
 
         $this->draft = collect($order)
-            ->filter(fn (mixed $widget): bool => is_string($widget) && array_key_exists($widget, $sizes))
+            ->filter(fn (mixed $id): bool => is_string($id) && isset($byId[$id]))
             ->unique()
-            ->map(fn (string $widget): array => ['widget' => $widget, 'size' => $sizes[$widget]])
+            ->map(fn (string $id): array => $byId[$id])
             // Any the browser left out keep their place at the end.
-            ->concat(collect($this->draft)->reject(fn (array $item): bool => in_array($item['widget'], $order, true)))
+            ->concat(collect($this->draft)->reject(fn (array $item): bool => in_array($item['id'], $order, true)))
             ->values()
             ->all();
     }
 
-    public function resizeWidget(string $widget, string $size): void
+    public function resizeWidget(string $id, string $size): void
     {
         if (! array_key_exists($size, DashboardLayout::SIZES)) {
             return;
         }
 
-        $this->draft = array_map(fn (array $item): array => $item['widget'] === $widget ? [...$item, 'size' => $size] : $item, $this->draft);
+        $this->draft = array_map(fn (array $item): array => $item['id'] === $id ? [...$item, 'size' => $size] : $item, $this->draft);
     }
 
-    public function hideWidget(string $widget): void
+    public function removeWidget(string $id): void
     {
-        $this->draft = array_values(array_filter($this->draft, fn (array $item): bool => $item['widget'] !== $widget));
-    }
-
-    public function showWidget(string $widget): void
-    {
-        if (in_array($widget, $this->hiddenInDraft(), true)) {
-            $this->draft[] = ['widget' => $widget, 'size' => DashboardLayout::defaultSize($widget)];
-        }
+        $this->draft = array_values(array_filter($this->draft, fn (array $item): bool => $item['id'] !== $id));
     }
 
     /**
-     * Widgets the person may see that the layout being made leaves out.
-     *
-     * @return array<int, string>
+     * Add a widget at the end, also one that's already there: each gets an id of its own.
      */
-    protected function hiddenInDraft(): array
+    public function addWidget(string $widget): void
     {
-        return array_values(array_diff(DashboardLayout::available(), array_column($this->draft, 'widget')));
+        if (in_array($widget, DashboardLayout::available(), true)) {
+            $this->draft[] = DashboardLayout::item($widget);
+        }
     }
 }
