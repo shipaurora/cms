@@ -121,6 +121,29 @@ class McpOAuthTest extends TestCase
         $this->assertSame(1, Client::query()->count());
     }
 
+    public function test_the_server_people_add_is_named_after_the_website(): void
+    {
+        $editor = $this->userWithRole('Editor');
+
+        config(['app.name' => 'Apriil Digital']);
+        Livewire::actingAs($editor)
+            ->test(AiAssistant::class)
+            ->assertSee('claude mcp add --transport http apriil-digital '.url('/mcp'))
+            ->assertSee('"apriil-digital": {')
+            ->assertDontSee('aurora-cms');
+
+        config(['app.name' => 'apriil']);
+        Livewire::actingAs($editor)
+            ->test(AiAssistant::class)
+            ->assertSee('claude mcp add --transport http apriil '.url('/mcp'));
+
+        // A website without a name: the CMS's.
+        config(['app.name' => '', 'aurora.name' => 'Aurora CMS']);
+        Livewire::actingAs($editor)
+            ->test(AiAssistant::class)
+            ->assertSee('claude mcp add --transport http aurora-cms '.url('/mcp'));
+    }
+
     public function test_a_new_token_is_shown_once_on_the_page(): void
     {
         $editor = $this->userWithRole('Editor');

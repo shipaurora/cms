@@ -34,7 +34,7 @@
                     <div x-show="tab === 'claude'" class="space-y-4">
                         <ol class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
                             <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-primary-50 text-xs font-bold text-primary-600 dark:bg-primary-500/10 dark:text-primary-400">1</span> <span>{{ PageBuilder::lineWithMarkup('In Claude, open :settings and choose :add.', ['settings' => '<strong>Settings → Connectors</strong>', 'add' => '<strong>Add custom connector</strong>']) }}</span></li>
-                            <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-primary-50 text-xs font-bold text-primary-600 dark:bg-primary-500/10 dark:text-primary-400">2</span> <span>{{ PageBuilder::lineWithMarkup('Name it :name and paste this URL:', ['name' => '<strong>'.e(config('aurora.name')).'</strong>']) }}</span></li>
+                            <li class="flex gap-3"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-primary-50 text-xs font-bold text-primary-600 dark:bg-primary-500/10 dark:text-primary-400">2</span> <span>{{ PageBuilder::lineWithMarkup('Name it :name and paste this URL:', ['name' => '<strong>'.e($this->serverName()).'</strong>']) }}</span></li>
                         </ol>
                         <div class="flex items-center gap-2">
                             <code class="block min-w-0 flex-1 truncate rounded-lg bg-gray-50 px-3 py-2 font-mono text-sm text-gray-900 ring-1 ring-gray-200 dark:bg-white/5 dark:text-white dark:ring-white/10">{{ $endpoint }}</code>

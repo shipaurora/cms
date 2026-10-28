@@ -280,8 +280,22 @@ class AiAssistant extends Page implements HasTable
         return McpActivity::query()->whereBelongsTo(auth()->user())->with('subject')->latest('created_at')->limit(8)->get();
     }
 
+    /**
+     * What people name this site's server in their AI app: the website's own name (APP_NAME),
+     * so each site they connect gets its own, else the CMS's.
+     */
+    public function serverName(): string
+    {
+        $name = trim((string) config('app.name'));
+
+        return Str::slug($name) !== '' ? $name : config('aurora.name');
+    }
+
+    /**
+     * The same name as a key, for commands and config files: "Apriil Digital" is apriil-digital.
+     */
     public function serverKey(): string
     {
-        return Str::slug(config('aurora.name'));
+        return Str::slug($this->serverName());
     }
 }
