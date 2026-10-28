@@ -2134,5 +2134,6 @@
     "e.g. tag the people by department": "f.eks. merk personene etter avdeling",
     "All the selected images already have tags": "Alle de valgte bildene har allerede tags",
     "The tags appear on each image as soon as the assistant is done.": "Taggene dukker opp på hvert bilde så snart assistenten er ferdig.",
-    "Tag images": "Gi bilder tags"
+    "Tag images": "Gi bilder tags",
+    "Name of the photographer or agency": "Navn på fotograf eller byrå"
 }

@@ -242,6 +242,21 @@ class MediaLibraryTest extends TestCase
         $this->assertSame([], Asset::query()->search('nb')->pluck('id')->all());
     }
 
+    public function test_files_can_be_filtered_by_any_part_of_their_credit(): void
+    {
+        $aarnes = $this->asset(['credit' => 'Photo: Joachim Aarnes / Visit Norway']);
+        $other = $this->asset(['credit' => 'Photo: Someone Else']);
+        $none = $this->asset();
+
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(ListAssets::class)
+            ->filterTable('credit', ['credit' => 'joachim aarnes'])
+            ->assertCanSeeTableRecords([$aarnes])
+            ->assertCanNotSeeTableRecords([$other, $none])
+            ->filterTable('credit', ['credit' => ''])
+            ->assertCanSeeTableRecords([$aarnes, $other, $none]);
+    }
+
     protected function tearDown(): void
     {
         UploadImageFromUrl::$resolver = null;

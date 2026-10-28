@@ -47,6 +47,7 @@ use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -271,6 +272,17 @@ class AssetResource extends Resource
                     ->multiple()
                     ->preload()
                     ->searchable(),
+                // Files by one photographer or agency: any part of the credit, whatever its capitals.
+                Filter::make('credit')
+                    ->schema([
+                        TextInput::make('credit')
+                            ->label(__('Credit'))
+                            ->placeholder(__('Name of the photographer or agency')),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => filled($credit = trim((string) ($data['credit'] ?? '')))
+                        ? $query->whereLike('credit', '%'.$credit.'%')
+                        : $query)
+                    ->indicateUsing(fn (array $data): ?string => filled($data['credit'] ?? null) ? __('Credit').': '.trim($data['credit']) : null),
                 TernaryFilter::make('in_use')
                     ->label(__('Usage'))
                     ->trueLabel(__('In use'))
