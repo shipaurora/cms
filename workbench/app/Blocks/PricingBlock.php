@@ -12,12 +12,9 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class PricingBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'pricing';

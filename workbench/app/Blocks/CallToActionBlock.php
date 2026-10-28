@@ -9,12 +9,9 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Section;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class CallToActionBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'cta';

@@ -8,12 +8,9 @@ use Aurora\Blocks\Fields;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class FeatureBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'feature';

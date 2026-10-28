@@ -4,6 +4,7 @@ namespace Aurora\Providers;
 
 use Aurora\Aurora;
 use Aurora\Blocks\Blocks;
+use Aurora\Console\Commands\BlockPreviews;
 use Aurora\Console\Commands\ExportTranslations;
 use Aurora\Console\Commands\ImportTranslations;
 use Aurora\Console\Commands\ImportWordPress;
@@ -177,7 +178,7 @@ class AuroraServiceProvider extends ServiceProvider
             // install) and the password page.
             $this->publishes([__DIR__.'/../../resources/views/layouts' => Layouts::path()], 'aurora-layouts');
             $this->publishes(collect(['page-password', 'page-sign-in', 'site-closed'])->mapWithKeys(fn (string $view): array => [__DIR__."/../../resources/views/{$view}.blade.php" => resource_path("views/vendor/aurora/{$view}.blade.php")])->all(), 'aurora-views');
-            $this->commands([InstallCms::class, MakeUser::class, MakeLayout::class, Reindex::class, MakeBlock::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class, ImportWordPress::class]);
+            $this->commands([InstallCms::class, MakeUser::class, MakeLayout::class, Reindex::class, MakeBlock::class, BlockPreviews::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class, ImportWordPress::class]);
         }
 
         // Livewire components used by tag (<livewire:…>); the app's own namespace is found by itself.

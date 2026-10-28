@@ -9,12 +9,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Utilities\Get;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class PageListBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'page-list';

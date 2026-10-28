@@ -7,12 +7,9 @@ use Aurora\Blocks\Editable;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class StatBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'stat';

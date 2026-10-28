@@ -182,6 +182,35 @@ class Blocks
     }
 
     /**
+     * The site's own screenshot of a block: resources/block-previews/{type}.webp (or .png,
+     * .jpg), committed with the site's code. Null when there's none.
+     */
+    public static function screenshotFile(string $type): ?string
+    {
+        if (preg_match('/^[a-z0-9-]+$/', $type) !== 1) {
+            return null;
+        }
+
+        foreach (['webp', 'png', 'jpg'] as $extension) {
+            if (is_file($file = resource_path("block-previews/{$type}.{$extension}"))) {
+                return $file;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Where the visual editor loads that screenshot from; its address changes with the file.
+     */
+    public static function screenshotUrl(string $type): ?string
+    {
+        $file = static::screenshotFile($type);
+
+        return $file === null ? null : route('aurora.blocks.screenshot', ['type' => $type, 'v' => filemtime($file)]);
+    }
+
+    /**
      * The block class for a type, or null when no such block is registered.
      *
      * @return class-string<Block>|null

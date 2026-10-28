@@ -7,12 +7,9 @@ use Aurora\Blocks\Editable;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class AlertBlock extends Block
 {
-    use HasPreviewImage;
-
     public const VARIANTS = ['info' => 'Info', 'success' => 'Success', 'warning' => 'Warning', 'danger' => 'Danger', 'brand' => 'Brand'];
 
     public static function type(): string

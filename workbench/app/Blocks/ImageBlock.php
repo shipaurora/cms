@@ -8,12 +8,9 @@ use Aurora\Filament\Forms\Components\AssetPicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class ImageBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'image';

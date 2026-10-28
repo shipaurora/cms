@@ -9,12 +9,9 @@ use Filament\Forms\Components\Slider;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class BandBlock extends Block implements Container
 {
-    use HasPreviewImage;
-
     public const BACKGROUNDS = [
         'white' => 'White',
         'muted' => 'Soft grey',

@@ -86,6 +86,7 @@ class MakeBlock extends Command implements PromptsForMissingInput
         $this->components->info("Block [{$type}] created.");
         $this->components->twoColumnDetail('Class', $this->relative($classFile));
         $this->components->twoColumnDetail('View', $this->relative($viewFile));
+        $this->components->twoColumnDetail('Screenshot', "resources/block-previews/{$type}.webp (php artisan aurora:block-previews)");
 
         // Outside the folder Aurora looks in: it has to be registered by hand.
         if (blank(config('aurora.block_path'))) {

@@ -3,6 +3,8 @@
 use Aurora\Http\Controllers\AssetFileController;
 use Aurora\Http\Controllers\AssistantFileController;
 use Aurora\Http\Controllers\AuthenticateWithPasskeyController;
+use Aurora\Http\Controllers\BlockSampleController;
+use Aurora\Http\Controllers\BlockScreenshotController;
 use Aurora\Http\Controllers\BrandImageController;
 use Aurora\Http\Controllers\CanvasStylesController;
 use Aurora\Http\Controllers\DemoLoginController;
@@ -52,6 +54,10 @@ Route::middleware('web')->group(function (): void {
 
     // A theme's picture, for choosing it under Settings › Appearance.
     Route::get('aurora/themes/{theme}/preview/{mode?}', ThemePreviewController::class)->middleware('auth')->where(['theme' => '[a-z0-9-]+', 'mode' => 'light|dark'])->name('aurora.themes.preview');
+
+    // A block's screenshot for the visual editor's block list, and the block alone to take it from.
+    Route::get('aurora/blocks/{type}/screenshot', BlockScreenshotController::class)->middleware('auth')->where('type', '[a-z0-9-]+')->name('aurora.blocks.screenshot');
+    Route::get('aurora/blocks/{type}/sample', BlockSampleController::class)->where('type', '[a-z0-9-]+')->name('aurora.blocks.sample');
 
     // A media library file's lasting address: links to it survive the file being replaced.
     Route::get('files/{asset}', AssetFileController::class)->whereUuid('asset')->name('files.show');

@@ -8,12 +8,9 @@ use Aurora\Blocks\Fields;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Grid;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class ButtonBlock extends Block
 {
-    use HasPreviewImage;
-
     public const VARIANTS = ['primary' => 'Primary', 'secondary' => 'Secondary', 'outline' => 'Outline', 'ghost' => 'Ghost', 'link' => 'Text link'];
 
     public static function type(): string

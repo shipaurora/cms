@@ -6,12 +6,9 @@ use Aurora\Blocks\Block;
 use Aurora\Blocks\Editable;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\ToggleButtons;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class RichTextBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'rich-text';

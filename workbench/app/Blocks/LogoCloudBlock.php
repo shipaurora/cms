@@ -8,12 +8,9 @@ use Aurora\Filament\Forms\Components\AssetPicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class LogoCloudBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'logo-cloud';

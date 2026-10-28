@@ -7,12 +7,9 @@ use Aurora\Blocks\Editable;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class HeadingBlock extends Block
 {
-    use HasPreviewImage;
-
     public const LEVELS = ['h1', 'h2', 'h3', 'h4'];
 
     public const SIZES = ['display' => 'Display', 'xl' => 'XL', 'lg' => 'L', 'md' => 'M', 'sm' => 'S'];

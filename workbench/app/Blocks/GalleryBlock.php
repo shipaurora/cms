@@ -5,12 +5,9 @@ namespace Workbench\App\Blocks;
 use Aurora\Blocks\Block;
 use Aurora\Filament\Forms\Components\AssetPicker;
 use Filament\Forms\Components\ToggleButtons;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class GalleryBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'gallery';

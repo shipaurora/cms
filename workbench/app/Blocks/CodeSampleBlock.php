@@ -10,7 +10,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 /**
  * Code shown on the page (not run): a file name, its language and a copy button, for docs
@@ -18,8 +17,6 @@ use Workbench\App\Blocks\Concerns\HasPreviewImage;
  */
 class CodeSampleBlock extends Block
 {
-    use HasPreviewImage;
-
     /**
      * Language => [label, the editor's highlighting].
      *

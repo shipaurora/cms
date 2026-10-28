@@ -13,8 +13,12 @@ use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
+use Workbench\App\Blocks\FeatureBlock;
+use Workbench\App\Blocks\GridBlock;
 
 class BlockPreviewsTest extends TestCase
 {
@@ -94,9 +98,58 @@ class BlockPreviewsTest extends TestCase
             ->assertSee('How to make a block');
     }
 
-    public function test_blocks_have_no_picture_unless_they_give_one(): void
+    public function test_the_site_s_screenshot_of_a_block_is_its_picture_for_people_who_edit_pages(): void
     {
-        $this->assertNull(Block::preview());
+        $this->assertNull(Blocks::preview('hero'));
+
+        $file = resource_path('block-previews/hero.webp');
+        File::ensureDirectoryExists(dirname($file));
+        File::put($file, 'webp');
+        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory(dirname($file)));
+
+        // Its address changes with the file, so browsers keep it for long.
+        $url = Blocks::preview('hero');
+        $this->assertSame(route('aurora.blocks.screenshot', ['type' => 'hero', 'v' => filemtime($file)]), $url);
+
+        $this->get($url)->assertRedirect();
+        $this->actingAs($this->userWithRole('Viewer'))->get($url)->assertForbidden();
+        $this->actingAs($this->userWithRole('Editor'))->get($url)->assertOk()->assertHeader('Cache-Control', 'immutable, max-age=31536000, private');
+        $this->get(route('aurora.blocks.screenshot', ['type' => 'grid']))->assertNotFound();
+    }
+
+    public function test_a_block_is_drawn_alone_from_its_example_data_to_take_its_screenshot(): void
+    {
+        // A block that holds others shows them in its sample, rather than an empty grid.
+        Blocks::register([SampledGridBlock::class]);
+
+        $this->get(route('aurora.blocks.sample', ['type' => 'hero']))->assertForbidden();
+        $this->actingAs($this->userWithRole('Editor'))
+            ->get(route('aurora.blocks.sample', ['type' => 'hero']))
+            ->assertOk()
+            ->assertSee('Introducing our latest release')
+            ->assertSee('<meta name="robots" content="noindex', false);
+        $this->get(route('aurora.blocks.sample', ['type' => 'nothing']))->assertNotFound();
+
+        // A screenshot tool isn't signed in: the addresses aurora:block-previews gives are signed.
+        auth()->logout();
+        $grid = URL::temporarySignedRoute('aurora.blocks.sample', now()->addHour(), ['type' => 'grid']);
+        $this->get($grid)->assertOk()->assertSee('Lightning fast');
+
+        $this->artisan('aurora:block-previews')
+            ->expectsOutputToContain('/aurora/blocks/hero/sample?expires=')
+            ->expectsOutputToContain('resources/block-previews/{block}.webp')
+            ->assertSuccessful();
+    }
+}
+
+class SampledGridBlock extends GridBlock
+{
+    public static function sample(): array
+    {
+        return [...parent::sample(), 'children' => ['items' => [
+            ['type' => 'feature', 'data' => FeatureBlock::defaults()],
+            ['type' => 'feature', 'data' => FeatureBlock::defaults()],
+        ]]];
     }
 }
 

@@ -11,12 +11,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class HeroBlock extends Block
 {
-    use HasPreviewImage;
-
     public const LAYOUTS = ['centered' => 'Centred', 'split' => 'Text + image', 'cover' => 'Full-bleed image'];
 
     public static function type(): string

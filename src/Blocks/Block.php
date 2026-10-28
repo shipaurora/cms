@@ -32,13 +32,27 @@ abstract class Block implements InlineEditable, PageBlock
 
     /**
      * A picture of the block (a screenshot of it on a page), shown beside it in the visual
-     * editor's block list so editors see what they're adding: any image URL, such as
-     * asset('vendor/my-blocks/hero.png') or Vite::asset('resources/images/blocks/hero.png').
+     * editor's block list so editors see what they're adding. By default the site's own
+     * screenshot, resources/block-previews/{type}.webp (or .png, .jpg), made from sample();
+     * a block package returns any image URL instead, such as asset('vendor/my-blocks/hero.png').
      * None: the list shows its icon and description only.
      */
     public static function preview(): ?string
     {
-        return null;
+        return Blocks::screenshotUrl(static::type());
+    }
+
+    /**
+     * The block as its screenshot shows it: its defaults, and for a block that holds others,
+     * the blocks in it ('children' => ['slot' => [...]], as BlockTreeBuilder takes them),
+     * so the picture shows a finished block rather than an empty one. Drawn alone at
+     * route('aurora.blocks.sample', type) (aurora:block-previews lists the addresses).
+     *
+     * @return array<string, mixed>
+     */
+    public static function sample(): array
+    {
+        return ['type' => static::type(), 'data' => static::defaults()];
     }
 
     /**

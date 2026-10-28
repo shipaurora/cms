@@ -8,12 +8,9 @@ use Aurora\Filament\Forms\Components\AssetPicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class TeamMemberBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'team-member';

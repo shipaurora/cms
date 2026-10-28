@@ -8,12 +8,9 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class AccordionBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'accordion';

@@ -8,12 +8,9 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
-use Workbench\App\Blocks\Concerns\HasPreviewImage;
 
 class TabsBlock extends Block
 {
-    use HasPreviewImage;
-
     public static function type(): string
     {
         return 'tabs';
