@@ -146,6 +146,35 @@ class BlockPreviewsTest extends TestCase
             ->assertSuccessful();
     }
 
+    public function test_a_block_without_a_picture_is_shown_live_in_the_block_list_until_it_has_one(): void
+    {
+        Blocks::register([PictureBlock::class]);
+        $page = Page::factory()->create();
+        $this->actingAs($this->userWithRole('Editor'));
+        $design = fn (): string => $this->get(PageResource::getUrl('design', ['record' => $page]))->assertOk()->getContent();
+
+        // The same address on every render, so the editor redrawing doesn't reload it.
+        $sample = BlockScreenshots::sampleUrl('hero', minutes: null);
+        $this->assertSame($sample, BlockScreenshots::sampleUrl('hero', minutes: null));
+        $html = $design();
+        $this->assertStringContainsString('src="'.e($sample).'"', $html);
+        $this->assertStringContainsString('sandbox="allow-scripts"', $html);
+        $this->assertStringNotContainsString('expires=', $sample);
+
+        // It opens for the sandboxed frame, which has no session of the admin.
+        auth()->logout();
+        $this->get($sample)->assertOk()->assertSee('Introducing our latest release');
+
+        // A block with a picture keeps it; the hero's screenshot replaces the live one.
+        $this->actingAs($this->userWithRole('Editor'));
+        $this->assertStringNotContainsString(e(BlockScreenshots::sampleUrl('pictured', minutes: null)), $html);
+        $this->assertStringContainsString('src="https://example.com/pictured.png"', $html);
+
+        BlockScreenshots::saveToSite('hero', BlockScreenshots::toWebp(UploadedFile::fake()->image('hero.png', 1600, 900)->getContent()));
+        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory(resource_path('block-previews')));
+        $this->assertStringNotContainsString(e($sample), $design());
+    }
+
     public function test_a_coding_agent_lists_the_missing_screenshots_and_saves_the_ones_it_takes(): void
     {
         $this->beforeApplicationDestroyed(fn () => File::deleteDirectory(resource_path('block-previews')));

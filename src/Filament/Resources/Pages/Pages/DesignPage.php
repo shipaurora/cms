@@ -7,6 +7,7 @@ use Aurora\Blocks\Blocks;
 use Aurora\Enums\RevisionSource;
 use Aurora\Filament\Resources\Pages\Concerns\TranslatesBlocks;
 use Aurora\Filament\Resources\Pages\PageResource;
+use Aurora\Support\BlockScreenshots;
 use Aurora\Support\BlockTranslations;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\EditLocks;
@@ -48,12 +49,22 @@ class DesignPage extends BaseDesignPage
 
     /**
      * The block list, with each block's picture (uploaded in Settings › Blocks, else its own).
+     * A block of the website's with none is shown live instead, from its sample page
+     * (Block::sample()), until it has a screenshot.
      *
-     * @return array<int, array{type: string, label: string, icon: ?string, category: string, description: ?string, preview: ?string}>
+     * @return array<int, array{type: string, label: string, icon: ?string, category: string, description: ?string, preview: ?string, sample: ?string}>
      */
     public function getPaletteProperty(): array
     {
-        return array_map(fn (array $item): array => [...$item, 'preview' => Blocks::preview($item['type'])], parent::getPaletteProperty());
+        return array_map(function (array $item): array {
+            $preview = Blocks::preview($item['type']);
+
+            return [
+                ...$item,
+                'preview' => $preview,
+                'sample' => $preview === null && Blocks::find($item['type']) !== null ? BlockScreenshots::sampleUrl($item['type'], minutes: null) : null,
+            ];
+        }, parent::getPaletteProperty());
     }
 
     public function mount(int|string $record): void

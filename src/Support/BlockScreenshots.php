@@ -44,11 +44,15 @@ class BlockScreenshots
     }
 
     /**
-     * The block alone, at an address that works without signing in for a while.
+     * The block alone, at an address that works without signing in: for a while, or ($minutes
+     * null) always the same address, for the block list's live picture, which must not
+     * reload whenever the editor redraws. Either way it shows only the block's example data.
      */
-    public static function sampleUrl(string $type, int $minutes = 120): string
+    public static function sampleUrl(string $type, ?int $minutes = 120): string
     {
-        return URL::temporarySignedRoute('aurora.blocks.sample', now()->addMinutes(max(1, $minutes)), ['type' => $type]);
+        return $minutes === null
+            ? URL::signedRoute('aurora.blocks.sample', ['type' => $type])
+            : URL::temporarySignedRoute('aurora.blocks.sample', now()->addMinutes(max(1, $minutes)), ['type' => $type]);
     }
 
     /**

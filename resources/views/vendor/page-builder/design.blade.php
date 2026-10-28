@@ -220,6 +220,28 @@
                                             {{-- Aurora: the block's picture (Aurora\Blocks\Blocks::preview()), under its name. --}}
                                             @if (filled($item['preview'] ?? null))
                                                 <img src="{{ $item['preview'] }}" alt="" loading="lazy" draggable="false" class="cms-palette-preview">
+                                            @elseif (filled($item['sample'] ?? null))
+                                                {{-- No screenshot yet: the block itself, from its sample page, drawn at the
+                                                     screenshot's 1600×900 and shrunk to the card. Walled off from the admin
+                                                     (sandboxed, without its origin), and loaded only once scrolled to. --}}
+                                                <span
+                                                    wire:ignore
+                                                    class="cms-palette-preview cms-palette-live"
+                                                    style="position: relative; overflow: hidden;"
+                                                    x-data="{ scale: 0 }"
+                                                    x-init="new ResizeObserver(() => scale = $el.clientWidth / 1600).observe($el)"
+                                                    aria-hidden="true"
+                                                >
+                                                    <iframe
+                                                        src="{{ $item['sample'] }}"
+                                                        loading="lazy"
+                                                        sandbox="allow-scripts"
+                                                        tabindex="-1"
+                                                        title=""
+                                                        style="position: absolute; top: 0; left: 0; width: 1600px; height: 900px; border: 0; transform-origin: 0 0; pointer-events: none;"
+                                                        x-bind:style="{ transform: `scale(${scale})`, visibility: scale ? 'visible' : 'hidden' }"
+                                                    ></iframe>
+                                                </span>
                                             @endif
                                             @if ($item['description'])
                                                 <span class="fpb-palette-desc">{{ $item['description'] }}</span>
