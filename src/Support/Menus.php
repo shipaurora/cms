@@ -28,6 +28,10 @@ class Menus
     protected static array $localized = [];
 
     /**
+     * Panels of the website's own for the menu editor, from a service provider's register()
+     * method: the menu editor gets its panels when the admin panel is built, before the
+     * app's own boot() runs.
+     *
      * @param  array<int, MenuPanel>  $panels
      */
     public static function panels(array $panels): void

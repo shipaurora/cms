@@ -13,7 +13,9 @@ use Symfony\Component\Finder\Finder;
 
 /**
  * The website's own screens in Aurora's admin: resources for its models (events, albums)
- * and pages, registered from a service provider, and the navigation groups they sit in.
+ * and pages, and the navigation groups they sit in, registered in a service provider's
+ * register() method. Not boot(): the admin panel is built while the app's providers boot,
+ * before the app's own boot() runs, and keeps the lists it finds then.
  *
  *     AdminPanel::discover(app_path('Filament/Resources'), 'App\Filament\Resources');
  *     AdminPanel::navigationGroup('Events', fn (): string => __('Events'));

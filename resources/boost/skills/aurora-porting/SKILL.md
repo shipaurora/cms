@@ -92,7 +92,7 @@ class Employee extends Model
 }
 ```
 
-**The resource.** A Filament resource in `app/Filament/Resources/Employees` (`php artisan make:filament-resource Employee`), registered from a service provider with `AdminPanel::discover(app_path('Filament/Resources'), 'App\Filament\Resources', perSite: true)` (`perSite` for a model with `BelongsToSite`) and given a group of its own, `AdminPanel::navigationGroup('Team', fn (): string => __('Team'))`, set as the resource's `$navigationGroup`. In its form, Aurora's fields keep it like the rest of the admin:
+**The resource.** A Filament resource in `app/Filament/Resources/Employees` (`php artisan make:filament-resource Employee`), registered in a service provider's `register()` method (not `boot()`: the admin panel is built before the app's `boot()` runs) with `AdminPanel::discover(app_path('Filament/Resources'), 'App\Filament\Resources', perSite: true)` (`perSite` for a model with `BelongsToSite`) and given a group of its own, `AdminPanel::navigationGroup('Team', fn (): string => __('Team'))`, set as the resource's `$navigationGroup`. In its form, Aurora's fields keep it like the rest of the admin:
 
 ```php
 use Aurora\Filament\Forms\Components\AssetPicker;
