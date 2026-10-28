@@ -7,12 +7,14 @@ use Aurora\Filament\Resources\Assets\AssetResource;
 use Aurora\Filament\Resources\Assets\Pages\EditAsset;
 use Aurora\Filament\Resources\Assets\Pages\ListAssets;
 use Aurora\Filament\Resources\Assets\RelationManagers\UsagesRelationManager;
+use Aurora\Filament\Resources\Forms\FormResource;
 use Aurora\Filament\Resources\Pages\Pages\DesignPage;
 use Aurora\Filament\Resources\Pages\Pages\EditPage;
 use Aurora\Mcp\Servers\CmsServer;
 use Aurora\Mcp\Tools\ListImages;
 use Aurora\Mcp\Tools\UploadImageFromUrl;
 use Aurora\Models\Asset;
+use Aurora\Models\Form;
 use Aurora\Models\Page;
 use Aurora\Support\AssetLibrary;
 use Aurora\Support\ContentLocale;
@@ -182,6 +184,21 @@ class MediaLibraryTest extends TestCase
             ->assertCanSeeTableRecords($asset->usages);
 
         $this->actingAs($editor)->get(AssetResource::getUrl('edit', ['record' => $asset]))->assertOk()->assertSee('A deep blue fjord');
+    }
+
+    public function test_a_websites_own_record_using_a_file_is_named_and_opened_from_its_usage(): void
+    {
+        $editor = $this->userWithRole('Editor');
+        $asset = $this->asset();
+        // Any model with an admin screen; a form stands in for a website's own (an event).
+        $form = Form::factory()->create(['name' => 'Spring workshop']);
+        AssetLibrary::syncUsages($form, ['cover' => $asset->id]);
+
+        Livewire::actingAs($editor)
+            ->test(UsagesRelationManager::class, ['ownerRecord' => $asset, 'pageClass' => EditAsset::class])
+            ->assertCanSeeTableRecords($asset->usages)
+            ->assertSee('Spring workshop')
+            ->assertTableActionHasUrl('open', FormResource::getUrl('edit', ['record' => $form]), $asset->usages->first());
     }
 
     public function test_authors_can_use_the_library_but_not_manage_others_images(): void
