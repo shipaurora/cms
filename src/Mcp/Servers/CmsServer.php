@@ -42,6 +42,7 @@ class CmsServer extends Server
         Tools\WhoAmI::class,
         Tools\ListSites::class,
         Tools\ListBlockTypes::class,
+        Tools\GenerateBlockScreenshots::class,
         Tools\ListPages::class,
         Tools\GetPage::class,
         Tools\CreatePage::class,

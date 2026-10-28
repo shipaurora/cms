@@ -6,16 +6,21 @@ use Aurora\Blocks\Block;
 use Aurora\Blocks\Blocks;
 use Aurora\Filament\Pages\SiteSettings;
 use Aurora\Filament\Resources\Pages\PageResource;
+use Aurora\Mcp\Servers\CmsServer;
+use Aurora\Mcp\Tools\GenerateBlockScreenshots;
 use Aurora\Models\Page;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
+use Aurora\Support\BlockScreenshots;
 use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Workbench\App\Blocks\FeatureBlock;
 use Workbench\App\Blocks\GridBlock;
@@ -137,8 +142,87 @@ class BlockPreviewsTest extends TestCase
 
         $this->artisan('aurora:block-previews')
             ->expectsOutputToContain('/aurora/blocks/hero/sample?expires=')
-            ->expectsOutputToContain('resources/block-previews/{block}.webp')
+            ->expectsOutputToContain('aurora:block-previews {block} --from=screenshot.png')
             ->assertSuccessful();
+    }
+
+    public function test_a_coding_agent_lists_the_missing_screenshots_and_saves_the_ones_it_takes(): void
+    {
+        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory(resource_path('block-previews')));
+
+        $this->assertSame(0, Artisan::call('aurora:block-previews', ['--missing' => true, '--json' => true]));
+        $listed = json_decode(Artisan::output(), true);
+        $this->assertSame([1600, 900], $listed['window']);
+        $hero = collect($listed['blocks'])->firstWhere('type', 'hero');
+        $this->assertSame('resources/block-previews/hero.webp', $hero['file']);
+        $this->get($hero['sample_url'])->assertOk();
+
+        // Whatever size the agent's browser took it at: the block list's size and kind.
+        $png = sys_get_temp_dir().'/hero-'.Str::random(8).'.png';
+        File::put($png, UploadedFile::fake()->image('hero.png', 1600, 1200)->getContent());
+        $this->beforeApplicationDestroyed(fn () => File::delete($png));
+
+        $this->artisan('aurora:block-previews', ['type' => 'hero', '--from' => $png])->expectsOutputToContain('Commit it with the block')->assertSuccessful();
+        $this->assertSame([800, 450, IMAGETYPE_WEBP], array_slice(getimagesize(resource_path('block-previews/hero.webp')), 0, 3));
+        $this->assertNotNull(Blocks::find('hero')::preview());
+
+        Artisan::call('aurora:block-previews', ['--missing' => true, '--json' => true]);
+        $this->assertNull(collect(json_decode(Artisan::output(), true)['blocks'])->firstWhere('type', 'hero'));
+
+        $this->artisan('aurora:block-previews', ['--from' => $png])->expectsOutputToContain('Name the block')->assertFailed();
+        $this->artisan('aurora:block-previews', ['type' => 'hero', '--from' => __FILE__])->expectsOutputToContain('isn\'t an image')->assertFailed();
+    }
+
+    public function test_aurora_takes_the_screenshots_itself_only_with_browsershot(): void
+    {
+        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory(resource_path('block-previews')));
+        $this->beforeApplicationDestroyed(fn () => BlockScreenshots::fake(null));
+
+        $this->artisan('aurora:block-previews', ['type' => 'hero', '--generate' => true])->expectsOutputToContain('spatie/browsershot')->assertFailed();
+
+        // The browser opens the block's signed sample page.
+        $opened = [];
+        BlockScreenshots::fake(function (string $url) use (&$opened): string {
+            $opened[] = $url;
+
+            return UploadedFile::fake()->image('shot.png', 1600, 900)->getContent();
+        });
+
+        $this->artisan('aurora:block-previews', ['type' => 'hero', '--generate' => true])->assertSuccessful();
+        $this->assertStringContainsString('/aurora/blocks/hero/sample?expires=', $opened[0]);
+        $this->assertFileExists(resource_path('block-previews/hero.webp'));
+    }
+
+    public function test_ai_apps_take_the_missing_screenshots_where_browsershot_is_installed(): void
+    {
+        Storage::fake('public');
+        $this->beforeApplicationDestroyed(fn () => BlockScreenshots::fake(null));
+        $admin = $this->userWithRole(User::SUPER_ADMIN);
+
+        // Without Browsershot, there's no such tool.
+        CmsServer::actingAs($admin)->tool(GenerateBlockScreenshots::class)->assertNotRegistered();
+
+        BlockScreenshots::fake(fn (string $url): string => UploadedFile::fake()->image('shot.png', 1600, 900)->getContent());
+
+        // Only for people who may upload screenshots in Settings › Blocks.
+        CmsServer::actingAs($this->userWithRole('Editor'))->tool(GenerateBlockScreenshots::class)->assertNotRegistered();
+
+        $missing = BlockScreenshots::missing();
+        $this->assertContains('hero', $missing);
+
+        CmsServer::actingAs($admin)->tool(GenerateBlockScreenshots::class)->assertOk()->assertSee('"hero"');
+
+        // Saved as if uploaded: the live site's code is left alone.
+        $this->assertSame([], BlockScreenshots::missing());
+        $uploaded = Setting::get(Blocks::PREVIEWS_SETTING);
+        $this->assertEqualsCanonicalizing($missing, array_keys($uploaded));
+        Storage::disk('public')->assertExists($uploaded['hero']);
+        $this->assertSame(Storage::disk('public')->url($uploaded['hero']), Blocks::preview('hero'));
+        $this->assertFileDoesNotExist(resource_path('block-previews/hero.webp'));
+
+        // Asked again for one block: its picture is replaced, and the old file goes.
+        CmsServer::actingAs($admin)->tool(GenerateBlockScreenshots::class, ['type' => 'hero'])->assertOk();
+        Storage::disk('public')->assertMissing($uploaded['hero']);
     }
 }
 

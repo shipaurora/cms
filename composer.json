@@ -70,6 +70,9 @@
         "orchestra/testbench": "^11.3",
         "phpunit/phpunit": "^12.5.12"
     },
+    "suggest": {
+        "spatie/browsershot": "Lets AI apps take the blocks' screenshots over MCP (generate_block_screenshots) and aurora:block-previews --generate take them itself; needs Chrome or Chromium"
+    },
     "conflict": {
         "shipaurora/minimal": "<1.0.12"
     },

@@ -9,6 +9,7 @@ use CarlJanzell\FilamentPageBuilder\FilamentPageBuilderPlugin;
 use CarlJanzell\FilamentPageBuilder\PageBuilder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
@@ -179,6 +180,34 @@ class Blocks
         $block = static::find($type);
 
         return $block === null ? null : $block::preview();
+    }
+
+    /**
+     * Keep a screenshot uploaded for a block (a file on the public disk), or none: the file of
+     * the one it replaces goes.
+     */
+    public static function putPreview(string $type, ?string $path): void
+    {
+        $previews = Setting::get(self::PREVIEWS_SETTING) ?? [];
+
+        if (filled($previews[$type] ?? null) && $previews[$type] !== $path) {
+            Storage::disk('public')->delete($previews[$type]);
+        }
+
+        $previews[$type] = $path;
+
+        Setting::put([self::PREVIEWS_SETTING => array_filter($previews)]);
+    }
+
+    /**
+     * Keep a picture of a block as if uploaded in Settings › Blocks.
+     */
+    public static function putUploadedPreview(string $type, string $webp): void
+    {
+        $path = 'block-previews/'.$type.'-'.Str::random(8).'.webp';
+        Storage::disk('public')->put($path, $webp);
+
+        static::putPreview($type, $path);
     }
 
     /**

@@ -18,7 +18,6 @@ use Filament\Schemas\Components\Icon;
 use Filament\Schemas\Components\Image;
 use Filament\Schemas\Components\Text;
 use Filament\Support\Enums\FontWeight;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -104,7 +103,7 @@ trait ManagesBlockPreviews
                     ->required(),
             ])
             ->action(function (array $data) use ($block): void {
-                $this->putBlockPreview($block::type(), $data['screenshot']);
+                Blocks::putPreview($block::type(), $data['screenshot']);
                 $this->rebuildForm();
 
                 Notification::make()->title(__('Screenshot saved'))->success()->send();
@@ -129,26 +128,10 @@ trait ManagesBlockPreviews
                 : __('The block list shows no picture for it.'))
             ->modalSubmitActionLabel(__('Remove'))
             ->action(function () use ($block): void {
-                $this->putBlockPreview($block::type(), null);
+                Blocks::putPreview($block::type(), null);
                 $this->rebuildForm();
 
                 Notification::make()->title(__('Screenshot removed'))->success()->send();
             });
-    }
-
-    /**
-     * Keep a block's screenshot (or none), and the file of the one it replaces goes.
-     */
-    protected function putBlockPreview(string $type, ?string $path): void
-    {
-        $previews = Setting::get(Blocks::PREVIEWS_SETTING) ?? [];
-
-        if (filled($previews[$type] ?? null) && $previews[$type] !== $path) {
-            Storage::disk('public')->delete($previews[$type]);
-        }
-
-        $previews[$type] = $path;
-
-        Setting::put([Blocks::PREVIEWS_SETTING => array_filter($previews)]);
     }
 }
