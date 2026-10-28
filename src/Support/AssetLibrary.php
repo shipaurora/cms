@@ -78,8 +78,9 @@ class AssetLibrary
             return $asset->refresh();
         });
 
-        // Its alt text, by the AI assistant when it's set to.
+        // Its alt text and tags, by the AI assistant when it's set to.
         ImageDescriptions::queue($asset);
+        ImageTags::queue($asset);
 
         return $asset;
     }

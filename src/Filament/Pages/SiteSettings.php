@@ -25,6 +25,7 @@ use Aurora\Models\User;
 use Aurora\Support\Copilot;
 use Aurora\Support\CustomShortcodes;
 use Aurora\Support\ImageDescriptions;
+use Aurora\Support\ImageTags;
 use Aurora\Support\PageCache;
 use Aurora\Support\Passkeys;
 use Aurora\Support\PublicApi;
@@ -636,6 +637,12 @@ class SiteSettings extends Page implements HasSchemas
                             ->default(false)
                             ->visible(fn (): bool => Copilot::isSetUp())
                             ->columnSpanFull(),
+                        Toggle::make(ImageTags::SETTING)
+                            ->label(__('Tag images automatically'))
+                            ->helperText(__('When an image is added to the media library, the assistant gives it a few tags, reusing the library’s tags where they fit. Images already there without tags get some too. Tags someone chose are never changed.'))
+                            ->default(false)
+                            ->visible(fn (): bool => Copilot::isSetUp())
+                            ->columnSpanFull(),
                         Select::make('copilot.provider')
                             ->label(__('Provider'))
                             ->options(collect(Copilot::PROVIDERS)->map(fn (array $provider): string => $provider['label'])->all())
@@ -888,6 +895,7 @@ class SiteSettings extends Page implements HasSchemas
     {
         $wasOn = Copilot::isConfigured();
         $wasDescribing = ImageDescriptions::isOn();
+        $wasTagging = ImageTags::isOn();
         $themeBefore = Themes::active();
 
         Setting::put($this->form->getState());
@@ -916,6 +924,15 @@ class SiteSettings extends Page implements HasSchemas
             Notification::make()
                 ->title(trans_choice('Describing :count image|Describing :count images', $queued))
                 ->body(__('The assistant is writing alt text for the images that have none. It appears in the media library as each one is done.'))
+                ->info()
+                ->send();
+        }
+
+        // The same for tags.
+        if (! $wasTagging && ($queued = ImageTags::queueMissing()) > 0) {
+            Notification::make()
+                ->title(trans_choice('Tagging :count image|Tagging :count images', $queued))
+                ->body(__('The assistant is tagging the images that have no tags. They appear in the media library as each one is done.'))
                 ->info()
                 ->send();
         }

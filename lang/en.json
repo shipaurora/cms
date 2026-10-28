@@ -2123,5 +2123,16 @@
     ":column, Z to A": ":column, Z to A",
     "How the media library looks, for everyone. The same on every site.": "How the media library looks, for everyone. The same on every site.",
     "Show folders among the files": "Show folders among the files",
-    "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.": "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files."
+    "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.": "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.",
+    "Tag images automatically": "Tag images automatically",
+    "When an image is added to the media library, the assistant gives it a few tags, reusing the library’s tags where they fit. Images already there without tags get some too. Tags someone chose are never changed.": "When an image is added to the media library, the assistant gives it a few tags, reusing the library’s tags where they fit. Images already there without tags get some too. Tags someone chose are never changed.",
+    "Tagging :count image|Tagging :count images": "Tagging :count image|Tagging :count images",
+    "The assistant is tagging the images that have no tags. They appear in the media library as each one is done.": "The assistant is tagging the images that have no tags. They appear in the media library as each one is done.",
+    "Tag with AI": "Tag with AI",
+    "The assistant tags the selected images that have no tags, reusing the library’s tags where they fit. Images that already have tags are left as they are.": "The assistant tags the selected images that have no tags, reusing the library’s tags where they fit. Images that already have tags are left as they are.",
+    "Tag them": "Tag them",
+    "e.g. tag the people by department": "e.g. tag the people by department",
+    "All the selected images already have tags": "All the selected images already have tags",
+    "The tags appear on each image as soon as the assistant is done.": "The tags appear on each image as soon as the assistant is done.",
+    "Tag images": "Tag images"
 }

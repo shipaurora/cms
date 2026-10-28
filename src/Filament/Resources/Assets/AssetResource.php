@@ -20,6 +20,7 @@ use Aurora\Support\AudioMetadata;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\ImageDescriptions;
 use Aurora\Support\ImageMetadata;
+use Aurora\Support\ImageTags;
 use Aurora\Support\SearchThumbnail;
 use Aurora\Support\UserBadge;
 use BackedEnum;
@@ -353,6 +354,38 @@ class AssetResource extends Resource
                                 : Notification::make()
                                     ->title(trans_choice('Writing alt text for :count image|Writing alt text for :count images', $count))
                                     ->body(__('It appears on each image as soon as the assistant is done.'))
+                                    ->success()
+                                    ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                    // Tags for the selected images that have none, on the queue (ImageTags).
+                    BulkAction::make('tagImages')
+                        ->label(__('Tag with AI'))
+                        ->icon('phosphor-tag')
+                        ->visible(fn (): bool => WriteWithAi::isAvailable())
+                        ->modalHeading(__('Tag with AI'))
+                        ->modalDescription(__('The assistant tags the selected images that have no tags, reusing the library’s tags where they fit. Images that already have tags are left as they are.'))
+                        ->modalIcon('phosphor-tag')
+                        ->modalWidth('md')
+                        ->modalSubmitActionLabel(__('Tag them'))
+                        ->schema([
+                            Textarea::make('instruction')
+                                ->label(__('Instruction (optional)'))
+                                ->placeholder(__('e.g. tag the people by department'))
+                                ->rows(2)
+                                ->maxLength(500),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                            $count = ImageTags::queueFor(
+                                $records->filter(fn (Asset $asset): bool => auth()->user()->can('update', $asset)),
+                                filled($data['instruction'] ?? null) ? $data['instruction'] : null,
+                            );
+
+                            $count === 0
+                                ? Notification::make()->title(__('All the selected images already have tags'))->info()->send()
+                                : Notification::make()
+                                    ->title(trans_choice('Tagging :count image|Tagging :count images', $count))
+                                    ->body(__('The tags appear on each image as soon as the assistant is done.'))
                                     ->success()
                                     ->send();
                         })

@@ -2123,5 +2123,16 @@
     ":column, Z to A": ":column, Å til A",
     "How the media library looks, for everyone. The same on every site.": "Hvordan mediebiblioteket ser ut, for alle. Det samme på alle nettsteder.",
     "Show folders among the files": "Vis mapper sammen med filene",
-    "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.": "På: mappene i en mappe er de første kortene i rutenettet, eller de første radene i listen, som på en datamaskin. Av: de ligger i en egen rad over filene."
+    "On: a folder’s folders are the first cards of the grid, or the first rows of the list, as on a computer. Off: they’re in a row of their own above the files.": "På: mappene i en mappe er de første kortene i rutenettet, eller de første radene i listen, som på en datamaskin. Av: de ligger i en egen rad over filene.",
+    "Tag images automatically": "Gi bilder tags automatisk",
+    "When an image is added to the media library, the assistant gives it a few tags, reusing the library’s tags where they fit. Images already there without tags get some too. Tags someone chose are never changed.": "Når et bilde legges til i mediebiblioteket, gir assistenten det noen tags, og bruker bibliotekets tags der de passer. Bilder som allerede ligger der uten tags, får også noen. Tags noen har valgt, blir aldri endret.",
+    "Tagging :count image|Tagging :count images": "Gir tags til :count bilde|Gir tags til :count bilder",
+    "The assistant is tagging the images that have no tags. They appear in the media library as each one is done.": "Assistenten gir tags til bildene som mangler det. De dukker opp i mediebiblioteket etter hvert som hvert bilde er ferdig.",
+    "Tag with AI": "Gi tags med KI",
+    "The assistant tags the selected images that have no tags, reusing the library’s tags where they fit. Images that already have tags are left as they are.": "Assistenten gir tags til de valgte bildene som mangler det, og bruker bibliotekets tags der de passer. Bilder som allerede har tags, blir ikke endret.",
+    "Tag them": "Gi dem tags",
+    "e.g. tag the people by department": "f.eks. merk personene etter avdeling",
+    "All the selected images already have tags": "Alle de valgte bildene har allerede tags",
+    "The tags appear on each image as soon as the assistant is done.": "Taggene dukker opp på hvert bilde så snart assistenten er ferdig.",
+    "Tag images": "Gi bilder tags"
 }
