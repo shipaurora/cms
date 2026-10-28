@@ -2,6 +2,7 @@
 
 namespace Aurora\Tests\Feature;
 
+use Aurora\Aurora;
 use Aurora\Filament\Pages\SiteSettings;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
@@ -94,6 +95,25 @@ class AdminThemeTest extends TestCase
         // A theme the app builds itself has no release to show.
         Themes::register('acme', name: 'Acme', vite: 'resources/css/app.css');
         $this->assertNull(Themes::version('acme'));
+    }
+
+    public function test_each_prebuilt_theme_styles_every_class_the_installed_filament_styles(): void
+    {
+        // A theme's stylesheet is compiled from one Filament release. A newer Filament's markup can
+        // use classes that release didn't have: Filament 5.11 put dashboard widgets in a
+        // .fi-sc-liberated wrapper, and a theme built on 5.10 drew every widget one column wide.
+        $classes = fn (string $css): array => array_unique(preg_match_all('/\.(fi-[\w-]+)/', $css, $matches) ? $matches[1] : []);
+        $filament = $classes(File::get(Aurora::packagePath('filament/filament', 'dist/theme.css')));
+        $themes = array_filter(Themes::all(), fn (array $theme): bool => $theme['stylesheet'] !== null);
+
+        $this->assertNotEmpty($filament);
+        $this->assertArrayHasKey('borealis', $themes);
+
+        foreach ($themes as $id => $theme) {
+            $missing = array_values(array_diff($filament, $classes(File::get($theme['stylesheet']))));
+
+            $this->assertSame([], $missing, "The {$id} theme was built with an older Filament: rebuild its theme.css and release it.");
+        }
     }
 
     public function test_the_appearance_settings_link_to_more_themes_in_a_new_tab(): void

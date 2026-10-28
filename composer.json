@@ -31,14 +31,14 @@
     "require": {
         "php": "^8.4",
         "althinect/filament-spatie-roles-permissions": "^4.0",
-        "shipaurora/borealis": "^1.0.9",
+        "shipaurora/borealis": "^1.0.12",
         "blade-ui-kit/blade-heroicons": "^2.7",
         "blade-ui-kit/blade-icons": "^1.10",
         "carljanzell/filament-page-builder": "^0.4.2",
         "codeat3/blade-phosphor-icons": "^2.4",
         "datlechin/filament-menu-builder": "^1.1",
         "eslam-reda-div/filament-copilot": "^1.8",
-        "filament/filament": "^5.10",
+        "filament/filament": "^5.11",
         "filament/spatie-laravel-media-library-plugin": "^5.10",
         "james-heinrich/getid3": "^1.9.27",
         "lara-zeus/spatie-translatable": "^2.0",
@@ -71,7 +71,7 @@
         "phpunit/phpunit": "^12.5.12"
     },
     "conflict": {
-        "shipaurora/minimal": "<1.0.9"
+        "shipaurora/minimal": "<1.0.12"
     },
     "autoload": {
         "psr-4": {
