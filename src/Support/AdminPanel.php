@@ -8,17 +8,19 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Page;
 use Filament\Resources\Pages\Page as ResourcePage;
 use Filament\Resources\Resource as FilamentResource;
+use Filament\Widgets\Widget;
 use ReflectionClass;
 use Symfony\Component\Finder\Finder;
 
 /**
- * The website's own screens in Aurora's admin: resources for its models (events, albums)
- * and pages, and the navigation groups they sit in, registered in a service provider's
+ * The website's own screens in Aurora's admin: resources for its models (events, albums),
+ * pages, dashboard widgets (its own or a package's), and the navigation groups they sit in, registered in a service provider's
  * register() method. Not boot(): the admin panel is built while the app's providers boot,
  * before the app's own boot() runs, and keeps the lists it finds then.
  *
  *     AdminPanel::discover(app_path('Filament/Resources'), 'App\Filament\Resources');
  *     AdminPanel::navigationGroup('Events', fn (): string => __('Events'));
+ *     AdminPanel::widgets([UpcomingEvents::class]);
  *
  * The admin is per site (/admin/{site}/…): a website's resources show every site's records
  * unless they're registered perSite, for a model that belongs to a site (a site relation).
@@ -39,6 +41,11 @@ class AdminPanel
      * @var array<int, class-string<Page>>
      */
     protected static array $pages = [];
+
+    /**
+     * @var array<int, class-string<Widget>>
+     */
+    protected static array $widgets = [];
 
     /**
      * @var array<string, array{label: string|Closure|null, icon: ?string, after: string}>
@@ -71,7 +78,22 @@ class AdminPanel
     }
 
     /**
-     * Every resource and page in a folder (and its subfolders), as resources() and pages().
+     * Widgets people can put on their dashboard (DashboardLayout): the website's own or a
+     * package's, any Filament widget. New ones show at the end of everyone's dashboard, and
+     * "Add a widget" lists them. A widget's name and sentence there come from its static
+     * getDashboardLabel() and getDashboardDescription(), when it has them; its default place
+     * from its $sort, its default size from its $columnSpan, and who sees it from its canView().
+     *
+     * @param  array<int, class-string<Widget>>  $widgets
+     */
+    public static function widgets(array $widgets): void
+    {
+        static::$widgets = array_values(array_unique([...static::$widgets, ...$widgets]));
+    }
+
+    /**
+     * Every resource, page and widget in a folder (and its subfolders), as resources(), pages()
+     * and widgets().
      *
      * @return array<int, class-string>
      */
@@ -84,6 +106,7 @@ class AdminPanel
         $namespace = trim($namespace ?? Blocks::namespaceFor($path), '\\');
         $resources = [];
         $pages = [];
+        $widgets = [];
 
         foreach ((new Finder)->files()->in($path)->name('*.php')->sortByName() as $file) {
             $class = $namespace.'\\'.str_replace(['/', '.php'], ['\\', ''], $file->getRelativePathname());
@@ -96,13 +119,16 @@ class AdminPanel
                 $resources[] = $class;
             } elseif (is_subclass_of($class, Page::class) && ! is_subclass_of($class, ResourcePage::class)) {
                 $pages[] = $class;
+            } elseif (is_subclass_of($class, Widget::class)) {
+                $widgets[] = $class;
             }
         }
 
         static::resources($resources, $perSite);
         static::pages($pages);
+        static::widgets($widgets);
 
-        return [...$resources, ...$pages];
+        return [...$resources, ...$pages, ...$widgets];
     }
 
     /**
@@ -129,6 +155,14 @@ class AdminPanel
     public static function registeredPages(): array
     {
         return static::$pages;
+    }
+
+    /**
+     * @return array<int, class-string<Widget>>
+     */
+    public static function registeredWidgets(): array
+    {
+        return static::$widgets;
     }
 
     /**

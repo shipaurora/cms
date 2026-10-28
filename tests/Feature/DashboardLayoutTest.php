@@ -8,11 +8,13 @@ use Aurora\Filament\Widgets\NeedsAttention;
 use Aurora\Filament\Widgets\RecentChanges;
 use Aurora\Filament\Widgets\WelcomeWidget;
 use Aurora\Models\User;
+use Aurora\Support\AdminPanel;
 use Aurora\Support\DashboardLayout;
 use Aurora\Tests\TestCase;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Workbench\App\Filament\Widgets\FormsOverview;
 
 class DashboardLayoutTest extends TestCase
 {
@@ -36,6 +38,9 @@ class DashboardLayoutTest extends TestCase
         $this->assertSame([
             ['id' => 'welcome-widget', 'widget' => WelcomeWidget::class, 'size' => 'large'],
             ['id' => 'content-stats', 'widget' => ContentStats::class, 'size' => 'large'],
+            // The website's own (AdminPanel::widgets(), in the workbench's provider), placed by its
+            // $sort (none: 0) and as wide as its $columnSpan (a stats widget's is full).
+            ['id' => 'forms-overview', 'widget' => FormsOverview::class, 'size' => 'large'],
             ['id' => 'recent-changes', 'widget' => RecentChanges::class, 'size' => 'medium'],
             ['id' => 'needs-attention', 'widget' => NeedsAttention::class, 'size' => 'small'],
         ], DashboardLayout::for($editor));
@@ -52,6 +57,7 @@ class DashboardLayoutTest extends TestCase
             ->assertSet('customizing', true)
             ->assertSee('Add a widget')
             ->call('reorderWidgets', ['needs-attention', 'welcome-widget', 'recent-changes', 'content-stats'])
+            ->call('removeWidget', 'forms-overview')
             ->call('resizeWidget', 'needs-attention', 'large')
             ->call('resizeWidget', 'welcome-widget', 'huge')
             ->call('removeWidget', 'content-stats')
@@ -75,7 +81,7 @@ class DashboardLayoutTest extends TestCase
         $this->assertCount(4, array_unique(array_column($layout, 'id')));
 
         // Theirs only.
-        $this->assertCount(4, DashboardLayout::for($colleague));
+        $this->assertCount(5, DashboardLayout::for($colleague));
     }
 
     public function test_the_layout_is_kept_with_a_websites_own_user_model(): void
@@ -124,7 +130,7 @@ class DashboardLayoutTest extends TestCase
         $editor->forceFill(['dashboard' => [
             'widgets' => [['id' => 'gone', 'widget' => 'App\Filament\Widgets\Gone', 'size' => 'small'], ['id' => 'mine', 'widget' => RecentChanges::class, 'size' => 'tiny']],
             // NeedsAttention is new since they saved; WelcomeWidget and ContentStats they removed.
-            'known' => [WelcomeWidget::class, ContentStats::class, RecentChanges::class],
+            'known' => [WelcomeWidget::class, ContentStats::class, RecentChanges::class, FormsOverview::class],
         ]])->save();
 
         $this->actingAs($editor);
@@ -140,7 +146,7 @@ class DashboardLayoutTest extends TestCase
         $editor = $this->userWithRole('Editor');
         $editor->forceFill(['dashboard' => [
             'widgets' => [['widget' => RecentChanges::class, 'size' => 'large']],
-            'hidden' => [WelcomeWidget::class, ContentStats::class],
+            'hidden' => [WelcomeWidget::class, ContentStats::class, FormsOverview::class],
         ]])->save();
 
         $this->actingAs($editor);
@@ -149,6 +155,30 @@ class DashboardLayoutTest extends TestCase
             [RecentChanges::class, 'large'],
             [NeedsAttention::class, 'small'],
         ], $this->shape(DashboardLayout::for($editor)));
+    }
+
+    public function test_a_website_registers_its_own_widgets_and_people_can_add_them(): void
+    {
+        $this->assertContains(FormsOverview::class, AdminPanel::registeredWidgets());
+        $this->assertSame([FormsOverview::class], AdminPanel::discover(dirname((new \ReflectionClass(FormsOverview::class))->getFileName()), 'Workbench\App\Filament\Widgets'));
+        $editor = $this->userWithRole('Editor');
+        DashboardLayout::save($editor, [['widget' => FormsOverview::class, 'size' => 'large']]);
+
+        // Named after its class, as it has no getDashboardLabel().
+        $this->assertSame('Forms Overview', DashboardLayout::label(FormsOverview::class));
+
+        Livewire::actingAs($editor->fresh())
+            ->test(Dashboard::class)
+            ->callAction('customize')
+            ->assertSee('Forms Overview')
+            ->call('addWidget', FormsOverview::class)
+            ->callAction('saveDashboard');
+
+        $this->assertSame([[FormsOverview::class, 'large'], [FormsOverview::class, 'large']], $this->shape(DashboardLayout::for($editor->fresh())));
+
+        // Drawn on the dashboard, and refreshed by Livewire as one of the panel's components.
+        $this->actingAs($editor->fresh())->get(Dashboard::getUrl())->assertOk()->assertSee('Forms');
+        Livewire::actingAs($editor->fresh())->test(FormsOverview::class)->assertOk();
     }
 
     public function test_the_dashboard_shows_the_widgets_in_the_persons_order(): void

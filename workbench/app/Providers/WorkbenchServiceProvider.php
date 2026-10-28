@@ -4,6 +4,7 @@ namespace Workbench\App\Providers;
 
 use Aurora\Blocks\Blocks;
 use Aurora\Models\Page;
+use Aurora\Support\AdminPanel;
 use Aurora\Support\SafeUrl;
 use Aurora\Support\SettingsTabs;
 use Filament\Actions\Action;
@@ -43,6 +44,7 @@ use Workbench\App\Blocks\StepsBlock;
 use Workbench\App\Blocks\TabsBlock;
 use Workbench\App\Blocks\TeamMemberBlock;
 use Workbench\App\Blocks\TestimonialBlock;
+use Workbench\App\Filament\Widgets\FormsOverview;
 
 /**
  * The test suite's website: a site's own blocks (a copy of the docs website's) and its header and
@@ -51,6 +53,15 @@ use Workbench\App\Blocks\TestimonialBlock;
  */
 class WorkbenchServiceProvider extends ServiceProvider
 {
+    /**
+     * Its own dashboard widget, in register(): the admin panel takes the list while the app's
+     * providers boot.
+     */
+    public function register(): void
+    {
+        AdminPanel::widgets([FormsOverview::class]);
+    }
+
     public function boot(): void
     {
 

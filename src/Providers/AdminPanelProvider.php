@@ -185,7 +185,8 @@ class AdminPanelProvider extends PanelProvider
                 ...AdminPanel::registeredPages(),
             ])
             ->discoverWidgets(in: __DIR__.'/../Filament/Widgets', for: 'Aurora\Filament\Widgets')
-            ->widgets([])
+            // The website's own dashboard widgets, and packages' (AdminPanel::widgets()).
+            ->widgets(AdminPanel::registeredWidgets())
             ->plugins([
                 FilamentPageBuilderPlugin::make()
                     // The page builder's own blocks, less those the website left out (Blocks::forget()),
