@@ -7,7 +7,7 @@ metadata:
 
 # Porting a website to Aurora
 
-Use this together with the `aurora-development` skill, which has the API for each piece named here. Porting a Statamic site? Use the `aurora-statamic` skill, which does it in the same app and maps Statamic's collections, sets, globals and navigation onto what's here. The aim is a site editors can run themselves: everything they'd want to change is a page, a block, a setting, a menu or a record in the admin, and nothing they'd want to change is left in a template.
+Use this together with the `aurora-development` skill, which has the API for each piece named here. Porting a Statamic site? Use the `aurora-statamic` skill, which does it in the same app and maps Statamic's collections, sets, globals and navigation onto what's here. A Netflex site? Use `aurora-netflex`, which rebuilds it in a new app and reads its content from the Netflex API. The aim is a site editors can run themselves: everything they'd want to change is a page, a block, a setting, a menu or a record in the admin, and nothing they'd want to change is left in a template.
 
 ## 1. Take stock before writing code
 
