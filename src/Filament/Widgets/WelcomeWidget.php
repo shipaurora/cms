@@ -12,6 +12,19 @@ use Filament\Widgets\Widget;
 
 class WelcomeWidget extends Widget
 {
+    /**
+     * Its name and what it shows, when customising the dashboard (DashboardLayout).
+     */
+    public static function getDashboardLabel(): string
+    {
+        return __('Welcome');
+    }
+
+    public static function getDashboardDescription(): string
+    {
+        return __('A greeting with shortcuts to what you do most, and your AI apps.');
+    }
+
     protected static ?int $sort = -10;
 
     protected int|string|array $columnSpan = 'full';

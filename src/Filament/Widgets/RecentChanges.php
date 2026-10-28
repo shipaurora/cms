@@ -13,6 +13,19 @@ use Illuminate\Support\HtmlString;
 
 class RecentChanges extends TableWidget
 {
+    /**
+     * Its name and what it shows, when customising the dashboard (DashboardLayout).
+     */
+    public static function getDashboardLabel(): string
+    {
+        return __('Recent changes');
+    }
+
+    public static function getDashboardDescription(): string
+    {
+        return __('Every save, from every surface, with who made it.');
+    }
+
     protected static ?int $sort = 2;
 
     protected int|string|array $columnSpan = ['md' => 2, 'xl' => 2];

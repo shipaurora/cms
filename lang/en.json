@@ -2135,5 +2135,22 @@
     "All the selected images already have tags": "All the selected images already have tags",
     "The tags appear on each image as soon as the assistant is done.": "The tags appear on each image as soon as the assistant is done.",
     "Tag images": "Tag images",
-    "Name of the photographer or agency": "Name of the photographer or agency"
+    "Name of the photographer or agency": "Name of the photographer or agency",
+    "Customise dashboard": "Customise dashboard",
+    "Back to the default": "Back to the default",
+    "Save dashboard": "Save dashboard",
+    "Dashboard saved": "Dashboard saved",
+    "Customize": "Customize",
+    "Reset dashboard": "Reset dashboard",
+    "Cancel customizing": "Cancel customizing",
+    "Content in numbers": "Content in numbers",
+    "Live pages, pages waiting for review, and edits and AI actions over the last two weeks.": "Live pages, pages waiting for review, and edits and AI actions over the last two weeks.",
+    "Pages waiting for review, and pages scheduled to go live.": "Pages waiting for review, and pages scheduled to go live.",
+    "Every save, from every surface, with who made it.": "Every save, from every surface, with who made it.",
+    "Welcome": "Welcome",
+    "A greeting with shortcuts to what you do most, and your AI apps.": "A greeting with shortcuts to what you do most, and your AI apps.",
+    "Drag the widgets into the order you want, choose how wide each one is, and hide the ones you don’t need. Only your own dashboard changes.": "Drag the widgets into the order you want, choose how wide each one is, and hide the ones you don’t need. Only your own dashboard changes.",
+    "Hidden": "Hidden",
+    "Drag to move": "Drag to move",
+    "Every widget is hidden. Add one back above, or go back to the default.": "Every widget is hidden. Add one back above, or go back to the default."
 }

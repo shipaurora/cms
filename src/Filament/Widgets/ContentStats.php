@@ -13,6 +13,19 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ContentStats extends StatsOverviewWidget
 {
+    /**
+     * Its name and what it shows, when customising the dashboard (DashboardLayout).
+     */
+    public static function getDashboardLabel(): string
+    {
+        return __('Content in numbers');
+    }
+
+    public static function getDashboardDescription(): string
+    {
+        return __('Live pages, pages waiting for review, and edits and AI actions over the last two weeks.');
+    }
+
     protected static ?int $sort = -5;
 
     protected int|string|array $columnSpan = 'full';

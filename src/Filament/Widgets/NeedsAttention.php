@@ -15,6 +15,19 @@ use Illuminate\Database\Eloquent\Builder;
 
 class NeedsAttention extends TableWidget
 {
+    /**
+     * Its name and what it shows, when customising the dashboard (DashboardLayout).
+     */
+    public static function getDashboardLabel(): string
+    {
+        return __('Needs attention');
+    }
+
+    public static function getDashboardDescription(): string
+    {
+        return __('Pages waiting for review, and pages scheduled to go live.');
+    }
+
     protected static ?int $sort = 3;
 
     protected int|string|array $columnSpan = ['md' => 2, 'xl' => 1];

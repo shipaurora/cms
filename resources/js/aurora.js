@@ -1,5 +1,6 @@
 // Aurora's admin scripts, bundled into resources/dist/aurora.js (npm run build).
 import './admin/image-editor.js'
+import './admin/dashboard.css'
 import './admin/media-drag.js'
 import './admin/passkeys.js'
 import './admin/copilot.js'

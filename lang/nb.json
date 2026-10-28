@@ -2135,5 +2135,22 @@
     "All the selected images already have tags": "Alle de valgte bildene har allerede tags",
     "The tags appear on each image as soon as the assistant is done.": "Taggene dukker opp på hvert bilde så snart assistenten er ferdig.",
     "Tag images": "Gi bilder tags",
-    "Name of the photographer or agency": "Navn på fotograf eller byrå"
+    "Name of the photographer or agency": "Navn på fotograf eller byrå",
+    "Customise dashboard": "Tilpass oversikten",
+    "Back to the default": "Tilbake til standard",
+    "Save dashboard": "Lagre oversikten",
+    "Dashboard saved": "Oversikten er lagret",
+    "Customize": "Tilpass",
+    "Reset dashboard": "Tilbakestill oversikten",
+    "Cancel customizing": "Avbryt tilpasningen",
+    "Content in numbers": "Innhold i tall",
+    "Live pages, pages waiting for review, and edits and AI actions over the last two weeks.": "Publiserte sider, sider som venter på godkjenning, og endringer og KI-handlinger de siste to ukene.",
+    "Pages waiting for review, and pages scheduled to go live.": "Sider som venter på godkjenning, og sider som er planlagt publisert.",
+    "Every save, from every surface, with who made it.": "Hver lagring, fra alle steder, med hvem som gjorde den.",
+    "Welcome": "Velkommen",
+    "A greeting with shortcuts to what you do most, and your AI apps.": "En hilsen med snarveier til det du gjør mest, og KI-appene dine.",
+    "Drag the widgets into the order you want, choose how wide each one is, and hide the ones you don’t need. Only your own dashboard changes.": "Dra modulene i den rekkefølgen du vil, velg hvor brede de skal være, og skjul dem du ikke trenger. Bare din egen oversikt endres.",
+    "Hidden": "Skjult",
+    "Drag to move": "Dra for å flytte",
+    "Every widget is hidden. Add one back above, or go back to the default.": "Alle modulene er skjult. Legg til en igjen over, eller gå tilbake til standard."
 }

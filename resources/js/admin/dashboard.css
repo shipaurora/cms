@@ -1,0 +1,133 @@
+/*
+ * The dashboard's grid in each person's own layout (Aurora\Support\DashboardLayout): three
+ * columns on a wide screen, two on a tablet, one on a phone. A widget is small (one column),
+ * medium (two) or large (all of them). Shipped in aurora.css, so no theme rebuild is needed.
+ */
+.aurora-dashboard {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.aurora-dashboard-item {
+    min-width: 0;
+}
+
+@media (min-width: 48rem) {
+    .aurora-dashboard {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .aurora-dashboard-item[data-size='medium'],
+    .aurora-dashboard-item[data-size='large'] {
+        grid-column: span 2;
+    }
+}
+
+@media (min-width: 80rem) {
+    .aurora-dashboard {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .aurora-dashboard-item[data-size='large'] {
+        grid-column: span 3;
+    }
+}
+
+/* Customising: a card per widget. */
+.aurora-dashboard-hint {
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.aurora-dashboard-hidden {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.aurora-dashboard-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 8rem;
+    padding: 1rem;
+    border: 2px dashed var(--gray-300);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--primary-500) 5%, transparent);
+}
+
+.dark .aurora-dashboard-card {
+    border-color: var(--gray-700);
+}
+
+.aurora-dashboard-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.aurora-dashboard-handle {
+    display: flex;
+    flex: 1;
+    gap: 0.5rem;
+    min-width: 0;
+    cursor: grab;
+}
+
+.aurora-dashboard-handle > svg {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+    color: var(--gray-400);
+}
+
+.aurora-dashboard-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-950);
+}
+
+.dark .aurora-dashboard-title {
+    color: white;
+}
+
+.aurora-dashboard-description {
+    margin-top: 0.125rem;
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+}
+
+.aurora-dashboard-sizes {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-top: auto;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    border-radius: 0.5rem;
+}
+
+.dark .aurora-dashboard-sizes {
+    border-color: var(--gray-700);
+}
+
+.aurora-dashboard-sizes button {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+
+.dark .aurora-dashboard-sizes button {
+    color: var(--gray-300);
+}
+
+.aurora-dashboard-sizes button[aria-pressed='true'] {
+    background: var(--primary-600);
+    color: white;
+}
