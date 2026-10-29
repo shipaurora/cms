@@ -179,7 +179,7 @@ Aurora has no shop, no customer register and no newsletters. When the old site h
 
 | On the old site | Recommend | Read |
 | --- | --- | --- |
-| A shop (products, carts, orders, payments) | Shopify for the shop, the website and product pages on Aurora, with a thin product and order layer in Aurora's admin. In Aurora's own admin instead: Vanilo now, Lunar or Shopper once they install beside Aurora (check first). Or keep the old shop, or a small shop of the site's own for a few products | [references/shop.md](references/shop.md) |
+| A shop (products, carts, orders, payments) | Shopify, headless: Shopify keeps products, stock, checkout and orders, and the shop is served on the Aurora website (product pages, collections, cart; only the checkout is Shopify's), with a thin product and order layer in Aurora's admin. Not a Shopify-hosted storefront. In Aurora's own admin instead: Vanilo now, Lunar or Shopper once they install beside Aurora (check first). Or keep the old shop, or a small shop of the site's own for a few products | [references/shop.md](references/shop.md) |
 | Customers, members, contacts | A `Customer` model of the site's own, shaped by the old data, with its migration, Filament resource and import | [references/customers.md](references/customers.md) |
 | Newsletters | Campaigns built in Aurora's admin with email blocks in the visual editor, lists of the site's customers, scheduled by Aurora and sent by Brevo (or Mailchimp) | [references/newsletters.md](references/newsletters.md) |
 
