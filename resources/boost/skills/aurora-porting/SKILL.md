@@ -144,6 +144,10 @@ return $schema->components([
 ]);
 ```
 
+**Its permissions and policy.** Each model of the site's own gets permissions of its own and a policy that checks them, so roles control it as finely as Aurora's pages: `Permissions::register('Team', ['view-any Employee' => …, 'create Employee' => …, 'update Employee' => …, 'delete Employee' => …], 'phosphor-users', grantTo: ['Editor'])` and an `EmployeePolicy` with `return $user->can('update Employee');` and the like ("Permissions and policies" in `aurora-development`). Ask the user which built-in roles get them.
+
+**AI tools: ask.** Ask the user whether AI apps and the in-panel assistant should work with the model too (list, read, create, update), and which. If so, tools of the site's own registered with `McpTools::register()`, each authorizing with the model's policy ("AI tools (MCP)" in `aurora-development`). Records editors manage often (events, job openings, products) are the usual yes.
+
 Give the table `->reorderable('sort')` and `->defaultSort('sort')`, so editors put the team in order. Labels go through `__()` with lines in `lang/{locale}.json`.
 
 **The block** points at a record; it doesn't copy it. Changing a person's title in the admin changes it on every page.
@@ -240,7 +244,7 @@ Write the import as a seeder (or an artisan command for a big site) that can run
 
 - **Parents first.** Import the pages top-down: the parent, then its children with `parent_id` set to it, and so on (walk the old site's tree, or sort its addresses by depth). A page imported before its parent, or without `parent_id`, ends up at `/design` instead of `/services/web/design`.
 - **A parent the old site didn't have.** If `/services/web/design` existed but `/services` wasn't a page, the address still needs a `services` page above it. Ask the user: an overview page (its children listed) is usually what visitors expect; a draft page keeps the old behaviour, its own address answering 404 while its children are live (a page's status doesn't depend on its parent's).
-- **One slug, one page, per site and language.** Aurora finds a page by its address's last part, so two pages can't share a slug even under different parents (`/services/design` and `/work/design`). Give one another slug (`work-design`) and a `Redirect` from its old address, which wins over the page found by the same last part. List these clashes before importing.
+- **Slugs are unique beside each other, not across the site.** Aurora finds a page by its whole address, part by part, so pages in different places may share their own part (`/services/design` and `/work/design`); only pages under the same parent (or at the top, which includes the pages under the homepage) need different ones, and `Page::uniqueSlug(…, parentId:)` gives the next free number there. An old address that no longer exists is sent on to the one page whose own part it ends with; when several pages end with it, it can't tell which, so give each old address that moves a `Redirect` of its own.
 - **The old addresses' quirks:** a trailing slash or a `.html` (`/about.html`) becomes the plain address (`/about`) with a `Redirect` from the old form where it had links; capitals become lowercase. Each language's address uses that language's slug (`setTranslation('slug', $locale, …)`), under its prefix (`/en/…`).
 - **Check** after the import: each old address (from the old `sitemap.xml`, or the crawl of section 7) answers 200 at the same address, or redirects once to the right page; `Page::paths()` lists every new address in one go, to compare.
 - Keep the site's own content in its seeders, never in Aurora (`aurora:install` offers to run them).

@@ -41,7 +41,7 @@ Schema::create('customers', function (Blueprint $table) {
 
 ## The resource
 
-`php artisan make:filament-resource Customer --generate`, then make it read like the rest of Aurora's admin (`aurora-development`, "The website's own screens, models and routes"):
+`php artisan make:filament-resource Customer --generate`, with a `CustomerPolicy` and permissions of its own (`Permissions::register('Customers', …)`; customers' personal data usually isn't for every editor: ask which roles get them), then make it read like the rest of Aurora's admin (`aurora-development`, "The website's own screens, models and routes"):
 
 - Registered in a service provider's `register()` with `AdminPanel::discover(app_path('Filament/Resources'), 'App\Filament\Resources', perSite: …)`, in a group of its own: `AdminPanel::navigationGroup('Customers', fn (): string => __('Customers'), 'phosphor-users-three')`.
 - Table: name, email, company, lists (badges), consent; searchable on name, email and company; filters for list, consent and unsubscribed; bulk actions to add to or remove from a list.
