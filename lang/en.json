@@ -2167,5 +2167,12 @@
     "Dropdown": "Dropdown",
     "Short text": "Short text",
     "Long text": "Long text",
-    "Half": "Half"
+    "Half": "Half",
+    "Paste it here": "Paste it here",
+    "Saved and stored encrypted. Leave this empty to keep it.": "Saved and stored encrypted. Leave this empty to keep it.",
+    "Remove the saved :label?": "Remove the saved :label?",
+    "Removed": "Removed",
+    "Remove secret": "Remove secret",
+    "Shop": "Shop",
+    "Shipping": "Shipping"
 }

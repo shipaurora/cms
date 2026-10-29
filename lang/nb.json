@@ -2167,5 +2167,12 @@
     "Dropdown": "Nedtrekksliste",
     "Short text": "Kort tekst",
     "Long text": "Lang tekst",
-    "Half": "Halv bredde"
+    "Half": "Halv bredde",
+    "Paste it here": "Lim den inn her",
+    "Saved and stored encrypted. Leave this empty to keep it.": "Lagret og kryptert. La feltet stå tomt for å beholde den.",
+    "Remove the saved :label?": "Fjerne den lagrede :label?",
+    "Removed": "Fjernet",
+    "Remove secret": "Fjern hemmeligheten",
+    "Shop": "Butikk",
+    "Shipping": "Frakt"
 }

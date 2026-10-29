@@ -30,6 +30,7 @@ use Aurora\Support\PageCache;
 use Aurora\Support\Passkeys;
 use Aurora\Support\PublicApi;
 use Aurora\Support\SeoChecks;
+use Aurora\Support\SettingSecrets;
 use Aurora\Support\SettingsTabs;
 use Aurora\Support\SystemInfo;
 use Aurora\Support\Themes;
@@ -169,10 +170,11 @@ class SiteSettings extends Page implements HasSchemas
 
     public function mount(): void
     {
-        // The API key is never sent back to the browser, even encrypted.
+        // The API key and the website's secrets (SettingsTabs secretKeys) are never sent back to
+        // the browser, even encrypted.
         // The site being worked on: its own settings, with the CMS's (the AI assistant) beside them.
         // Settings that are on until someone switches them off, under what's saved.
-        $this->form->fill([...self::DEFAULTS, ...Arr::except(Setting::forCurrentSite(), [Copilot::KEY_SETTING])]);
+        $this->form->fill([...self::DEFAULTS, ...Arr::except(Setting::forCurrentSite(), [Copilot::KEY_SETTING, ...SettingsTabs::secretKeys()])]);
 
         // What the form holds now, to tell unsaved changes by (HasUnsavedDataChangesAlert).
         $this->rememberData();
@@ -188,7 +190,7 @@ class SiteSettings extends Page implements HasSchemas
     /**
      * The pages of Settings, in the side menu's order: each a few tabs that belong together,
      * by key. A tab a package or site adds (SettingsTabs::register()) joins the page it names,
-     * or gets a page of its own after Website. "saves": whether the page has a Save button
+     * one of these or one added with SettingsTabs::page(), or gets a page of its own after Website. "saves": whether the page has a Save button
      * (the others save as they're changed, in dialogs of their own).
      *
      * @var array<string, array{label: string, icon: string, tabs: array<int, string>, saves: bool}>
@@ -287,6 +289,24 @@ class SiteSettings extends Page implements HasSchemas
     {
         $sections = $this->sections();
         $pages = array_map(fn (array $page): array => [...$page, 'label' => __($page['label'])], static::PAGES);
+
+        // Pages a package or site adds (SettingsTabs::page()), after the page each names: after
+        // others added there before it.
+        foreach (SettingsTabs::customPages() as $key => $page) {
+            if (isset($pages[$key])) {
+                continue;
+            }
+
+            $keys = array_keys($pages);
+            $after = array_search(isset($pages[$page['after']]) ? $page['after'] : 'website', $keys, true);
+            $position = $after + 1;
+
+            while (isset($keys[$position]) && ! array_key_exists($keys[$position], static::PAGES)) {
+                $position++;
+            }
+
+            $pages = array_slice($pages, 0, $position, true) + [$key => ['label' => $page['label'], 'icon' => $page['icon'], 'tabs' => [], 'saves' => true]] + array_slice($pages, $position, null, true);
+        }
 
         // A package's or site's own tabs: in the page they name, else a page of their own.
         $own = [];
@@ -901,6 +921,14 @@ class SiteSettings extends Page implements HasSchemas
         Setting::put($this->form->getState());
         // New shortcodes work on this request's canvas too, not only the next.
         CustomShortcodes::register();
+
+        // The website's secrets, typed into a SecretInput: stored encrypted; left empty, kept.
+        foreach (SettingsTabs::secretKeys() as $secret) {
+            if (filled($this->data[$secret] ?? null)) {
+                SettingSecrets::put($secret, $this->data[$secret]);
+                $this->data[$secret] = null;
+            }
+        }
 
         if (filled($key = $this->data['copilot_api_key_input'] ?? null)) {
             $hadKey = Copilot::hasApiKey();

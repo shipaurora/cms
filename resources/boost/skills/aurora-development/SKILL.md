@@ -59,7 +59,7 @@ Translating: a block's text fields (text, multi-line, rich text, Markdown, tags,
 
 ## The website's settings
 
-Settings the website's templates read (a header button, footer text, social links) are a tab of their own under Settings, registered from a service provider. Keys listed in `siteKeys` are kept per site:
+Settings the website's templates read (a header button, footer text, social links) are tabs on Settings' pages, registered from a service provider. Keys listed in `siteKeys` are kept per site:
 
 ```php
 use Aurora\Support\SettingsTabs;
@@ -67,7 +67,25 @@ use Filament\Schemas\Components\Tabs\Tab;
 
 SettingsTabs::register('footer', fn (): Tab => Tab::make(__('Footer'))->schema([
     TextInput::make('footer_note')->label(__('Footer note')),
-]), siteKeys: ['footer_note']);
+]), siteKeys: ['footer_note'], page: 'website');
+```
+
+**Gather them; don't add sidebar items.** Settings has a side menu of pages, each with tabs. Give the website's settings a tab per section on a page that's already there, where an editor would look:
+
+- The site's own (header, footer, social links, its events' or shop's settings): tabs on **Website** (`page: 'website'`), one per section.
+- A connection to another service (Mailchimp, Brevo, Shopify, a booking or analytics provider): a tab named after the service on **Integrations** (`page: 'integrations'`).
+- Otherwise the page it belongs with: `templates`, `media`, `search-seo`, `performance`, `security`, `appearance`.
+- An area of its own with several tabs (a shop: shipping, payments, taxes): one page for them all, `SettingsTabs::page('shop', fn (): string => __('Shop'), 'phosphor-storefront')` (after Website; `after:` another page), its tabs registered with `page: 'shop'`.
+
+Without `page:`, each tab becomes a sidebar item of its own: only when the user asks for one.
+
+**Secrets** (an API key, a token, a webhook secret) editors enter go in a `SecretInput` (`Aurora\Filament\Forms\Components\SecretInput`), its key listed in `secretKeys`: stored encrypted, never sent to the browser (the field shows its last four characters), kept when the field is left empty, never public even if listed in `publicKeys`. Read it with `Aurora\Support\SettingSecrets::get('mailchimp_api_key')`. A plain `TextInput` would send the value to the browser with the form. Secrets set once per server rather than by editors stay in `.env` and `config/services.php`.
+
+```php
+SettingsTabs::register('mailchimp', fn (): Tab => Tab::make(__('Mailchimp'))->schema([
+    SecretInput::make('mailchimp_api_key')->label(__('API key')),
+    TextInput::make('mailchimp_audience')->label(__('Audience ID')),
+]), page: 'integrations', secretKeys: ['mailchimp_api_key']);
 ```
 
 Read them in templates with `Aurora\Models\Setting::get('footer_note')`.

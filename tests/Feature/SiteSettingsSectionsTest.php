@@ -2,6 +2,7 @@
 
 namespace Aurora\Tests\Feature;
 
+use Aurora\Filament\Forms\Components\SecretInput;
 use Aurora\Filament\GlobalSearchProvider;
 use Aurora\Filament\Pages\SiteSettings;
 use Aurora\Models\ImageFormat;
@@ -10,8 +11,12 @@ use Aurora\Models\Page;
 use Aurora\Models\Setting;
 use Aurora\Models\User;
 use Aurora\Support\PaletteCommands;
+use Aurora\Support\SettingSecrets;
+use Aurora\Support\SettingsTabs;
 use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -112,5 +117,65 @@ class SiteSettingsSectionsTest extends TestCase
         $this->actingAs($this->userWithRole('Editor'));
         $this->assertSame([], SiteSettings::sectionLinks());
         $this->assertArrayNotHasKey('Settings', app(GlobalSearchProvider::class)->getResults('layouts')->getCategories()->all());
+    }
+
+    public function test_a_websites_own_page_gathers_its_tabs_in_one_side_menu_item(): void
+    {
+        $this->actingAs($this->userWithRole(User::SUPER_ADMIN));
+        SettingsTabs::page('shop', fn (): string => 'Shop', 'phosphor-storefront');
+        SettingsTabs::register('shipping', fn (): Tab => Tab::make('Shipping')->schema([TextInput::make('shipping_note')]), page: 'shop');
+        SettingsTabs::register('payments', fn (): Tab => Tab::make('Payments')->schema([TextInput::make('payments_note')]), page: 'shop');
+        SettingsTabs::register('mailchimp', fn (): Tab => Tab::make('Mailchimp')->schema([TextInput::make('mailchimp_list')]), page: 'integrations');
+
+        try {
+            $keys = collect(Livewire::test(SiteSettings::class)->instance()->getSubNavigation())->map(fn ($item) => str($item->getUrl())->after('tab=')->toString())->all();
+
+            $this->assertSame(['website', 'shop', 'templates', 'media', 'languages-sites', 'search-seo', 'performance', 'integrations', 'security', 'appearance', 'ai', 'system'], $keys);
+            Livewire::withQueryParams(['tab' => 'shop'])->test(SiteSettings::class)->assertSee(['Shipping', 'Payments']);
+            Livewire::withQueryParams(['tab' => 'integrations'])->test(SiteSettings::class)->assertSee(['REST API', 'Mailchimp']);
+        } finally {
+            SettingsTabs::forget('shipping');
+            SettingsTabs::forget('payments');
+            SettingsTabs::forget('mailchimp');
+            SettingsTabs::forgetPage('shop');
+        }
+    }
+
+    public function test_a_secret_is_stored_encrypted_and_never_sent_to_the_browser(): void
+    {
+        $this->actingAs($this->userWithRole(User::SUPER_ADMIN));
+        SettingsTabs::register('mailchimp', fn (): Tab => Tab::make('Mailchimp')->schema([
+            TextInput::make('mailchimp_list'),
+            SecretInput::make('mailchimp_api_key')->label('API key'),
+        ]), page: 'integrations', publicKeys: ['mailchimp_list', 'mailchimp_api_key'], secretKeys: ['mailchimp_api_key']);
+
+        try {
+            Livewire::withQueryParams(['tab' => 'integrations', 'section' => 'mailchimp'])
+                ->test(SiteSettings::class)
+                ->fillForm(['mailchimp_list' => 'News', 'mailchimp_api_key' => 'abc123-us21'])
+                ->call('save')
+                ->assertHasNoFormErrors();
+
+            $stored = Setting::get('mailchimp_api_key');
+            $this->assertSame('abc123-us21', SettingSecrets::get('mailchimp_api_key'));
+            $this->assertNotSame('abc123-us21', $stored);
+            $this->assertSame('News', Setting::get('mailchimp_list'));
+
+            // Opened again: neither the secret nor its encrypted form, only its last characters.
+            Livewire::withQueryParams(['tab' => 'integrations', 'section' => 'mailchimp'])
+                ->test(SiteSettings::class)
+                ->assertDontSee('abc123-us21')
+                ->assertDontSee($stored)
+                ->assertSee('••••us21')
+                // Saved with the field left empty: the secret stays.
+                ->call('save');
+
+            $this->assertSame('abc123-us21', SettingSecrets::get('mailchimp_api_key'));
+            // Named public by the tab, still never public.
+            $this->assertContains('mailchimp_list', SettingsTabs::publicKeys());
+            $this->assertNotContains('mailchimp_api_key', SettingsTabs::publicKeys());
+        } finally {
+            SettingsTabs::forget('mailchimp');
+        }
     }
 }
