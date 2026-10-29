@@ -21,6 +21,8 @@ List, from the old site's templates and its data:
 - **Forms**: their fields and who gets the submissions.
 - **Error pages**: the old site's own 404, server error and maintenance pages (and 403, 410 or 419 if it has them), with their text in each language.
 - **Files**: images and documents, with their alt text and credits, and the image sizes the templates ask for (presets, thumbnails, resize parameters).
+- **Keys and accounts**: the services the old site uses with a key, token or password (storage such as AWS S3 or Hetzner's object storage, mail, Font Awesome Pro's npm token, maps, a captcha, analytics, a newsletter or payment provider), from its `.env`, `config/`, `.npmrc` and deploy settings.
+- **Icons**: the icon set the templates use (Font Awesome, another icon font, a sprite, inline SVGs), its version and whether it's Pro, and the icons editors chose in the content.
 - **Addresses**: every URL that has visitors or links pointing at it, and the languages.
 - **A shop, customers, newsletters**: products and orders, a customer or member register, newsletter sign-ups and campaigns. Aurora has none of them: see section 4 before going on.
 
@@ -37,6 +39,7 @@ List, from the old site's templates and its data:
 | A page of text | A page record with blocks, created by a seeder or an import command. |
 | A contact form | A form under Content › Forms, shown by a form block. |
 | An old address | A redirect (`Aurora\Models\Redirect`), or the same slug. |
+| An icon set (Font Awesome, an icon font, a sprite) | The same set, as Blade Icons ("Icons", below): never Aurora's Phosphor or Heroicons instead. |
 | Image sizes (presets, resize parameters) | Image formats (Media library › Formats), made in the import ("Image formats", below). |
 | An error page (404, 500, maintenance) | A Laravel error view of the site's own, `resources/views/errors/{code}.blade.php` ("Error pages", below). |
 
@@ -56,6 +59,19 @@ Port the old markup into the block views as it is, then replace each hard-coded 
 - Keep the old preset's name as the handle when the views ask for it by name (`<x-aurora::media :value="…" size="hero" />`, `AssetLibrary::url($value, 'hero')`). Presets that only set a width, or differ a little, are usually covered by the responsive widths: merge them rather than copy each.
 - A preset that fits an image inside a box without cropping is a width only: Aurora's formats don't fit to a height. Say so when that changes how an image looks (a portrait image in a landscape box).
 - A focal point (where crops centre) is the asset's `focal_point`, `['x' => 0.4, 'y' => 0.3]` as fractions of the width and height. `fromFile()` doesn't take it: set it on the asset afterwards and call `ImageFormats::regenerateImage($asset)`.
+
+**Icons.** Keep the old site's icon set. Aurora's admin uses Phosphor and `Fields::icon()` offers Heroicons, but swapping the site's own icons for either changes its design, which a port mustn't do.
+
+- **Font Awesome:** `composer require owenvoke/blade-fontawesome` (Blade Icons sets `fontawesome-solid`, `fontawesome-regular` and `fontawesome-brands`, prefixes `fas`, `far`, `fab`). A site on Font Awesome Pro or a kit gets those icons with `npm i @fortawesome/fontawesome-pro` (the npm token in `.npmrc`) and `php artisan blade-fontawesome:sync-icons --pro`, or `--kit=KIT_CODE` (sets `fontawesome-light`, `fontawesome-duotone` and the other styles it uses); copy the token from the old project ("Keys and accounts", below), and ask the user only if it isn't there. In the views, `<i class="fa-solid fa-house"></i>` becomes `<x-fas-house class="…" />` or `@svg('fas-house', '…')`, keeping the old classes so the site's CSS still sizes and colours them; an SVG needs `height: 1em; width: auto; fill: currentColor` in the stylesheet where the font sized itself. Blade Font Awesome has Font Awesome 6 and later: a site on version 5 (`fa fa-times`, `fas fa-home`) needs the renamed icons mapped (`fa-times` is `xmark`, `fa-home` is `house`); check each name draws (`svg('fas-xmark')`) rather than guess.
+- **Icons editors choose** (an icon field in a section): a picker of the same set, `IconPickerField::make('icon')->allowedSets(['fontawesome-solid', 'fontawesome-brands'])` (`Wallacemartinss\FilamentIconPicker\Forms\Components\IconPickerField`, the picker `Fields::icon()` uses), stored as `fas-house` and drawn with `svg(SiteIcon::name($data['icon'] ?? null) ?? 'fas-circle', '…')`. The import turns the old stored names (`fa-solid fa-house`, `fa fa-home`) into that form.
+- **Another icon font or a sprite:** its Blade Icons package if there is one, else the site's own SVGs as a Blade Icons set (`config/blade-icons.php`: a set with the folder and a prefix of its own). Keep the font as it was only when neither works.
+
+**Keys and accounts.** Carry the old site's credentials over rather than asking the user to find them again: copy each from the old project (`.env`, `config/*.php`, `.npmrc`, `auth.json`), or from where the old platform keeps them (on Netflex, many are variables in its API: `aurora-netflex`, "Variables and keys"), into the new site, under the names the new code reads. Each goes in `.env` or in Settings by what it is:
+
+- Server-level ones (storage: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, and for Hetzner or another S3-compatible store `AWS_ENDPOINT` and `AWS_DEFAULT_REGION`; mail; the queue) go in the new `.env`, and their names, without values, in `.env.example`.
+- A package registry token (Font Awesome Pro, a private Composer repository) stays out of the repository: `.npmrc` gets `@fortawesome:registry=https://npm.fontawesome.com/` and `//npm.fontawesome.com/:_authToken=${FONTAWESOME_NPM_AUTH_TOKEN}`, and the token goes in the environment npm runs in (the shell, the deploy's and CI's environment variables: npm doesn't read Laravel's `.env`); Composer's go in `auth.json`, never committed. If the old project committed its token, say so: it should be rotated.
+- Keys editors manage (a newsletter provider, a booking system) go in a `SecretInput` on the service's Settings tab (`aurora-development`, "The website's settings"); set them once from the old values, in a seeder that reads them from `.env` or by hand in the admin.
+- Never print a secret in your answers, a log or a commit, and never commit `.env`. Tell the user which keys came across and which are missing, and that keys shared by the old and new site keep working for both until one is retired (rotate them after the switch if the old site was handled by others).
 
 ## 3. A model of the site's own: employees
 
@@ -202,6 +218,15 @@ Aurora has no shop, no customer register and no newsletters. When the old site h
 They hang together: newsletters are sent to lists of the site's customers, and a shop's customers are linked to them. Build customers first when the site needs more than one. Each is the site's own code, never a change to Aurora.
 
 ## 5. Bring the content across
+
+**The starter app's example goes.** A site begun with `composer create-project shipaurora/aurora` comes with an example: a Welcome block and a homepage holding it. Once the site's own blocks and homepage are there, remove what's left of it:
+
+- `app/Blocks/WelcomeBlock.php`, `resources/views/components/blocks/welcome.blade.php`, and its screenshot in `resources/block-previews/welcome.webp` if there is one;
+- `database/seeders/HomepageSeeder.php` and its `$this->call()` in `DatabaseSeeder`: the import, or the site's own seeders, make the homepage now;
+- the tests in `tests/Feature/ExampleTest.php` that expect the welcome page, replaced by the site's own;
+- the homepage it made, if its seeder ran: a page with only a `welcome` block. Delete it, or let the import's homepage take its place (`is_homepage`), so no page points at a block that's gone.
+
+Then `grep -rni welcome app database resources tests` should find nothing of it. Aurora's own layouts (the blank one the welcome page used, too) stay: they're the CMS's, made the site's own, not the example. A Statamic site, or another app Aurora is installed into with `composer require`, never had the example.
 
 Write the import as a seeder (or an artisan command for a big site) that can run again without making doubles:
 
