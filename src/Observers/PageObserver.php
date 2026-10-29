@@ -70,14 +70,17 @@ class PageObserver
 
         // Each language's own address, tidied (never one language's read through the fallback
         // into another); new ones are made from the title by Page::addSlug().
-        // Tidying can turn a free address into a taken one (about_us into about-us): then it
-        // gets the next free number, as a new address would.
+        // Tidying can turn a free address into a taken one (about_us into about-us), and a new
+        // page or one moved under another parent can arrive where a page beside it has its
+        // address: then it gets the next free number, as a new address would.
+        $placed = ! $page->exists || $page->isDirty('parent_id', 'is_homepage');
+
         foreach ($page->getTranslations('slug') as $locale => $slug) {
             $tidy = Str::slug((string) $slug);
             $tidy = Page::isReservedSlug($tidy) ? $tidy.'-page' : $tidy;
 
-            if ($tidy !== $slug && ! Page::slugIsAvailable($tidy, $locale, $page->getKey())) {
-                $tidy = Page::uniqueSlug($tidy, $locale, $page->getKey());
+            if (($tidy !== $slug || $placed) && ! Page::slugIsAvailable($tidy, $locale, $page->getKey(), $page->parent_id)) {
+                $tidy = Page::uniqueSlug($tidy, $locale, $page->getKey(), $page->parent_id);
             }
 
             $page->setTranslation('slug', $locale, $tidy);
@@ -172,6 +175,15 @@ class PageObserver
 
     public function saved(Page $page): void
     {
+        // Back at an address a redirect sends to this page from (renamed back, say): the page
+        // answers there now, and the redirect would only point it at itself.
+        if ($page->wasChanged('slug', 'parent_id') || $page->wasRecentlyCreated) {
+            Redirect::query()
+                ->where('page_id', $page->getKey())
+                ->whereIn('from_path', array_map(fn (string $locale): string => Redirect::normalisePath($page->path($locale)), array_keys(ContentLocale::all())))
+                ->delete();
+        }
+
         // For the app's listeners and webhooks (Aurora\Events). A save that only kept a live
         // page's changes for later isn't its going live.
         PageSaved::dispatch($page);

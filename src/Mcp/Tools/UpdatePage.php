@@ -25,10 +25,10 @@ class UpdatePage extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug.')->required(),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required(),
             'title' => $schema->string(),
             'slug' => $schema->string(),
-            'parent' => $schema->string()->description('Id or slug of the page to move this one under ("" for the top level). Old addresses keep working.'),
+            'parent' => $schema->string()->description('Id or address of the page to move this one under ("" for the top level). Old addresses keep working.'),
             'redirect_old_address' => $schema->boolean()->description('When the slug of a live page changes, keep the old address working with a redirect. Defaults to true.'),
             'excerpt' => $schema->string(),
             'layout' => $schema->string()->enum(Layout::cached()->pluck('handle')->all())->description('The layout\'s handle, see list_layouts.'),
@@ -53,7 +53,7 @@ class UpdatePage extends CmsTool
 
         $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
-            'slug' => ['sometimes', 'string', 'max:120', 'alpha_dash', fn (string $attribute, mixed $value, Closure $fail) => Page::slugIsAvailable((string) $value, except: $page->id) ? null : $fail('Another page already has this address.')],
+            'slug' => ['sometimes', 'string', 'max:120', 'alpha_dash', fn (string $attribute, mixed $value, Closure $fail) => Page::slugIsAvailable((string) $value, except: $page->id, parentId: $request->has('parent') ? (filled($request->get('parent')) ? $this->findPage($request, 'parent')->getKey() : null) : $page->parent_id) ? null : $fail('Another page under the same parent already has this address.')],
             'status' => ['sometimes', 'in:draft,review,published'],
             'published_at' => ['sometimes', 'nullable', 'date'],
             'unpublish_at' => ['sometimes', 'nullable', 'date'],

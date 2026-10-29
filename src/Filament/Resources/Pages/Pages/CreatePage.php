@@ -48,12 +48,14 @@ class CreatePage extends CreateRecord
         $this->activeLocale = ContentLocale::default();
         ContentLocale::set($this->activeLocale);
 
+        // "Create subpage" (?parent=…): under that page, its address free among the pages there.
+        $parentId = Page::query()->find(request()->query('parent'))?->getKey();
+
         $this->form->fill([
             ...$this->form->getRawState(),
             'title' => Str::limit(trim($title), 255, ''),
-            'slug' => Page::uniqueSlug($title, $this->activeLocale),
-            // "Create subpage" (?parent=…): under that page.
-            'parent_id' => Page::query()->find(request()->query('parent'))?->getKey(),
+            'slug' => Page::uniqueSlug($title, $this->activeLocale, parentId: $parentId),
+            'parent_id' => $parentId,
         ]);
     }
 

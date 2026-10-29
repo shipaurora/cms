@@ -20,7 +20,7 @@ class MoveBlock extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug.')->required(),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required(),
             'block_id' => $schema->string()->required(),
             'parent_id' => $schema->string()->description('Container to move into. Omit for the top level.'),
             'slot' => $schema->string()->description('Slot in the parent; defaults to its first slot.'),

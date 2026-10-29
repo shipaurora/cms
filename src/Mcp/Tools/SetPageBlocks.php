@@ -20,7 +20,7 @@ class SetPageBlocks extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug.')->required(),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required(),
             'blocks' => $schema->array()->items($schema->object())->description('The complete nested block tree. See list_block_types.')->required(),
             'summary' => $schema->string()->description('A short description of the change for the page history, e.g. "Redesigned the pricing section".'),
         ];

@@ -127,7 +127,7 @@ class Page extends Model implements MenuPanelable
 
     /**
      * Every language with a title gets an address from its own title ("Om oss" gives
-     * om-oss), unique among that language's addresses. An address, once there, stays:
+     * om-oss), unique among the pages beside it in that language. An address, once there, stays:
      * renaming a page doesn't move it. Never one the application owns ("admin", "mcp"…)
      * or a language's prefix ("nb").
      */
@@ -138,21 +138,21 @@ class Page extends Model implements MenuPanelable
                 continue;
             }
 
-            $this->setTranslation('slug', $locale, static::uniqueSlug($title, $locale, $this->getKey()));
+            $this->setTranslation('slug', $locale, static::uniqueSlug($title, $locale, $this->getKey(), $this->parent_id));
         }
     }
 
     /**
-     * An address made from a title that no other page has in the language: "about-us", else
-     * "about-us-1", "about-us-2" and so on.
+     * An address made from a title that no page beside it (under $parentId) has in the
+     * language: "about-us", else "about-us-1", "about-us-2" and so on.
      */
-    public static function uniqueSlug(string $title, ?string $locale = null, ?string $except = null): string
+    public static function uniqueSlug(string $title, ?string $locale = null, ?string $except = null, ?string $parentId = null): string
     {
         $base = Str::limit(Str::slug($title), 120, '') ?: 'page';
         $base = static::isReservedSlug($base) ? $base.'-page' : $base;
         $slug = $base;
 
-        for ($n = 1; ! static::slugIsAvailable($slug, $locale, $except); $n++) {
+        for ($n = 1; ! static::slugIsAvailable($slug, $locale, $except, $parentId); $n++) {
             $slug = $base.'-'.$n;
         }
 
@@ -744,11 +744,82 @@ class Page extends Model implements MenuPanelable
     }
 
     /**
-     * Whether an address is free in a language (another page may not have it).
+     * Whether an address is free in a language for a page under $parentId (null: at the top):
+     * no page beside it may have it, the bin's included, so restoring one never clashes. Pages
+     * elsewhere in the tree may: /services/design and /work/design are two pages.
      */
-    public static function slugIsAvailable(string $slug, ?string $locale = null, ?string $except = null): bool
+    public static function slugIsAvailable(string $slug, ?string $locale = null, ?string $except = null, ?string $parentId = null): bool
     {
-        return ! static::query()->withTrashed()->whereSlug($slug, $locale)->when($except, fn (Builder $query) => $query->whereKeyNot($except))->exists();
+        return ! static::query()->withTrashed()->besides($parentId)->whereSlug($slug, $locale)->when($except, fn (Builder $query) => $query->whereKeyNot($except))->exists();
+    }
+
+    /**
+     * The pages whose addresses start where a page under $parentId does, so their own part must
+     * differ: those under the same parent. At the top that's the pages without a parent and
+     * those under the homepage, whose address leaves the homepage out.
+     */
+    #[Scope]
+    protected function besides(Builder $query, ?string $parentId): void
+    {
+        $homepages = static::query()->withTrashed()->homepage()->pluck('id')->all();
+
+        if ($parentId === null || in_array($parentId, $homepages, true)) {
+            $query->where(fn (Builder $top) => $top->whereNull('parent_id')->orWhereIn('parent_id', $homepages));
+        } else {
+            $query->where('parent_id', $parentId);
+        }
+    }
+
+    /**
+     * The page at an address, without the language's prefix ("services/web/design"), found
+     * part by part from the top: each part a page under the one before. A part not in the
+     * language yet is found by its address in the site's default language, so the page can
+     * send visitors on to its own. A page in the bin still holds its place in the addresses
+     * below it, but is never the page found.
+     */
+    public static function findByPath(string $path, ?string $locale = null): ?self
+    {
+        $locale ??= ContentLocale::current();
+        $parentId = null;
+        $page = null;
+
+        foreach (array_filter(explode('/', trim($path, '/')), fn (string $part): bool => $part !== '') as $part) {
+            $here = static::query()->withTrashed()->besides($parentId);
+            $page = (clone $here)->whereSlug($part, $locale)->first()
+                ?? ($locale === ContentLocale::default() ? null : (clone $here)->whereSlug($part, ContentLocale::default())->first());
+
+            if ($page === null) {
+                return null;
+            }
+
+            $parentId = $page->getKey();
+        }
+
+        return $page?->trashed() ? null : $page;
+    }
+
+    /**
+     * The page an address meant when nothing is there any more (its parent renamed, the page
+     * moved): the one page whose own part is the address's last, in the language or the
+     * default one. When more than one page has it, the address can't say which: none.
+     */
+    public static function findByOldPath(string $path, ?string $locale = null): ?self
+    {
+        $slug = Str::afterLast(trim($path, '/'), '/');
+
+        if ($slug === '') {
+            return null;
+        }
+
+        foreach (array_unique([$locale ?? ContentLocale::current(), ContentLocale::default()]) as $language) {
+            $found = static::query()->whereSlug($slug, $language)->limit(2)->get();
+
+            if ($found->count() > 0) {
+                return $found->count() === 1 ? $found->first() : null;
+            }
+        }
+
+        return null;
     }
 
     /**

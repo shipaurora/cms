@@ -82,7 +82,7 @@ class WordPressImport
 
             $page = Page::query()->create([
                 'title' => (string) $item->title ?: __('Untitled'),
-                'slug' => Page::uniqueSlug($this->wp($item, 'post_name') ?: (string) $item->title),
+                'slug' => Page::uniqueSlug($this->wp($item, 'post_name') ?: (string) $item->title, parentId: $isPost ? $blog->getKey() : null),
                 'excerpt' => Str::limit(trim(strip_tags((string) $item->children(self::EXCERPT)->encoded)), 290) ?: null,
                 'status' => $this->wp($item, 'status') === 'publish' ? PageStatus::Published : PageStatus::Draft,
                 'published_at' => $this->wp($item, 'status') === 'publish' ? $this->wp($item, 'post_date') : null,

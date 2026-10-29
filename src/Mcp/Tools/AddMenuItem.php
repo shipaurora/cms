@@ -23,7 +23,7 @@ class AddMenuItem extends CmsTool
         return [
             'menu' => $schema->string()->description('Menu id, or a location: "header", "footer", "legal".')->required(),
             'title' => $schema->string()->description('Label. Defaults to the page title.'),
-            'page' => $schema->string()->description('Page id or slug to link to.'),
+            'page' => $schema->string()->description('Page id, or its address, to link to.'),
             'url' => $schema->string()->description('A URL, when not linking to a page.'),
             'parent_id' => $schema->string()->description('Menu item to nest under (dropdown or footer column).'),
             'position' => $schema->integer()->description('0-based position among siblings. Appends when omitted.'),

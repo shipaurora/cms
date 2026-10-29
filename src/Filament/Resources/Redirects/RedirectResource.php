@@ -10,6 +10,7 @@ use Aurora\Models\Redirect;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\SearchThumbnail;
 use BackedEnum;
+use Closure;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -52,7 +53,21 @@ class RedirectResource extends Resource
                     ->required()
                     // Unique on this site: another site may redirect the same address.
                     ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule): Unique => $rule->where('site_id', CurrentSite::id()))
-                    ->dehydrateStateUsing(fn (string $state): string => Redirect::normalisePath($state)),
+                    ->dehydrateStateUsing(fn (string $state): string => Redirect::normalisePath($state))
+                    // Never round in a circle (Redirect::loop()): said here, before saving.
+                    ->rule(fn (?Redirect $record, Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record, $get): void {
+                        $redirect = new Redirect([
+                            'from_path' => Redirect::normalisePath((string) $value),
+                            'page_id' => $get('target') === 'page' ? $get('page_id') : null,
+                            'asset_id' => $get('target') === 'file' && is_string($get('asset_id')) ? $get('asset_id') : null,
+                            'to_url' => $get('target') === 'url' ? $get('to_url') : null,
+                        ]);
+                        $redirect->id = $record?->getKey();
+
+                        if (($loop = $redirect->loop()) !== null) {
+                            $fail(Redirect::loopMessage($loop));
+                        }
+                    }),
                 ToggleButtons::make('target')
                     ->label(__('Send visitors to'))
                     ->options(['page' => __('A page'), 'file' => __('A file'), 'url' => __('A URL')])

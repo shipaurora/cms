@@ -44,7 +44,7 @@ trait ManagesMenus
         if (filled($pageId)) {
             // By id, or by its address in the content language.
             $page = (Str::isUuid($pageId) ? Page::query()->find($pageId) : null)
-                ?? Page::query()->whereSlug(trim($pageId, '/'))->first()
+                ?? Page::findByPath($pageId)
                 ?? throw new InvalidArgumentException("No page \"{$pageId}\". Use list_pages.");
 
             return ['linkable_type' => $page->getMorphClass(), 'linkable_id' => $page->getKey(), 'url' => null];

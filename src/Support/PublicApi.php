@@ -8,7 +8,6 @@ use Aurora\Models\ApiKey;
 use Aurora\Models\Page;
 use Aurora\Models\Setting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 /**
  * The website's read-only APIs (Settings › Integrations): pages, menus and the website's
@@ -85,9 +84,13 @@ class PublicApi
     {
         $path = trim($path, '/');
 
+        // Asked for with the language's prefix (en/about) or without it (about).
+        $prefix = trim(ContentLocale::prefix(), '/');
+        $own = $prefix !== '' && ($path === $prefix || str_starts_with($path, $prefix.'/')) ? ltrim(substr($path, strlen($prefix)), '/') : $path;
+
         $page = $path === ''
             ? Page::query()->public()->homepage()->first()
-            : Page::query()->public()->whereSlug(Str::afterLast($path, '/'), ContentLocale::current())->first();
+            : (($found = Page::findByPath($own, ContentLocale::current())) === null ? null : Page::query()->public()->find($found->getKey()));
 
         // The rest of the address must be where the page sits.
         if ($page === null || ($page->path() !== '/'.ltrim(ContentLocale::prefix().'/'.$path, '/') && $page->path() !== '/'.$path)) {

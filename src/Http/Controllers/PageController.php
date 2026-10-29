@@ -44,13 +44,11 @@ class PageController
             }
         }
 
-        // A subpage's address ends with its own (/docs/getting-started): the page is found by
-        // that, and the rest must be its address now. An old one (a parent renamed, the page
-        // moved, the page's address in another language) sends the visitor to the page's address.
-        $slug = Str::afterLast($slug, '/');
-
-        // Not translated yet: found by its address in the default site language.
-        $page = Page::query()->whereSlug($slug)->first() ?? Page::query()->whereSlug($slug, ContentLocale::default())->first();
+        // A subpage is found by its whole address (/docs/getting-started), part by part, so pages
+        // in different places may share their own part. An old address (a parent renamed, the
+        // page moved) finds the one page whose own part it ends with, and the visitor is sent to
+        // where it is now; so does its address in another language, or not translated yet.
+        $page = Page::findByPath($slug) ?? Page::findByOldPath($slug);
 
         if ($page?->is_homepage) {
             return redirect($page->path(), 301);
@@ -165,7 +163,9 @@ class PageController
     {
         $redirect = Redirect::query()->where('from_path', Redirect::normalisePath($request->path()))->first();
 
-        if ($redirect === null || blank($destination = $redirect->destination())) {
+        // Not one that has come to go round in a circle since it was saved (a page it leads to
+        // was unpublished, say): "Page not found" rather than visitors sent round and round.
+        if ($redirect === null || blank($destination = $redirect->destination()) || $redirect->loop() !== null) {
             return null;
         }
 

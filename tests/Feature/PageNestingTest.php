@@ -12,6 +12,7 @@ use Aurora\Mcp\Tools\CreatePage as CreatePageTool;
 use Aurora\Mcp\Tools\UpdatePage;
 use Aurora\Models\Page;
 use Aurora\Support\PageRedirects;
+use Aurora\Support\PublicApi;
 use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -79,6 +80,68 @@ class PageNestingTest extends TestCase
         // An address that's out of date (or never was) leads to where the page is now.
         $this->get('/getting-started')->assertRedirect('/docs/guides/getting-started')->assertStatus(301);
         $this->get('/elsewhere/getting-started')->assertRedirect('/docs/guides/getting-started');
+    }
+
+    public function test_pages_in_different_places_may_share_their_own_part_of_the_address(): void
+    {
+        $services = Page::factory()->published()->create(['slug' => 'services']);
+        $work = Page::factory()->published()->create(['slug' => 'work']);
+        $serviceDesign = Page::factory()->published()->create(['title' => 'Design services', 'slug' => 'design', 'parent_id' => $services->id]);
+        $workDesign = Page::factory()->published()->create(['title' => 'Design work', 'slug' => 'design', 'parent_id' => $work->id]);
+
+        $this->assertSame('/services/design', $serviceDesign->fresh()->path());
+        $this->assertSame('/work/design', $workDesign->fresh()->path());
+        $this->get('/services/design')->assertOk()->assertSee('Design services');
+        $this->get('/work/design')->assertOk()->assertSee('Design work');
+        $this->assertTrue(PublicApi::pageAt('/work/design')?->is($workDesign));
+
+        // Beside each other they still can't: the next free number.
+        $this->assertFalse(Page::slugIsAvailable('design', parentId: $work->id));
+        $this->assertTrue(Page::slugIsAvailable('design', parentId: $services->id, except: $serviceDesign->id));
+        $this->assertSame('design-1', Page::uniqueSlug('Design', parentId: $work->id));
+
+        // An old address ending in "design" can't say which page it meant: only a redirect set
+        // up for it decides.
+        $this->get('/old/design')->assertNotFound();
+    }
+
+    public function test_ai_apps_name_a_page_by_its_whole_address_when_its_own_part_is_shared(): void
+    {
+        $editor = $this->userWithRole('Editor');
+        $services = Page::factory()->published()->create(['slug' => 'services']);
+        $work = Page::factory()->published()->create(['slug' => 'work']);
+        Page::factory()->published()->create(['slug' => 'design', 'parent_id' => $services->id]);
+        $workDesign = Page::factory()->published()->create(['slug' => 'design', 'parent_id' => $work->id]);
+        Page::factory()->published()->create(['slug' => 'pricing', 'parent_id' => $services->id]);
+
+        CmsServer::actingAs($editor)->tool(UpdatePage::class, ['page' => '/work/design', 'title' => 'Our design work'])->assertOk();
+        $this->assertSame('Our design work', $workDesign->fresh()->applyWorkingCopy()->title);
+
+        // Its own part alone: fine when only one page has it, asked again when several do.
+        CmsServer::actingAs($editor)->tool(UpdatePage::class, ['page' => 'pricing', 'title' => 'Prices'])->assertOk();
+        CmsServer::actingAs($editor)->tool(UpdatePage::class, ['page' => 'design', 'title' => 'Which?'])
+            ->assertHasErrors(['Several pages have "design" in their address: /services/design, /work/design']);
+    }
+
+    public function test_the_top_level_is_the_pages_without_a_parent_and_those_under_the_homepage(): void
+    {
+        $home = Page::factory()->homepage()->published()->create();
+        Page::factory()->published()->create(['slug' => 'about', 'parent_id' => $home->id]);
+
+        $this->assertFalse(Page::slugIsAvailable('about'));
+        $this->assertSame('about-1', Page::factory()->published()->create(['title' => 'About'])->slug);
+    }
+
+    public function test_a_page_moved_beside_one_with_its_address_gets_the_next_free_number(): void
+    {
+        $services = Page::factory()->published()->create(['slug' => 'services']);
+        $work = Page::factory()->published()->create(['slug' => 'work']);
+        Page::factory()->published()->create(['slug' => 'design', 'parent_id' => $services->id]);
+        $design = Page::factory()->published()->create(['slug' => 'design', 'parent_id' => $work->id]);
+
+        $design->update(['parent_id' => $services->id]);
+
+        $this->assertSame('/services/design-1', $design->fresh()->path());
     }
 
     public function test_moving_or_renaming_a_parent_keeps_its_subpages_old_addresses_working(): void

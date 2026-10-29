@@ -23,7 +23,7 @@ class UpdateBlock extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug.')->required(),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required(),
             'block_id' => $schema->string()->description('The block id from get_page.')->required(),
             'data' => $schema->object()->description('Fields to change, per list_block_types.'),
             'replace' => $schema->boolean()->description('Replace all data instead of merging.'),

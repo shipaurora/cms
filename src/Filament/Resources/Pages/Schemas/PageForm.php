@@ -81,7 +81,7 @@ class PageForm
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (?string $state, Get $get, Set $set, string $operation): void {
                         if ($operation === Operation::Create->value && blank($get('slug_touched'))) {
-                            $set('slug', filled($state) ? Page::uniqueSlug($state) : null);
+                            $set('slug', filled($state) ? Page::uniqueSlug($state, parentId: $get('parent_id')) : null);
                         }
                     }),
                 Select::make('parent_id')
@@ -115,9 +115,9 @@ class PageForm
                     ->alphaDash()
                     ->notIn(Page::RESERVED_SLUGS)
                     ->validationMessages(['not_in' => __('This address is reserved by the application.')])
-                    // Unique among the addresses in the language being edited.
-                    ->rule(fn (?Page $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
-                        if (is_string($value) && ! Page::slugIsAvailable($value, except: $record?->getKey())) {
+                    // Unique among the pages beside it (under the same parent), in the language being edited.
+                    ->rule(fn (?Page $record, Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record, $get): void {
+                        if (is_string($value) && ! Page::slugIsAvailable($value, except: $record?->getKey(), parentId: $get('parent_id'))) {
                             $fail(__('Another page already has this address.'));
                         }
                     })
@@ -130,7 +130,7 @@ class PageForm
                         Action::make('regenerateSlug')
                             ->icon('phosphor-arrows-clockwise')
                             ->tooltip(__('Generate from title'))
-                            ->action(fn (Get $get, Set $set, ?Page $record) => $set('slug', Page::uniqueSlug((string) $get('title'), except: $record?->getKey()))),
+                            ->action(fn (Get $get, Set $set, ?Page $record) => $set('slug', Page::uniqueSlug((string) $get('title'), except: $record?->getKey(), parentId: $get('parent_id')))),
                     ),
                 // In the address's place on the homepage: the same field, blank, so it reads as
                 // the site's own address (the real one is kept, hidden, for when it's replaced).

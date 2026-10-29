@@ -19,7 +19,7 @@ class GetPage extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug ("/" or "home" for the homepage).')->required(),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started"; "/" or "home" for the homepage).')->required(),
         ];
     }
 

@@ -18,7 +18,7 @@ class DeletePage extends CmsTool
 {
     public function schema(JsonSchema $schema): array
     {
-        return ['page' => $schema->string()->description('Page id or slug.')->required()];
+        return ['page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required()];
     }
 
     protected function run(Request $request, User $user): Response

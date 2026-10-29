@@ -23,7 +23,7 @@ class AddBlock extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug.')->required(),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required(),
             'block' => $schema->object()->description('The block as nested JSON: {"type": "...", "data": {...}, "children": ...}.')->required(),
             'parent_id' => $schema->string()->description('Id of the container block to insert into. Omit for the top level of the page.'),
             'slot' => $schema->string()->description('Slot within the parent, e.g. "content" for a band, "items" for a grid, "col-1" for the second column of a section. Defaults to the parent\'s first slot.'),

@@ -19,6 +19,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
@@ -210,27 +211,62 @@ abstract class CmsTool extends Tool
         return $page->settingsWithLayoutValues($values, $layout);
     }
 
+    /**
+     * The page at a whole address in any of the site's languages, with or without the language's
+     * prefix ("/en/about", "about").
+     */
+    protected function pageAtAddress(string $address): ?Page
+    {
+        $path = trim($address, '/');
+
+        if ($path === '') {
+            return null;
+        }
+
+        foreach (array_keys(ContentLocale::all()) ?: [ContentLocale::default()] as $locale) {
+            $prefix = trim(ContentLocale::prefix($locale), '/');
+            $own = $prefix !== '' && str_starts_with($path.'/', $prefix.'/') ? ltrim(substr($path, strlen($prefix)), '/') : $path;
+
+            if ($own !== '' && ($page = Page::findByPath($own, $locale)) !== null) {
+                return $page;
+            }
+        }
+
+        return null;
+    }
+
     protected function findPage(Request $request, string $key = 'page'): Page
     {
-        $identifier = (string) $request->get($key, '');
+        $identifier = trim((string) $request->get($key, ''));
 
-        $page = Page::query()
-            ->where(function ($query) use ($identifier): void {
-                $query->whereKey($identifier);
+        // By id, else by its whole address in any language ("/docs/getting-started", with or
+        // without the language's prefix), else by its own part of it when only one page has
+        // that: pages in different places may share it (/services/design, /work/design).
+        $page = Str::isUuid($identifier) ? Page::query()->whereKey($identifier)->first() : null;
+        $page ??= $this->pageAtAddress($identifier);
 
-                // Or its address in any language.
-                foreach (array_keys(ContentLocale::all()) ?: [ContentLocale::default()] as $locale) {
-                    $query->orWhere('slug->'.$locale, ltrim($identifier, '/'));
-                }
-            })
-            ->first();
+        if ($page === null && ($slug = Str::afterLast(trim($identifier, '/'), '/')) !== '') {
+            $named = Page::query()
+                ->where(function ($query) use ($slug): void {
+                    foreach (array_keys(ContentLocale::all()) ?: [ContentLocale::default()] as $locale) {
+                        $query->orWhere('slug->'.$locale, $slug);
+                    }
+                })
+                ->get();
+
+            if ($named->count() > 1) {
+                throw new InvalidArgumentException("Several pages have \"{$slug}\" in their address: ".$named->map(fn (Page $page): string => $page->path())->implode(', ').'. Give the page id or its whole address.');
+            }
+
+            $page = $named->first();
+        }
 
         if ($page === null && in_array($identifier, ['/', 'home', ''], true)) {
             $page = Page::query()->homepage()->first();
         }
 
         if ($page === null) {
-            throw new InvalidArgumentException("No page found for \"{$identifier}\". Use list_pages to find the page id or slug.");
+            throw new InvalidArgumentException("No page found for \"{$identifier}\". Use list_pages to find the page id or its address.");
         }
 
         Gate::authorize('view', $page);

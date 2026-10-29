@@ -25,7 +25,7 @@ class SeoReport extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug. Leave out for every live page.'),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started"). Leave out for every live page.'),
         ];
     }
 

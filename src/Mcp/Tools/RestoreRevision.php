@@ -19,7 +19,7 @@ class RestoreRevision extends CmsTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'page' => $schema->string()->description('Page id or slug.')->required(),
+            'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required(),
             'revision_id' => $schema->string()->description('From list_revisions.')->required(),
         ];
     }

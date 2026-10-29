@@ -246,7 +246,7 @@ class EditPage extends EditRecord
 
             $slug = match (true) {
                 filled($data['slug'] ?? null) => Str::slug((string) $data['slug']),
-                filled($data['title'] ?? null) => Page::uniqueSlug((string) $data['title'], $locale, $this->record->getKey()),
+                filled($data['title'] ?? null) => Page::uniqueSlug((string) $data['title'], $locale, $this->record->getKey(), $this->record->parent_id),
                 default => null,
             };
 

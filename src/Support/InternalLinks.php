@@ -8,7 +8,6 @@ use Aurora\Models\Page;
 use Aurora\Models\Redirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -120,12 +119,8 @@ class InternalLinks
      */
     protected static function isOldAddress(string $path): bool
     {
-        $slug = Str::afterLast(trim($path, '/'), '/');
+        $found = Page::findByPath($path) ?? Page::findByOldPath($path);
 
-        if ($slug === '' || ($found = Page::query()->whereSlug($slug)->first() ?? Page::query()->whereSlug($slug, ContentLocale::default())->first()) === null) {
-            return false;
-        }
-
-        return $found->isLive();
+        return $found !== null && $found->isLive();
     }
 }

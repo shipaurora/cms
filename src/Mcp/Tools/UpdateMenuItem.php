@@ -22,7 +22,7 @@ class UpdateMenuItem extends CmsTool
         return [
             'item_id' => $schema->string()->required(),
             'title' => $schema->string(),
-            'page' => $schema->string()->description('Page id or slug to link to instead.'),
+            'page' => $schema->string()->description('Page id, or its address, to link to instead.'),
             'url' => $schema->string()->description('URL to link to instead.'),
             'parent_id' => $schema->string()->description('New parent item id, or "" for top level.'),
             'position' => $schema->integer()->description('0-based position among siblings.'),

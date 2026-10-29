@@ -303,7 +303,7 @@ class CopilotContext extends ContextBuilder
 
         $title = fn (): ?string => match (true) {
             $resource !== null && filled($record) => rescue(fn (): ?string => ($model = $resource::resolveRecordRouteBinding($record)) ? strip_tags((string) $resource::getRecordTitle($model)) : null, null, report: false),
-            $name === 'pages.show' => Page::query()->whereSlug((string) $route->parameter('slug'))->first()?->title,
+            $name === 'pages.show' => Page::findByPath((string) $route->parameter('slug'))?->title,
             $name === 'home' => Page::query()->where('is_homepage', true)->value('title'),
             $name === 'pages.preview' => ($page = $route->parameter('previewPage')) instanceof Page ? $page->title : Page::acrossSites()->whereKey($page)->value('title'),
             $name === 'files.show' => Asset::query()->whereKey($route->parameter('asset'))->value('title'),

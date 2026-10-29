@@ -28,7 +28,7 @@ class CreatePage extends CmsTool
         return [
             'title' => $schema->string()->description('Page title, shown in the admin and the browser tab.')->required(),
             'slug' => $schema->string()->description('Address, e.g. "about-us". Generated from the title when omitted.'),
-            'parent' => $schema->string()->description('Id or slug of the page this one sits under; its address then starts with the parent\'s (/docs/getting-started). Omit for a top-level page.'),
+            'parent' => $schema->string()->description('Id or address of the page this one sits under; its address then starts with the parent\'s (/docs/getting-started). Omit for a top-level page.'),
             'excerpt' => $schema->string()->description('One or two sentences summarising the page. Used in page lists and as SEO fallback.'),
             'layout' => $schema->string()->enum(Layout::cached()->pluck('handle')->all())->description('The layout\'s handle, see list_layouts. Defaults to the default layout.'),
             'layout_settings' => $schema->object()->description('Values for the fields the layout has besides the blocks (its "settings" in list_layouts), e.g. {"background": "<image asset id>"}.'),
@@ -45,7 +45,7 @@ class CreatePage extends CmsTool
 
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:120', 'alpha_dash', fn (string $attribute, mixed $value, Closure $fail) => Page::slugIsAvailable((string) $value) ? null : $fail('Another page already has this address.')],
+            'slug' => ['nullable', 'string', 'max:120', 'alpha_dash', fn (string $attribute, mixed $value, Closure $fail) => Page::slugIsAvailable((string) $value, parentId: filled($request->get('parent')) ? $this->findPage($request, 'parent')->getKey() : null) ? null : $fail('Another page under the same parent already has this address.')],
             'status' => ['nullable', 'in:draft,review,published'],
         ]);
 
