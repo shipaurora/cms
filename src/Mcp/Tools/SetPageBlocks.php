@@ -22,6 +22,7 @@ class SetPageBlocks extends CmsTool
         return [
             'page' => $schema->string()->description('Page id, or its address ("/docs/getting-started").')->required(),
             'blocks' => $schema->array()->items($schema->object())->description('The complete nested block tree. See list_block_types.')->required(),
+            'custom_html' => $schema->boolean()->description('Only once the user has agreed to custom HTML ("code" blocks): true lets this call add them. Leave out otherwise.'),
             'summary' => $schema->string()->description('A short description of the change for the page history, e.g. "Redesigned the pricing section".'),
         ];
     }
@@ -30,6 +31,7 @@ class SetPageBlocks extends CmsTool
     {
         $page = $this->findPage($request);
         $blocks = BlockInput::decode($request->get('blocks'));
+        $this->allowCustomHtml($request, is_array($blocks) ? $blocks : [], $page);
         $flat = BlockTreeBuilder::flatten(BlockInput::tree(is_array($blocks) ? $blocks : []));
 
         $page = $this->savePage($page, ['blocks' => $flat], $request->get('summary') ?: 'Rebuilt the content ('.count($flat).' blocks)');

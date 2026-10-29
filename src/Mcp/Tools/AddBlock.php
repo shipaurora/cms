@@ -28,6 +28,7 @@ class AddBlock extends CmsTool
             'parent_id' => $schema->string()->description('Id of the container block to insert into. Omit for the top level of the page.'),
             'slot' => $schema->string()->description('Slot within the parent, e.g. "content" for a band, "items" for a grid, "col-1" for the second column of a section. Defaults to the parent\'s first slot.'),
             'position' => $schema->integer()->description('0-based position among the siblings.'),
+            'custom_html' => $schema->boolean()->description('Only once the user has agreed to custom HTML ("code" blocks): true lets this call add them. Leave out otherwise.'),
         ];
     }
 
@@ -37,7 +38,9 @@ class AddBlock extends CmsTool
         $blocks = BlockTree::hydrate($page->blocks ?? []);
         [$parent, $slot] = static::target($blocks, $request->get('parent_id'), $request->get('slot'));
 
-        $node = BlockInput::tree([BlockInput::decode($request->get('block'))])[0];
+        $block = BlockInput::decode($request->get('block'));
+        $this->allowCustomHtml($request, [$block]);
+        $node = BlockInput::tree([$block])[0];
         $depth = $parent === null ? 1 : BlockTree::depthOf($blocks, $parent) + 1;
         $flat = BlockTreeBuilder::flattenNode($node, $parent, $slot, 0, $depth);
 

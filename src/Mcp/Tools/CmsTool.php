@@ -15,6 +15,7 @@ use Aurora\Support\Layouts;
 use Aurora\Support\Permissions;
 use Aurora\Support\RevisionContext;
 use Aurora\Support\WorkingCopies;
+use CarlJanzell\FilamentPageBuilder\BlockRegistries;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -180,6 +181,23 @@ abstract class CmsTool extends Tool
         $this->did($summary, $page);
 
         return $page->refresh()->applyWorkingCopy();
+    }
+
+    /**
+     * Custom HTML only with the user's say-so: refuse blocks that add "code" blocks (more than
+     * the page had) unless the call says the user agreed. Before the blocks are checked, so
+     * nothing is saved or uploaded for a refused call.
+     *
+     * @param  array<int, mixed>  $blocks
+     */
+    protected function allowCustomHtml(Request $request, array $blocks, ?Page $page = null): void
+    {
+        // Without the permission, the blocks' own check says it isn't allowed.
+        if ($request->boolean('custom_html') || ! app(BlockRegistries::class)->for('admin')->isVisible('code') || BlockInput::count($blocks, 'code') <= BlockInput::count($page->blocks ?? [], 'code')) {
+            return;
+        }
+
+        throw new InvalidArgumentException('Not saved: this adds a custom HTML ("code") block. Build it from the site\'s blocks instead (see list_block_types: section, grid, embed and video cover most layouts). Use custom HTML only when the user asked for it, or for something no other block can do; then ask the user first, saying what it is for, and call again with "custom_html": true once they agree.');
     }
 
     /**

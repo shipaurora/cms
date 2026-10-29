@@ -164,7 +164,7 @@ class Permissions
                     'translate' => ['Translate labels', 'Edit and translate every label in the website and the admin panel.'],
                     'use-assistant' => ['Use the AI assistant', 'Chat with the assistant in the admin panel. It reads and edits content with this role\'s permissions.'],
                     'use-mcp' => ['Connect external AI apps', 'Connect Claude Desktop or another MCP client from outside the admin panel, acting with this role\'s permissions.'],
-                    'use-code-blocks' => ['Custom code blocks', 'Add raw HTML, CSS and JavaScript to pages. Grant with care.'],
+                    'use-code-blocks' => ['Custom code blocks', 'Add raw HTML, CSS and JavaScript to pages, by hand or through AI. Grant with care. Not granted to any role by default.'],
                 ],
             ],
         ];

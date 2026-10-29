@@ -28,7 +28,7 @@ class ComposePage extends Prompt
         Build a new page for this brief: "{$brief}". The audience is {$audience}.
 
         1. Call whoami to see what you may do, read the cms://guide resource, and call list_block_types.
-        2. Outline the page section by section (one line each) before writing anything.
+        2. Outline the page section by section (one line each) before writing anything. Build every section from the site's blocks; no custom HTML ("code" blocks) unless the user asks for it.
         3. Write the copy in the site's voice. Link buttons to existing pages (list_pages) by id.
         4. Create the page with create_page, passing the whole block tree, an excerpt and a meta description.
         5. Read it back with get_page and fix anything that looks off.

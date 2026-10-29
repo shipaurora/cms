@@ -1082,7 +1082,7 @@
     "Connect external AI apps": "Connect external AI apps",
     "Connect Claude Desktop or another MCP client from outside the admin panel, acting with this role's permissions.": "Connect Claude Desktop or another MCP client from outside the admin panel, acting with this role's permissions.",
     "Custom code blocks": "Custom code blocks",
-    "Add raw HTML, CSS and JavaScript to pages. Grant with care.": "Add raw HTML, CSS and JavaScript to pages. Grant with care.",
+    "Add raw HTML, CSS and JavaScript to pages, by hand or through AI. Grant with care. Not granted to any role by default.": "Add raw HTML, CSS and JavaScript to pages, by hand or through AI. Grant with care. Not granted to any role by default.",
     "Search by name, email or job title…": "Search by name, email or job title…",
     "Nobody found.": "Nobody found.",
     "Add people to :role": "Add people to :role",

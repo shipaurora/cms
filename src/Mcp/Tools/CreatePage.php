@@ -36,6 +36,7 @@ class CreatePage extends CmsTool
             'meta_title' => $schema->string()->description('SEO title (max ~60 characters).'),
             'meta_description' => $schema->string()->description('SEO description (max ~155 characters).'),
             'blocks' => $schema->array()->items($schema->object())->description('The page content as a nested block tree. See list_block_types.'),
+            'custom_html' => $schema->boolean()->description('Only once the user has agreed to custom HTML ("code" blocks): true lets this call add them. Leave out otherwise.'),
         ];
     }
 
@@ -50,6 +51,7 @@ class CreatePage extends CmsTool
         ]);
 
         $blocks = BlockInput::decode($request->get('blocks', []));
+        $this->allowCustomHtml($request, is_array($blocks) ? $blocks : []);
         $flat = BlockTreeBuilder::flatten(BlockInput::tree(is_array($blocks) ? $blocks : []));
 
         $layout = Layout::cached()->firstWhere('handle', $request->get('layout')) ?? Layout::default();

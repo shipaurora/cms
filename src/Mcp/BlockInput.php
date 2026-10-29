@@ -37,6 +37,33 @@ class BlockInput
     }
 
     /**
+     * How many blocks of a type are in a nested tree, or in a page's flat list of blocks.
+     *
+     * @param  array<int, mixed>  $nodes
+     */
+    public static function count(array $nodes, string $type): int
+    {
+        $count = 0;
+
+        foreach ($nodes as $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+
+            $count += ($node['type'] ?? null) === $type ? 1 : 0;
+            $children = static::decode($node['children'] ?? []);
+
+            if (is_array($children) && $children !== []) {
+                foreach (array_is_list($children) ? [$children] : $children as $list) {
+                    $count += is_array($list) ? static::count(array_values($list), $type) : 0;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
      * @param  array<int, mixed>  $nodes
      * @return array<int, array<string, mixed>>
      */

@@ -89,7 +89,7 @@
     "Add people to :role": "Legg til personer i :role",
     "Add profile": "Legg til profil",
     "Add question": "Legg til spørsmål",
-    "Add raw HTML, CSS and JavaScript to pages. Grant with care.": "Legge til rå HTML, CSS og JavaScript på sider. Gi denne med omhu.",
+    "Add raw HTML, CSS and JavaScript to pages, by hand or through AI. Grant with care. Not granted to any role by default.": "Legge til rå HTML, CSS og JavaScript på sider, for hånd eller gjennom AI. Gi denne med omhu. Ikke gitt til noen rolle som standard.",
     "Add selected": "Legg til valgte",
     "Add step": "Legg til steg",
     "Add tab": "Legg til fane",

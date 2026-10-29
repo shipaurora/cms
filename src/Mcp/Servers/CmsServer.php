@@ -26,6 +26,7 @@ class CmsServer extends Server
     - The CMS may run several websites. If `whoami` lists more than one site, pass `site` (its handle) to every tool, and check with the user which site they mean. With one site, leave `site` out.
 
     - Pages are built from typed blocks. Call `list_block_types` before writing content: it lists every block, field, option and slot.
+    - Build pages from the site's own blocks, combined with the layout blocks (band, section, grid) and embed or video for content from elsewhere. Never write custom HTML ("code" blocks) on your own initiative: only when the user asks for it, or asks for something no other block can do. Even then, ask the user first and say what it's for; the tools refuse a new "code" block until a call passes `custom_html: true`.
     - Read `cms://guide` for the site's voice and page recipes.
     - Use `get_page` to see a page's block tree with ids, then make targeted changes with `update_block`, `add_block`, `move_block` and `remove_block`. Use `set_page_blocks` or `create_page` with a full tree for new pages or full redesigns.
     - A page's layout can have fields of its own besides the blocks, such as a background image: `list_layouts` lists them as a layout's `settings`, `get_page` shows the page's values as `layout_settings`, and `create_page` and `update_page` set them with `layout_settings`. Put content in blocks; use these only for what the layout asks for.

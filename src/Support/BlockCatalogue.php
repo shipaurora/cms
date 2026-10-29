@@ -58,7 +58,7 @@ class BlockCatalogue
         'video' => 'A video file or a YouTube/Vimeo URL.',
         'embed' => 'An iframe from an allow-listed host (maps, forms, social posts).',
         'shortcode' => 'Runs a registered [shortcode]. Rarely needed.',
-        'code' => 'Custom HTML/CSS/JS. Restricted to trusted users.',
+        'code' => 'Custom HTML/CSS/JS, for trusted users only. The last resort: use it only when the user asks for custom HTML, or for something no other block (including section, grid, embed and video) can do, and ask the user before adding one. Adding one needs "custom_html": true on the call.',
     ];
 
     /**
