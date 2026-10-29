@@ -19,7 +19,8 @@ List, from the old site's templates and its data:
 - **Global bits**: header and footer text, social links, a cookie notice, contact details.
 - **Navigation**: each menu and where it's shown.
 - **Forms**: their fields and who gets the submissions.
-- **Files**: images and documents, with their alt text and credits.
+- **Error pages**: the old site's own 404, server error and maintenance pages (and 403, 410 or 419 if it has them), with their text in each language.
+- **Files**: images and documents, with their alt text and credits, and the image sizes the templates ask for (presets, thumbnails, resize parameters).
 - **Addresses**: every URL that has visitors or links pointing at it, and the languages.
 - **A shop, customers, newsletters**: products and orders, a customer or member register, newsletter sign-ups and campaigns. Aurora has none of them: see section 4 before going on.
 
@@ -30,16 +31,31 @@ List, from the old site's templates and its data:
 | A page template | A page layout: the published standard layout made the site's own, or `php artisan make:aurora-layout "Landing"` for each other frame. Settings that change one frame (a background image, a dark header) are `Layouts::schema()` fields, not separate layouts. |
 | A section editors place on pages | A block (`php artisan aurora:make-block`). Variations of one section are one block with a choice (`ToggleButtons` for layout, `Fields::tone()` for colour), not one block each. |
 | A repeated item inside a section (a card, a stat) | Either a repeater in the section's block (fixed shape, edited as a list) or a container block holding item blocks (`--container`; editors can mix and reorder). |
-| Header, footer, other bits every page shows | Blade components in the layout. Their text and links come from a settings tab (`SettingsTabs::register()`), their links from menus. |
+| Header, footer, other bits every page shows | Blade components in the layout. Their text and links come from settings, as tabs on Settings › Website, one per section (`SettingsTabs::register(…, page: 'website')`; a service's on Integrations: `aurora-development`, "The website's settings"), their links from menus. |
 | A menu | A menu in a location: `Menu::location('header')` in the layout, a location of the site's own for others. |
 | Records with their own fields | A model of the site's own, with a migration and a Filament resource, and blocks that pick or list them (below). |
 | A page of text | A page record with blocks, created by a seeder or an import command. |
 | A contact form | A form under Content › Forms, shown by a form block. |
 | An old address | A redirect (`Aurora\Models\Redirect`), or the same slug. |
+| Image sizes (presets, resize parameters) | Image formats (Media library › Formats), made in the import ("Image formats", below). |
+| An error page (404, 500, maintenance) | A Laravel error view of the site's own, `resources/views/errors/{code}.blade.php` ("Error pages", below). |
 
 **Block or model?** A block is how part of a page looks; a model is a thing that exists on its own. If the same facts (a person's name, title, phone and photo) would be typed into blocks on several pages, or a list of them is shown somewhere, they're a model, and the blocks only point at records. If it's only ever on one page, with no fields beyond what it shows, it's a block.
 
 Port the old markup into the block views as it is, then replace each hard-coded text, image and link with a field. Keep the old site's CSS classes in the site's stylesheet (`resources/css/app.css`): the visual editor draws blocks with it. Turn the old site's brand colours into the `brand` and `accent` theme colours (eleven shades each, `--color-brand-50` to `--color-brand-950`, as defaults in `@theme`), and paint the blocks with `brand-*` and `accent-*` instead of its fixed colours, so editors can change them under Settings › Website › Branding ("Brand colours" in `aurora-development`).
+
+**Error pages.** Aurora draws none of its own: a missing page is Laravel's `abort(404)`, shown with the app's `resources/views/errors/404.blade.php` if it has one, else Laravel's plain page. Port each error page the old site has as such a view, and add a 404 even if it had none:
+
+- **404, 403, 410, 419** go inside the site's layout, so the header, menus and footer are there and the visitor can find their way on: `<x-aurora::layout :title="__('Page not found')" noindex>…</x-aurora::layout>` around the old page's content. Aurora's page routes take every address, so the site and its language are known by then: a missing `/en/…` address gets the English page. Its text goes through `__()`, with lines in `lang/{locale}.json`; when editors changed the old page's text in the old CMS, make it fields on a tab on Settings › Website instead (`SettingsTabs::register(…, page: 'website')`, read with `Setting::get()`).
+- **500 and 503** must work when the database or the app is what broke: plain HTML with the CSS inline, no layout, no `Setting::get()`, no menus, no Vite. `503.blade.php` is also what `php artisan down` shows (`--render="errors::503"` to prerender it).
+- Check with `APP_DEBUG=false` (with debug on, Laravel shows its own error screen), and add a test: a missing address answers 404 with the site's layout, in each language.
+
+**Image formats.** Every size the old site makes of its images (a CMS's presets, an image server's resize parameters in the templates) becomes an Aurora image format (`Aurora\Models\ImageFormat`, under Media library › Formats): a `handle`, a `width`, a `height` only when it crops (around the image's focal point), the `file_format` (`webp`, `avif`, `jpg` or `png`), the `quality`, and `is_responsive` (whether it goes in `srcset`). Aurora comes with responsive `sm` (640), `md` (1280) and `lg` (1920); `thumb`, `og` and `original` are taken.
+
+- Make them in the import with `Aurora\Support\ImageFormats::put(null, ['name' => 'Hero', 'handle' => 'hero', 'width' => 1920, 'height' => 800, 'file_format' => 'webp', 'quality' => 80, 'is_responsive' => false])` (it also makes the new size of every image already there), **before** the files, so each image is processed once. Skip a format whose handle exists, so the import can run again.
+- Keep the old preset's name as the handle when the views ask for it by name (`<x-aurora::media :value="…" size="hero" />`, `AssetLibrary::url($value, 'hero')`). Presets that only set a width, or differ a little, are usually covered by the responsive widths: merge them rather than copy each.
+- A preset that fits an image inside a box without cropping is a width only: Aurora's formats don't fit to a height. Say so when that changes how an image looks (a portrait image in a landscape box).
+- A focal point (where crops centre) is the asset's `focal_point`, `['x' => 0.4, 'y' => 0.3]` as fractions of the width and height. `fromFile()` doesn't take it: set it on the asset afterwards and call `ImageFormats::regenerateImage($asset)`.
 
 ## 3. A model of the site's own: employees
 
@@ -199,7 +215,27 @@ Write the import as a seeder (or an artisan command for a big site) that can run
 ## 6. Check it
 
 - Every block has `defaults()` that look finished, and a screenshot (`php artisan aurora:block-previews`, then save each to `resources/block-previews/{type}.webp`).
-- Each page looks as it did on the old site, on the website and in the visual editor's canvas; editing a text on the canvas works.
+- Each page works in the visual editor's canvas: it looks as on the website, and editing a text on the canvas works. How it compares with the old site is section 7.
 - The admin shows the site's records under their own group, in every language the site has.
 - The old addresses redirect, `sitemap.xml` lists the pages and records, and forms arrive.
 - Tests for what the site adds: the blocks render with their defaults, a block whose record is gone draws nothing, the import runs twice without doubles.
+
+## 7. Compare it with the old site
+
+The last step of every port, before the switch: put the old site and the new one side by side, page by page, look and markup, and adjust until they match well enough. Small differences in the HTML are fine; what it means has to come across.
+
+**Which pages.** A list of pairs, old address → new address: the home page, a page of each layout, each block type at least once (with its variations), each list and detail page of the site's own records, each form, the 404, and each of these in every language. Keep the list (a JSON file outside the site's code, in a scratch folder) so the comparison can run again after each fix. Capture the old site's side first, from where it runs (its live address, or locally before switching over), so it can still be compared once the switch is done; go easy on a live site: only the listed pages, one at a time.
+
+**Visually.** Screenshot each pair the same way, with the browser you have (a browser tool, Playwright, or headless Chrome: `"<chrome>" --headless=new --hide-scrollbars --window-size=1440,900 --screenshot=old.png "<url>"`), at a desktop width (1440) and a phone width (390), the whole page. Close cookie banners and pop-ups, and stop sliders, on both sides first. Look at each pair yourself; a pixel diff (ImageMagick's `compare -metric AE`) helps find where to look but doesn't decide. Fix what a visitor would notice: layout and spacing, fonts and colours, an image missing or cropped differently, text missing or in another order, a menu or footer that differs, a breakpoint where the layout changes at another width. Ignore what changes by itself: dates, a carousel's slide, ads, anti-aliasing.
+
+**Semantically.** Fetch both pages' HTML and compare what it means, not how it's written. A throwaway script outside the site's code (PHP with `Symfony\Component\DomCrawler\Crawler`, which comes with Laravel) pulls out, for each page:
+
+- **Head:** status code, `<title>`, meta description, canonical, `robots`/noindex, `og:` and `twitter:` tags, `hreflang` links, `<html lang>`, structured data (JSON-LD: each `@type` and its main fields).
+- **Outline:** the headings, `h1` to `h6`, in order, with their text (one `h1`); the landmarks (`header`, `nav`, `main`, `aside`, `footer`).
+- **Content:** the text of `main`, whitespace evened out, compared paragraph by paragraph: nothing missing, nothing added, the same order.
+- **Links and media:** each navigation's links (text and target, in order), the links in the content (each target answering 200, or redirecting to where the old one went), images (present, with the same alt text; a decorative image stays `alt=""`), embeds (videos, maps).
+- **Forms:** each form's fields (name, type, required, label, options) and its buttons.
+
+Fine to differ: class names and wrapper elements, attribute order, inline styles become the stylesheet's, image addresses (the media library's instead of the old CDN's) and their sizes in `srcset`, the old platform's own scripts, tokens and cache-busting. Not fine: a lost heading or a changed heading level, missing text, a link that goes elsewhere or nowhere, missing alt text, a form field gone, a different title, description or canonical, lost structured data, a language missing.
+
+**Adjust until it matches.** Fix the blocks, the layout, the stylesheet or the import (then run the import again), and compare again, until for every pair the screenshots match at a glance at both widths and the semantic differences are only of the fine kind. Then report to the user, a line per page: matches, or what still differs and why it's left so (the old site's bug not carried over, a deliberate improvement, a platform limit such as an image format that can't crop the same way). They decide whether it's good enough to switch.

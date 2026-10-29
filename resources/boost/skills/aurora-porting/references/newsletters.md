@@ -17,7 +17,7 @@ Built on the site's customers ([customers.md](customers.md)): build those first,
 - **`NewsletterList`** (name, the provider's list id or tag, `site_id` if per site) and a `customer_newsletter_list` pivot (`subscribed_at`, `unsubscribed_at`). The customer resource gets "Add to list" and "Remove from list" bulk actions, and the list resource shows its members with a count.
 - **`Campaign`**: `name`, `subject`, `preview_text`, `from_name`, `from_email`, `reply_to`, `blocks` (JSON), the lists (a pivot), `status` (`draft`, `scheduled`, `sending`, `sent`, `failed`), `scheduled_at`, `sent_at`, `provider_campaign_id`, `stats` (JSON) and `stats_updated_at`.
 - A **"Newsletters" group** in the admin with both resources: `AdminPanel::navigationGroup('Newsletters', fn (): string => __('Newsletters'), 'phosphor-paper-plane-tilt', after: 'Customers')`.
-- A **provider driver** behind an interface of the site's own, chosen in `config/services.php` (`NEWSLETTER_PROVIDER=brevo`, the key in `.env`):
+- A **provider driver** behind an interface of the site's own, chosen in `config/services.php` (`NEWSLETTER_PROVIDER=brevo`, the key in `.env`). What editors choose (the sender's name and address, the reply-to, the default lists) is a tab named after the provider on Settings › Integrations (`SettingsTabs::register('brevo', …, page: 'integrations')`), with the API key in a `SecretInput` (`secretKeys: ['brevo_api_key']`, read with `SettingSecrets::get()`), so editors can change it; the webhook secret too, or in `.env`:
 
 ```php
 interface NewsletterProvider

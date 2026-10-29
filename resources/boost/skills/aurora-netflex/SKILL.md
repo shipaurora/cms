@@ -36,14 +36,15 @@ Netflex keeps half of the site in the API and half in the repository; list both,
 | A template controller with `$routes` (a list at `/`, a detail page at `/{entry}`) | `app/Http/Controllers/*`, `protected $routes = [...]` | Website routes in `routes/web.php` under the page's address, the list as a block on that page |
 | A structure (a news, events or staff directory) | `app/Models/*` with `protected $relationId = {id}`; API `builder/structures/{id}/basic` for its fields | A model of the site's own, its migration and Filament resource, and blocks that pick or list them (`aurora-porting`, section 3) |
 | A structure's `matrix` or `editor-blocks` field | renderers in `resources/views/components/matrix/*` and similar | The model's rich text (`editor-blocks`), or blocks on a page of its own (a matrix that's really a page) |
-| Global content (`static_content()`, `<x-static-content>`) | API `foundation/globals` | A settings tab (`SettingsTabs::register()`), read with `Setting::get()` |
+| Global content (`static_content()`, `<x-static-content>`) | API `foundation/globals` | Tabs on Settings › Website, one per global group (`SettingsTabs::register(…, page: 'website')`), read with `Setting::get()` |
 | Variables (`variable('…')`) | API `foundation/variables` | A setting where editors change it (a phone number), `config/` and `.env` where it's technical (an id, a key) |
 | Labels (`__()`, `@lang`, often with source text as the key) | API `foundation/labels/i18n`, `resources/lang/*.json` | `lang/{locale}.json` |
 | Navigation (`NavigationData::get()`, `navigation_data()`, `<x-nav>`) | the page tree: `visible_nav`, `visible_subnav`, `nav_title`, folder pages (`template: 'f'`) as roots | Menus in locations (`Menu::location('header')`) |
-| Files and images | API `files/file/{id}`, the CDN (`site_cdn_url` variable); `config/media.php` presets | The media library (`AssetLibrary::fromFile()`), alt text kept; presets become image formats (Settings › Media) |
+| Files and images | API `files/file/{id}`, the CDN (`site_cdn_url` variable); `config/media.php` presets | The media library (`AssetLibrary::fromFile()`), alt text kept; presets become image formats (Media library › Formats; section 3) |
 | Redirects | API `foundation/redirects` (`source_url`, `target_url`, `type`) | `Aurora\Models\Redirect` |
 | Languages | a page tree per language, its root's `lang` (an `/en/` folder) | Aurora languages (Settings › Languages), the pages' translations |
 | Forms | controllers and views of the site's own (Netflex has no forms module) | Aurora forms (Content › Forms) and a form block (`aurora-development`, references/forms.md) |
+| Error pages | `resources/views/errors/*.blade.php`, and any page, global or label their text comes from | Error views of the new app (`aurora-porting`, "Error pages"), the 404 in the site's layout |
 
 Commerce (Netflex Commerce: products, orders, carts), customers, newsletters and signups have no counterpart in Aurora: list what the site uses of each, with counts, and ask the user what it becomes before going on, offering what `aurora-porting` recommends ("Shops, customers and newsletters": Shopify or a shop engine in Aurora's admin, a customer register of the site's own, campaigns sent through Brevo or Mailchimp). Netflex admin extensions: list them and ask too. Leave out debug and test routes (`/-/…` and the like) rather than port them.
 
@@ -66,7 +67,7 @@ Commerce (Netflex Commerce: products, orders, carts), customers, newsletters and
 | `@if(if_mode('edit'))`, `@mode('edit')`, `current_mode()` | `@editing … @endediting`, `is_editing()` |
 
   Fields shown only for one choice (a set of fields per layout option) become `->visible(fn (Get $get) => …)` on a single block, not a block each.
-- **Netflex Blade to Aurora Blade:** `content('title')` → `$data['title'] ?? null`; `<x-picture :src="$entry->image" preset="hero"/>` and `<x-image>` → `<x-aurora::media :value="…" size="lg" />`; `media_url($image, 'preset')` → `AssetLibrary::url($value, 'md')`; `cdn_url($path)` → the asset's URL; `static_content('footer', 'text')` → `Setting::get('footer_text')`; `variable('phone')` → `Setting::get('phone')` or `config()`; `navigation_data()` and `<x-nav>` → `Menu::location('header')->menuItems`; `current_page()` → `current_page()` (Aurora's, an `Aurora\Models\Page`); `@lang('…')` and `__()` stay. Class components that query in `render()` keep their query, against the site's models.
+- **Netflex Blade to Aurora Blade:** `content('title')` → `$data['title'] ?? null`; `<x-picture :src="$entry->image" preset="hero"/>` and `<x-image>` → `<x-aurora::media :value="…" size="hero" />` (the preset's image format); `media_url($image, 'hero')` → `AssetLibrary::url($value, 'hero')`; `cdn_url($path)` → the asset's URL; `static_content('footer', 'text')` → `Setting::get('footer_text')`; `variable('phone')` → `Setting::get('phone')` or `config()`; `navigation_data()` and `<x-nav>` → `Menu::location('header')->menuItems`; `current_page()` → `current_page()` (Aurora's, an `Aurora\Models\Page`); `@lang('…')` and `__()` stay. Class components that query in `render()` keep their query, against the site's models.
 - **CSS and scripts:** keep the old stylesheet and build (Sass, Bootstrap, Vue islands carry over in Vite); set `config('aurora.website_css')` (`AURORA_WEBSITE_CSS`) to its entry so the visual editor's canvas uses it. Turn the brand colours into `brand` and `accent` (`aurora-development`, "Brand colours"). Image URLs built in JavaScript against the Netflex CDN become the asset URLs the Blade view passes in.
 - Give each block `defaults()` that look finished, and a screenshot (`php artisan aurora:block-previews --missing --json`).
 
@@ -76,6 +77,20 @@ An artisan command of the site's own (`php artisan make:command ImportNetflex`),
 
 - **Stable ids:** make each Aurora record's id from its Netflex id, the same on every run: `Uuid::uuid5(Uuid::NAMESPACE_URL, 'netflex:page:'.$id)->toString()` (`Ramsey\Uuid\Uuid`, `netflex:file:`, `netflex:entry:` for the others), and save with `updateOrCreate(['id' => $id], [...])`.
 - **Raw values are strings:** `"1"`/`"0"` for booleans, ids as strings, lists (`entries`, `tags`, `multiselect`, `authgroups`) as comma-separated strings. Cast every one. Check text for HTML entities (`&amp;oslash;`) and decode them.
+- **Image formats before the files:** the presets in the old project's `config/media.php` (`'presets' => ['hero' => ['mode' => MODE_FIT, 'size' => '1200x828', 'resolutions' => ['1x', '2x'], 'breakpoints' => ['sm' => [...]]], 'default' => Preset::ORIGINAL, …]`) become image formats made with `ImageFormats::put()` (`aurora-porting`, "Image formats"), the preset's name as the handle. A `size` of `'1200x600'` is a width and a height, `'1200x'` a width only. The modes (Netflex's CDN codes in brackets) don't all do what their names say:
+
+  | Mode | What Netflex makes of the size | Aurora format |
+  | --- | --- | --- |
+  | `MODE_FIT` (`rc`), the most used | fills it exactly, cropping the middle | width and height |
+  | `MODE_FIT_DIR` (`rcf`) | the same, cropped towards a `direction` | width and height; the direction is per preset in Netflex, per image (`focal_point`) in Aurora |
+  | `MODE_EXACT` (`e`) | squeezes the whole image to it, distorting it | width and height (Aurora crops instead: say so) |
+  | `MODE_FILL` (`fill`) | fits inside it, padded with the preset's `fill` colour | width only; padding, if it mattered, in CSS |
+  | `MODE_LANDSCAPE` (`l`), `MODE_AUTO` (`a`) | its width (`a` fits inside the box) | width only |
+  | `MODE_PORTRAIT` (`p`) | its height, any width | width only, worked out from the height and the images' usual shape: Aurora sizes by width |
+  | `MODE_ORIGINAL` (`o`), `Preset::ORIGINAL` | the file as uploaded | none: `size="original"` |
+  | `MODE_CROP` (`c`) | (the CDN answered it with an error) | check what the old site shows |
+
+  `resolutions` (`2x`, `3x`; the default preset has all three) and a preset's `breakpoints`, each with a size and mode of its own, are what Aurora's responsive widths do with `srcset`: make sure one responsive format is at least twice the largest size, rather than a format per resolution or breakpoint, unless a breakpoint crops to a different shape (then that's a format of its own). In the views, `<x-picture preset="hero">`, `<x-image preset="hero">` and `media_url($image, 'hero')` then take `size="hero"` (`AssetLibrary::url($value, 'hero')`); a `media_url($image, '400x400', MODE_FIT)` with a size of its own gets the nearest format, or one of its own.
 - **Files:** as they're referenced (a file id and a `path`), download `{site_cdn_protocol}://{site_cdn_url}/{path}` (both are variables, `foundation/variables`) and add it with `AssetLibrary::fromFile($tmp, ['id' => $uuid, 'title' => $file['name'], 'alt' => $file['img_alt'] ?? null, 'folder' => …])`, its details from `files/file/{id}`. Keep a map from Netflex file id and path to the Aurora asset id.
 - **Pages:** `builder/pages/content` gives every page, keyed by id, with its `content`. Take the ones that are pages (`template` is a template id; `'f'` is a folder, `'e'` an external link, `'i'` a link to another page, `'d'` a domain, and those go to menus and redirects, not pages). Walk them by `parent_id` and `sorting`, parents first. For each: `title` (`title`, or `name` when it's empty), `slug` from the last part of its `url` (stored with a trailing slash; `index/` is the homepage, `is_homepage`), `parent_id` (a folder's children go to the folder's parent), `status` and `published_at` from `published`, `start` and `stop`, `meta_description` from `description`, the layout from the template's alias, and `blocks` from the content.
 - **Content into blocks:** a page's content is one list of items, each with an `area`. A block is an item in the template's block area (the `area` of its `<x-blocks>`), `published` 1, whose `text` is a builder template id (its alias is the block type, `foundation/templates`) and `title` its hash; take them in `sorting` order. The block's fields are the items whose `area` is `{field}_{hash}`, and a value sits in a column set by the field's type:
@@ -106,5 +121,5 @@ Run it, open the pages in Aurora's visual editor and fix the import or the block
 ## 4. Switch over
 
 1. Run the import one last time, after the editors' last change in Netflex.
-2. Check every old address (the old `sitemap.xml` against Aurora's), the forms, the menus and the labels in each language.
+2. Compare the new site with the Netflex one, page by page, screenshots and HTML (`aurora-porting`, section 7), and adjust until the user is satisfied. Check every old address (the old `sitemap.xml` against Aurora's), the forms, the menus and the labels in each language.
 3. Point the domain at the Aurora app. Keep the Netflex site and its API keys until nobody needs to compare, then take the keys out of `.env`.
