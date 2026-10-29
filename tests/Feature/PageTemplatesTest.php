@@ -6,8 +6,10 @@ use Aurora\Events\PageSaved;
 use Aurora\Filament\Pages\SiteSettings;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Filament\Resources\Pages\Pages\CreatePage;
+use Aurora\Filament\Resources\Pages\Pages\DesignPage;
 use Aurora\Filament\Resources\Pages\Pages\EditPage;
 use Aurora\Filament\Resources\Pages\Pages\ListPages;
+use Aurora\Filament\Resources\PageTemplates\Pages\DesignPageTemplate;
 use Aurora\Filament\Resources\PageTemplates\PageTemplateResource;
 use Aurora\Mcp\Servers\CmsServer;
 use Aurora\Mcp\Tools\ListPages as ListPagesTool;
@@ -15,12 +17,15 @@ use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Models\PageTemplate;
 use Aurora\Models\Role;
+use Aurora\Models\Site;
 use Aurora\Support\PageTemplates;
 use Aurora\Support\PublicApi;
 use Aurora\Tests\TestCase;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ViewErrorBag;
 use Livewire\Livewire;
 
 class PageTemplatesTest extends TestCase
@@ -59,11 +64,10 @@ class PageTemplatesTest extends TestCase
         ]);
 
         // The prompt offers it after "Blank", and carries the choice on.
-        Livewire::actingAs($editor)
-            ->test(ListPages::class)
-            ->mountAction('create')
-            ->assertFormFieldIsVisible('template')
-            ->assertSeeInOrder(['Blank', 'Campaign']);
+        $this->actingAs($editor);
+        $picker = $this->pickerHtml();
+        $this->assertLessThan(strpos($picker, 'Campaign'), strpos($picker, 'Blank'));
+        $this->assertSame(2, substr_count($picker, '<iframe'));
 
         Livewire::actingAs($editor)
             ->test(ListPages::class)
@@ -88,6 +92,49 @@ class PageTemplatesTest extends TestCase
         $this->assertSame(['nb' => [$block['id'] => ['text' => 'Vårsalg']]], $page->block_translations);
         // The template is as it was.
         $this->assertSame('a', $template->fresh()->blocks[0]['id']);
+    }
+
+    public function test_blank_is_drawn_as_an_empty_page_in_the_default_layout(): void
+    {
+        $this->actingAs($this->userWithRole('Editor'));
+        PageTemplates::create('Campaign');
+
+        preg_match('#src="([^"]*/preview/blank/[^"]*)"#', $this->pickerHtml(), $match);
+        $this->assertNotEmpty($match, 'Blank has no thumbnail of its own.');
+
+        $this->get(html_entity_decode($match[1]))
+            ->assertOk()
+            ->assertSee('<html', false);
+
+        $this->get(route('pages.preview-blank', ['site' => Site::default()->id]))->assertForbidden();
+    }
+
+    public function test_a_template_and_a_page_never_take_each_others_address(): void
+    {
+        $template = PageTemplates::create('About');
+        $page = Page::factory()->published()->create(['title' => 'About']);
+        $contact = Page::factory()->published()->create(['title' => 'Contact']);
+        $other = PageTemplates::create('Contact');
+
+        $this->assertSame('about', $template->fresh()->slug);
+        $this->assertSame('about', $page->fresh()->slug);
+        $this->assertSame('contact', $other->fresh()->slug);
+        $this->assertTrue(Page::slugIsAvailable('about', except: $page->id));
+        $this->get('/about')->assertOk();
+        $this->get('/contact')->assertOk();
+
+        // Templates among themselves still differ.
+        $this->assertSame('about-1', PageTemplates::create('About')->fresh()->slug);
+    }
+
+    public function test_the_editor_offers_no_publish_for_a_template_or_a_page_with_nothing_to_publish(): void
+    {
+        $this->actingAs($this->userWithRole('Super Admin'));
+        $template = PageTemplates::create('Campaign');
+        $draft = Page::factory()->create();
+
+        $this->assertStringNotContainsString("mountAction('publishChanges'", Livewire::test(DesignPageTemplate::class, ['record' => $template->getRouteKey()])->html());
+        $this->assertStringNotContainsString("mountAction('publishChanges'", Livewire::test(DesignPage::class, ['record' => $draft->getRouteKey()])->html());
     }
 
     public function test_the_new_page_prompt_has_no_picker_without_templates(): void
@@ -168,5 +215,17 @@ class PageTemplatesTest extends TestCase
         Livewire::actingAs($this->userWithRole('Editor'))
             ->test(ListPages::class)
             ->assertActionHidden(TestAction::make('createTemplateFromPage')->table($page));
+    }
+
+    /**
+     * The "Start from" field of the "New page" dialog, drawn: the dialog's content isn't part of
+     * the page's own HTML in a test.
+     */
+    protected function pickerHtml(): string
+    {
+        View::share('errors', new ViewErrorBag);
+        $list = Livewire::test(ListPages::class)->mountAction('create');
+
+        return (fn () => $this->getMountedActionSchema(0))->call($list->instance())->getComponent('template')->toHtml();
     }
 }

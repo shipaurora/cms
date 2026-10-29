@@ -96,8 +96,10 @@ class PageObserver
             $tidy = Str::slug((string) $slug);
             $tidy = Page::isReservedSlug($tidy) ? $tidy.'-page' : $tidy;
 
-            if (($tidy !== $slug || $placed) && ! Page::slugIsAvailable($tidy, $locale, $page->getKey(), $page->parent_id)) {
-                $tidy = Page::uniqueSlug($tidy, $locale, $page->getKey(), $page->parent_id);
+            // Among its own kind: a page's address among pages, a template's among templates
+            // (Page never sees a template, PageTemplate never a page), so the two never clash.
+            if (($tidy !== $slug || $placed) && ! $page::slugIsAvailable($tidy, $locale, $page->getKey(), $page->parent_id)) {
+                $tidy = $page::uniqueSlug($tidy, $locale, $page->getKey(), $page->parent_id);
             }
 
             $page->setTranslation('slug', $locale, $tidy);

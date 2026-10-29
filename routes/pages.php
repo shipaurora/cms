@@ -26,6 +26,10 @@ Route::middleware('web')->group(function (): void {
     Route::get('preview/{previewPage}', [PageController::class, 'preview'])
         ->middleware('signed')
         ->name('pages.preview');
+    // An empty page in the site's default layout: the "Blank" card when starting a new page.
+    Route::get('preview/blank/{site}', [PageController::class, 'blankPreview'])
+        ->middleware('signed')
+        ->name('pages.preview-blank');
 
     // Catch-all for pages. Dots are allowed so redirects can catch old file addresses
     // (/brochure.pdf); pages themselves have none. The application's own paths are never

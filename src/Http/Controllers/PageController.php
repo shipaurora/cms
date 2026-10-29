@@ -7,6 +7,7 @@ use Aurora\Models\Layout;
 use Aurora\Models\Page;
 use Aurora\Models\PageRevision;
 use Aurora\Models\Redirect;
+use Aurora\Models\Site;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\Layouts;
@@ -18,6 +19,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View as ViewFacade;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -99,6 +101,18 @@ class PageController
         }
 
         return $this->render($page, preview: ! $request->boolean('embed'), embedded: $request->boolean('embed'), signed: true);
+    }
+
+    /**
+     * An empty page in the site's default layout: header, menus and footer around nothing.
+     * The "Blank" card's thumbnail when starting a new page (PageTemplatePicker).
+     */
+    public function blankPreview(Site $site): Response
+    {
+        CurrentSite::set($site);
+        app()->setLocale(ContentLocale::current());
+
+        return $this->render(Page::standIn(__('New page'), new HtmlString(''), layout: Layout::default()), embedded: true, signed: true);
     }
 
     public function sitemap(): Response
