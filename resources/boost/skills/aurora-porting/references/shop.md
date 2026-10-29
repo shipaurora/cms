@@ -39,9 +39,37 @@ A dry run that resolves at a stable version (`composer show <package> -a`, no `a
 - **On the website:** product and collection blocks of the site's own, reading the Storefront API (cached), a product page per product on the site's own route (`/produkter/{handle}`, in the sitemap, with Product structured data), and a cart on the Cart API (`cartCreate`, `cartLinesAdd`, the cart id in the session) that sends people to Shopify's checkout (`cart.checkoutUrl`, fetched when they press the button). For a site with only a few products, Shopify's Storefront Web Components in a block are the low-code alternative, still on the website.
 - **Shopify's own storefront out of the way:** the headless storefront from Shopify's Headless channel; the checkout on a subdomain (`checkout.example.no`, in Settings › Domains, its target the Online Store channel), styled with the site's logo and colours. Send people who still reach the store's Shopify address (old links, `*.myshopify.com`) to the website with Shopify's redirect theme, so products are only found there. Never turn on the Online Store password to hide it: it blocks the headless checkout too.
 - **Customer accounts:** when customers sign in (order history, addresses), do it on the website with the Customer Account API (OAuth with PKCE, from the Headless channel; names and emails need Shopify's protected customer data approval), and pass the signed-in customer on to the checkout (the cart's buyer identity). Shopify's hosted account pages, on `account.example.no`, are the simpler choice when the site needs no account pages of its own.
-- **In Aurora's admin (thin):** a `shopify_products` table kept current by Shopify's `products/create`, `products/update` and `products/delete` webhooks plus a nightly full sync (webhooks can arrive out of order or not at all), and a read-only resource of it under a "Shop" group whose products open in Shopify's admin to be edited. Blocks pick products from it (`Select` with search). Recent orders read-only, linking to Shopify. Never rebuild orders, refunds, stock or discounts: Shopify does them.
+- **In Aurora's admin (thin):** a `shopify_products` table (and `shopify_collections`, from the `collections/*` webhooks, for the collection blocks) kept current by Shopify's `products/create`, `products/update` and `products/delete` webhooks plus a nightly full sync (webhooks can arrive out of order or not at all), and a read-only resource of it under a "Shop" group whose products open in Shopify's admin to be edited. Blocks pick products from it (`Select` with search). Recent orders read-only, linking to Shopify. Never rebuild orders, refunds, stock or discounts: Shopify does them.
 - **Webhooks:** verify `X-Shopify-Hmac-SHA256` (HMAC-SHA256 of the raw body with the app's secret), skip a `X-Shopify-Webhook-Id` already handled, answer within five seconds and do the work in a queued job.
 - **Customers:** with a customer register of the site's own ([customers.md](customers.md)), `customers/create` and `customers/update` webhooks update it by email, with the newsletter consent Shopify recorded (`emailMarketingConsent`), never assumed.
+
+### Blocks for the shop
+
+Once Shopify is connected, **offer to make the shop's blocks**, so editors place products on any page in the visual editor the way they place everything else. List these and ask which the site needs (from the old site's templates when porting), then make each with `php artisan aurora:make-block`:
+
+| Block | Editors choose | It shows |
+| --- | --- | --- |
+| Product card | A product | Image, title, price (and the sale price), a link to its page, an add-to-cart button for a product without variants |
+| Product grid | A collection, how many, the order (Shopify's, newest, price), columns | A grid of product cards; "See all" to the collection's page |
+| Hand-picked products | Products, in order | The same cards, the editor's own selection (a campaign, "our favourites") |
+| Featured product | A product, image left or right | Large: images, description, the variant choices and add to cart; for a landing page |
+| Collection list | Collections | A card per collection, with its image and a link to its page |
+| Product carousel | A collection or hand-picked products | Cards in a row that scrolls |
+| Add to cart | A product and variant, a label | Just the button, for a page about one product |
+
+The cart itself (an icon with the count in the header, a cart drawer or page) is the layout's and a route's, not a block.
+
+How each is made:
+- **Picking products:** `Select::make('product')->options(fn (): array => ShopifyProduct::query()->orderBy('title')->pluck('title', 'handle')->all())->searchable()` from the product cache (collections likewise), never a free text field, so the editor and AI tools choose from what exists (`aiHints()`: "choose product from its options; never invent products"). Store the handle (or GID), not the product's text: the block shows what Shopify has now.
+- **Showing them:** the view reads the Storefront API through one class of the site's own (`App\Shop\Storefront`: `product($handle)`, `collection($handle, $first, $sortKey)`), in the language and market being shown (`@inContext(language: NB, country: NO)` from `ContentLocale::current()`), cached for a few minutes (`Cache::remember`, keyed by handle, language and query; the `products/update` webhook forgets them). Prices from Shopify, formatted for the language (`Number::currency($amount, $currencyCode, locale: …)`); a product that's sold out says so and doesn't offer the button.
+- **Images:** Shopify's CDN with its size parameters (`url(transform: {maxWidth: 800})`, `srcset` for a few widths), `alt` from Shopify's `altText`. Not copied into Aurora's media library.
+- **Add to cart:** a `<form method="post">` to the site's own cart route (`cartLinesAdd` with the variant id), with Alpine updating the header's count when JavaScript is there; it works without. While editing (`is_editing()`), the button does nothing.
+- **Editable around them:** the block's own heading and intro text as `editables()`, colours from `brand-*` and `accent-*`, card style through `Fields::tone()` (`aurora-development`).
+- **Defaults and screenshots:** `defaults()` take the first products and collection from the cache, so a new block shows real products straight away, and its screenshot (`aurora:block-previews`) does too. A product that's gone draws nothing on the website and a hint while editing; never an error.
+- **Search engines:** product cards link to the site's own product pages, and the product page (a route, see above) carries the Product structured data, not the blocks.
+- **Tests:** with Shopify's API faked (`Http::fake()` for the GraphQL endpoint): each block renders a product, a sold-out product shows no button, and a missing product draws nothing.
+
+The same blocks fit a shop engine inside Aurora: only `App\Shop\Storefront` changes, reading the engine's models instead of Shopify.
 
 ## A shop engine inside Aurora (Vanilo now; Lunar or Shopper when they install)
 
