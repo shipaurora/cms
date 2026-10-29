@@ -39,6 +39,23 @@ class PageObserver
             throw ValidationException::withMessages(['page' => __(':name is editing this page right now. Try again when they’re done, or take over.', ['name' => EditLocks::holder($page)['name']])]);
         }
 
+        // A template is never on the website, whatever it's saved with: a draft, at the top, never
+        // the homepage, out of search, and made from no template itself.
+        if ($page->is_template) {
+            $page->forceFill([
+                'status' => PageStatus::Draft,
+                'is_homepage' => false,
+                'parent_id' => null,
+                'template_id' => null,
+                'published_at' => null,
+                'unpublish_at' => null,
+                'noindex' => true,
+                'exclude_from_search' => true,
+                'members_only' => false,
+                'password' => null,
+            ]);
+        }
+
         // A live page's new content waits in its working copy (when people or AI tools save it).
         WorkingCopies::intercept($page);
 
@@ -161,7 +178,7 @@ class PageObserver
      */
     public function deleted(Page $page): void
     {
-        if (! $page->isForceDeleting()) {
+        if (! $page->isForceDeleting() && ! $page->is_template) {
             PageDeleted::dispatch($page);
         }
     }
@@ -175,13 +192,12 @@ class PageObserver
 
     public function saved(Page $page): void
     {
-        // Back at an address a redirect sends to this page from (renamed back, say): the page
-        // answers there now, and the redirect would only point it at itself.
-        if ($page->wasChanged('slug', 'parent_id') || $page->wasRecentlyCreated) {
-            Redirect::query()
-                ->where('page_id', $page->getKey())
-                ->whereIn('from_path', array_map(fn (string $locale): string => Redirect::normalisePath($page->path($locale)), array_keys(ContentLocale::all())))
-                ->delete();
+        // A template is never on the website: no events, no addresses of its own to free, never
+        // the homepage. Its revisions and the files it uses are kept like a page's.
+        if ($page->is_template) {
+            $this->keepTrack($page);
+
+            return;
         }
 
         // For the app's listeners and webhooks (Aurora\Events). A save that only kept a live
@@ -204,6 +220,15 @@ class PageObserver
         // A redirect from one of the page's own addresses would loop.
         Redirect::query()->whereIn('from_path', collect(ContentLocale::all())->keys()->map(fn (string $locale): string => $page->path($locale)))->delete();
 
+        $this->keepTrack($page);
+    }
+
+    /**
+     * The files a page uses (so the library warns before deleting them), and a revision of
+     * each change.
+     */
+    protected function keepTrack(Page $page): void
+    {
         if ($page->wasRecentlyCreated || $page->wasChanged(['blocks', 'og_image'])) {
             AssetLibrary::syncUsages($page, AssetLibrary::pageValues($page));
         }

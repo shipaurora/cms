@@ -4,6 +4,7 @@ use Aurora\Http\Controllers\PageController;
 use Aurora\Http\Middleware\CachePages;
 use Aurora\Http\Middleware\RestrictWebsiteAccess;
 use Aurora\Models\Page;
+use Aurora\Models\PageTemplate;
 use Illuminate\Support\Facades\Route;
 
 // The website's pages, registered after the app's own routes (AuroraServiceProvider), so a
@@ -20,7 +21,8 @@ Route::middleware('web')->group(function (): void {
     Route::get('robots.txt', [PageController::class, 'robots'])->name('robots');
 
     // Signed, so it may show any page: drafts, scheduled pages, pages in the trash, on any site.
-    Route::bind('previewPage', fn (string $id): Page => Page::acrossSites()->withTrashed()->findOrFail($id));
+    // A page, or a page template (its thumbnail in the template picker, its preview in the editor).
+    Route::bind('previewPage', fn (string $id): Page => Page::acrossSites()->withTrashed()->find($id) ?? PageTemplate::acrossSites()->findOrFail($id));
     Route::get('preview/{previewPage}', [PageController::class, 'preview'])
         ->middleware('signed')
         ->name('pages.preview');

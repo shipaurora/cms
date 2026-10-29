@@ -3,12 +3,14 @@
 namespace Aurora\Filament\Resources\Pages\Tables;
 
 use Aurora\Enums\PageStatus;
+use Aurora\Filament\Forms\Components\PageTemplatePicker;
 use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
 use Aurora\Models\User;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\EditLocks;
+use Aurora\Support\PageTemplates;
 use Aurora\Support\PeoplePicker;
 use Aurora\Support\UserBadge;
 use Filament\Actions\Action;
@@ -176,7 +178,7 @@ class PagesTable
                         ->hidden(fn (Page $record): bool => $record->is_homepage || $record->trashed())
                         ->modalHeading(fn (Page $record): string => __('New page under “:page”', ['page' => $record->title]))
                         ->modalIcon('phosphor-file-plus')
-                        ->modalWidth('md')
+                        ->modalWidth(fn (): string => PageTemplates::exist() ? '4xl' : 'md')
                         ->modalSubmitActionLabel(__('Continue'))
                         ->schema([
                             TextInput::make('title')
@@ -185,8 +187,9 @@ class PagesTable
                                 ->required()
                                 ->maxLength(255)
                                 ->autofocus(),
+                            PageTemplatePicker::make('template')->label(__('Start from')),
                         ])
-                        ->action(fn (array $data, Page $record, $livewire) => $livewire->redirect(PageResource::getUrl('create', ['title' => $data['title'], 'parent' => $record->getKey()]), navigate: true)),
+                        ->action(fn (array $data, Page $record, $livewire) => $livewire->redirect(PageResource::getUrl('create', array_filter(['title' => $data['title'], 'parent' => $record->getKey(), 'template' => $data['template'] ?? null])), navigate: true)),
                     DuplicatePageAction::make(),
                     DeleteAction::make()->modalDescription(fn (Page $record): ?string => $record->is_homepage ? PageResource::withoutHomepage($record) : null),
                     RestoreAction::make(),

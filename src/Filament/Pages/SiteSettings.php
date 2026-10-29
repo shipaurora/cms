@@ -9,6 +9,7 @@ use Aurora\Filament\Concerns\ManagesBlockPreviews;
 use Aurora\Filament\Concerns\ManagesImageFormats;
 use Aurora\Filament\Concerns\ManagesLayouts;
 use Aurora\Filament\Concerns\ManagesMenuLocations;
+use Aurora\Filament\Concerns\ManagesPageTemplates;
 use Aurora\Filament\Concerns\ManagesWebhooks;
 use Aurora\Filament\Concerns\TranslatesPageLabels;
 use Aurora\Filament\Forms\Components\AssetPicker;
@@ -91,6 +92,7 @@ class SiteSettings extends Page implements HasSchemas
     use ManagesImageFormats;
     use ManagesLayouts;
     use ManagesMenuLocations;
+    use ManagesPageTemplates;
     use ManagesWebhooks;
     use TranslatesPageLabels;
 
@@ -197,7 +199,7 @@ class SiteSettings extends Page implements HasSchemas
      */
     protected const PAGES = [
         'website' => ['label' => 'Website', 'icon' => 'phosphor-browser', 'tabs' => ['branding', 'publishing', 'shortcodes'], 'saves' => true],
-        'templates' => ['label' => 'Templates', 'icon' => 'phosphor-layout', 'tabs' => ['layouts', 'blocks', 'menu-locations'], 'saves' => false],
+        'templates' => ['label' => 'Templates', 'icon' => 'phosphor-layout', 'tabs' => ['layouts', 'page-templates', 'blocks', 'menu-locations'], 'saves' => false],
         'media' => ['label' => 'Media', 'icon' => 'phosphor-image', 'tabs' => ['media-library', 'image-formats'], 'saves' => true],
         'languages-sites' => ['label' => 'Languages & sites', 'icon' => 'phosphor-translate', 'tabs' => ['languages', 'sites'], 'saves' => false],
         'search-seo' => ['label' => 'Search & SEO', 'icon' => 'phosphor-magnifying-glass', 'tabs' => ['search', 'seo'], 'saves' => false],
@@ -431,6 +433,13 @@ class SiteSettings extends Page implements HasSchemas
                     ->description(__('How pages are drawn on the website. Each page picks one; new pages start with the default.'))
                     ->schema(fn (): array => $this->layoutRows()),
             ]),
+            // The pages new pages can start from (Aurora\Support\PageTemplates), for those who manage them.
+            'page-templates' => static::managesPageTemplates() ? Tab::make(__('Page templates'))->icon('phosphor-files')->schema([
+                Section::make(__('Page templates'))
+                    ->icon('phosphor-files')
+                    ->description(__('Pages new pages can start from: their layout and blocks, ready to fill in. Each is designed in the visual editor.'))
+                    ->schema(fn (): array => $this->pageTemplateRows()),
+            ]) : null,
             // How the media library shows its folders (Aurora\Filament\Resources\Assets\Pages\ListAssets).
             'media-library' => Tab::make(__('Media library'))->icon('phosphor-images')->schema([
                 Section::make(__('Media library'))

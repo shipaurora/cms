@@ -103,6 +103,7 @@ class Page extends Model implements MenuPanelable
             'working_copy_at' => 'datetime',
             'indexed_at' => 'datetime',
             'is_homepage' => 'boolean',
+            'is_template' => 'boolean',
             'noindex' => 'boolean',
             'exclude_from_search' => 'boolean',
             'members_only' => 'boolean',
@@ -201,6 +202,37 @@ class Page extends Model implements MenuPanelable
     public static function storesSettings(): bool
     {
         return once(fn (): bool => Schema::hasColumn((new static)->getTable(), 'settings'));
+    }
+
+    /**
+     * Page templates (is_template, the PageTemplate model) are never on the website: the
+     * website, its APIs, search, menus, the page list and AI apps never see them, so pages
+     * never include them.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('template', function (Builder $query): void {
+            if (static::storesTemplates()) {
+                $query->where($query->qualifyColumn('is_template'), false);
+            }
+        });
+    }
+
+    /**
+     * Whether pages have their template columns yet: a site that updated Aurora without
+     * migrating doesn't, and has no templates until it does.
+     */
+    public static function storesTemplates(): bool
+    {
+        return once(fn (): bool => Schema::hasColumn((new static)->getTable(), 'is_template'));
+    }
+
+    /**
+     * The template the page was made from, if it still exists.
+     */
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(PageTemplate::class, 'template_id');
     }
 
     /**

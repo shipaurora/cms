@@ -4,11 +4,14 @@ namespace Aurora\Filament\Resources\Pages\Pages;
 
 use Aurora\Enums\PageStatus;
 use Aurora\Filament\Concerns\ManagesLayouts;
+use Aurora\Filament\Concerns\ManagesPageTemplates;
 use Aurora\Filament\Concerns\WithoutBreadcrumbs;
+use Aurora\Filament\Forms\Components\PageTemplatePicker;
 use Aurora\Filament\Resources\Pages\Actions\ReindexAllAction;
 use Aurora\Filament\Resources\Pages\Actions\SearchPagesAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
+use Aurora\Support\PageTemplates;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\TextInput;
@@ -18,7 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ListPages extends ListRecords
 {
-    use ManagesLayouts, WithoutBreadcrumbs;
+    use ManagesLayouts, ManagesPageTemplates, WithoutBreadcrumbs;
 
     protected static string $resource = PageResource::class;
 
@@ -33,7 +36,8 @@ class ListPages extends ListRecords
                 ->authorize(fn (): bool => PageResource::canCreate())
                 ->modalHeading(__('New page'))
                 ->modalIcon('phosphor-file-plus')
-                ->modalWidth('md')
+                // Wider when there are page templates to start from.
+                ->modalWidth(fn (): string => PageTemplates::exist() ? '4xl' : 'md')
                 ->modalSubmitActionLabel(__('Continue'))
                 ->schema([
                     TextInput::make('title')
@@ -42,11 +46,14 @@ class ListPages extends ListRecords
                         ->required()
                         ->maxLength(255)
                         ->autofocus(),
+                    PageTemplatePicker::make('template')->label(__('Start from')),
                 ])
-                ->action(fn (array $data) => $this->redirect(PageResource::getUrl('create', ['title' => $data['title']]), navigate: true)),
+                ->action(fn (array $data) => $this->redirect(PageResource::getUrl('create', array_filter(['title' => $data['title'], 'template' => $data['template'] ?? null])), navigate: true)),
             ActionGroup::make([
                 // The layouts pages are drawn with (those who manage settings).
                 $this->layoutsAction(),
+                // The templates new pages can start from (those who manage them).
+                $this->pageTemplatesAction(),
                 // Try a search across the site's pages (only those who manage search).
                 SearchPagesAction::make(),
                 // Every page of the site in search again: after a change of search driver, say.

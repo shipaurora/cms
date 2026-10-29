@@ -103,6 +103,8 @@ class Permissions
                     'force-delete Page' => ['Delete permanently', 'Remove trashed pages for good.'],
                     // No role has it by default: only Super Admins (who have every permission).
                     'manage-search Page' => ['Manage search', 'See what search indexes for a page, and index pages again.'],
+                    // No role has it by default: who designs templates is the site's to decide.
+                    'manage-templates Page' => ['Manage page templates', 'Add, design and delete the templates new pages can start from.'],
                 ],
             ],
             'Media' => [

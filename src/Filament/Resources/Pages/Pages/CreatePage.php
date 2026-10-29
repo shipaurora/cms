@@ -9,8 +9,9 @@ use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
+use Aurora\Models\PageTemplate;
 use Aurora\Support\ContentLocale;
-use CarlJanzell\FilamentPageBuilder\Support\BlockTree;
+use Aurora\Support\PageTemplates;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
 use LaraZeus\SpatieTranslatable\Resources\Pages\CreateRecord\Concerns\Translatable;
@@ -34,11 +35,28 @@ class CreatePage extends CreateRecord
     protected static string $resource = PageResource::class;
 
     /**
+     * The page template it starts from (?template=…, from the "New page" prompt), if any.
+     */
+    public ?string $templateId = null;
+
+    /**
      * Opened from the "New page" prompt (?title=…): the title, and the address made from it,
      * in the site's default language; from "Create subpage" (&parent=…) under that page.
      */
     protected function afterFill(): void
     {
+        // From a template: its layout and the layout's fields, to see and change before creating;
+        // its blocks come with it when the page is created.
+        if (($template = PageTemplate::query()->find(request()->query('template'))) !== null) {
+            $this->templateId = $template->getKey();
+
+            $this->form->fill([
+                ...$this->form->getRawState(),
+                'layout_id' => $template->layout_id ?? $this->form->getRawState()['layout_id'] ?? null,
+                ...(Page::storesSettings() ? ['settings' => $template->settings ?? []] : []),
+            ]);
+        }
+
         $title = request()->query('title');
 
         if (! is_string($title) || blank($title)) {
@@ -61,11 +79,19 @@ class CreatePage extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $template = Page::query()->find($this->data['start_from'] ?? null);
+        // A page template's blocks and their translations (the layout came with the form), or
+        // another page's ("Start from").
+        $template = $this->templateId !== null ? PageTemplate::query()->find($this->templateId) : null;
+        $from = $template ?? Page::query()->find($this->data['start_from'] ?? null);
+
+        if ($from !== null) {
+            $content = PageTemplates::content($from);
+            $data['blocks'] = $content['blocks'];
+            $data['block_translations'] = $content['block_translations'];
+        }
 
         if ($template !== null) {
-            // Fresh ids: two pages sharing block ids would confuse the canvas's history.
-            $data['blocks'] = array_map(fn (array $block): array => $block, $this->remintIds(BlockTree::hydrate($template->blocks ?? [])));
+            $data['template_id'] = $template->getKey();
         }
 
         return $data;
@@ -80,21 +106,6 @@ class CreatePage extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return PageResource::getUrl('edit', ['record' => $this->getRecord()]);
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $blocks
-     * @return array<int, array<string, mixed>>
-     */
-    protected function remintIds(array $blocks): array
-    {
-        $map = collect($blocks)->mapWithKeys(fn (array $block): array => [$block['id'] => (string) Str::uuid()])->all();
-
-        return array_map(fn (array $block): array => [
-            ...$block,
-            'id' => $map[$block['id']],
-            'parent' => $block['parent'] !== null ? ($map[$block['parent']] ?? null) : null,
-        ], $blocks);
     }
 
     protected function getHeaderActions(): array
