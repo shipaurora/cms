@@ -46,6 +46,8 @@ List what the site has, with counts: `php please` is Statamic's CLI, and its fil
 | Sites (multi-site, languages) | `resources/sites.yaml` | Aurora sites and languages (Settings › Languages); localized entries become the pages' translations |
 | Redirects of an addon, changed addresses | — | `Aurora\Models\Redirect` |
 
+A shop (Statamic Cargo, formerly Simple Commerce), a customer register (Statamic users as members, a customers collection) or newsletters (a Mailchimp or Campaign Monitor addon) have no counterpart in Aurora: list what the site uses of each, with counts, and ask the user what it becomes before going on, offering what `aurora-porting` recommends ("Shops, customers and newsletters").
+
 ## 2. Rebuild the design
 
 - **Layouts:** one Aurora layout per Statamic layout or template that frames a page differently. Start from the published standard layout (`resources/views/vendor/aurora/layouts/standard.blade.php`); move the old head, header and footer into it; `<x-aurora::blocks :page="$page" />` stands where `{{ template_content }}` (or the content field's loop) was.

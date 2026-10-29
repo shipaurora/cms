@@ -45,7 +45,7 @@ Netflex keeps half of the site in the API and half in the repository; list both,
 | Languages | a page tree per language, its root's `lang` (an `/en/` folder) | Aurora languages (Settings › Languages), the pages' translations |
 | Forms | controllers and views of the site's own (Netflex has no forms module) | Aurora forms (Content › Forms) and a form block (`aurora-development`, references/forms.md) |
 
-Commerce (orders, carts), newsletters, signups, customers and Netflex admin extensions have no counterpart in Aurora: list what the site uses of them and ask the user what each becomes before going on. Leave out debug and test routes (`/-/…` and the like) rather than port them.
+Commerce (Netflex Commerce: products, orders, carts), customers, newsletters and signups have no counterpart in Aurora: list what the site uses of each, with counts, and ask the user what it becomes before going on, offering what `aurora-porting` recommends ("Shops, customers and newsletters": Shopify or a shop engine in Aurora's admin, a customer register of the site's own, campaigns sent through Brevo or Mailchimp). Netflex admin extensions: list them and ask too. Leave out debug and test routes (`/-/…` and the like) rather than port them.
 
 ## 2. Rebuild the design
 

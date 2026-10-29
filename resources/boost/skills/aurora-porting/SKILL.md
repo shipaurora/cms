@@ -1,6 +1,6 @@
 ---
 name: aurora-porting
-description: "Port an existing website (static HTML, another CMS such as WordPress, or a Laravel app) to Aurora CMS: decide what becomes a page layout, a block, a settings tab or a model of the site's own with its Filament resource, then rebuild it and bring the content, files, menus and old addresses across."
+description: "Port an existing website (static HTML, another CMS such as WordPress, or a Laravel app) to Aurora CMS: decide what becomes a page layout, a block, a settings tab or a model of the site's own with its Filament resource, then rebuild it and bring the content, files, menus and old addresses across. Covers what to offer for a shop (Shopify, Vanilo, Lunar), a customer register and newsletters (Brevo or Mailchimp), which Aurora doesn't have."
 metadata:
   author: Aurora
 ---
@@ -21,6 +21,7 @@ List, from the old site's templates and its data:
 - **Forms**: their fields and who gets the submissions.
 - **Files**: images and documents, with their alt text and credits.
 - **Addresses**: every URL that has visitors or links pointing at it, and the languages.
+- **A shop, customers, newsletters**: products and orders, a customer or member register, newsletter sign-ups and campaigns. Aurora has none of them: see section 4 before going on.
 
 ## 2. Decide what each one becomes
 
@@ -172,7 +173,19 @@ A record that's deleted makes its block draw nothing on the site and a hint in t
 
 The same pattern fits products, events, offices and jobs. Use `HasPublishing` (and `Publishing::section()` in the resource) for records that go live and end on dates, as events and job openings do.
 
-## 4. Bring the content across
+## 4. Shops, customers and newsletters
+
+Aurora has no shop, no customer register and no newsletters. When the old site has any of them, list what it uses of each, with counts, and **ask the user what it becomes** before building anything. Offer:
+
+| On the old site | Recommend | Read |
+| --- | --- | --- |
+| A shop (products, carts, orders, payments) | Shopify for the shop, the website and product pages on Aurora, with a thin product and order layer in Aurora's admin. In Aurora's own admin instead: Vanilo now, Lunar or Shopper once they install beside Aurora (check first). Or keep the old shop, or a small shop of the site's own for a few products | [references/shop.md](references/shop.md) |
+| Customers, members, contacts | A `Customer` model of the site's own, shaped by the old data, with its migration, Filament resource and import | [references/customers.md](references/customers.md) |
+| Newsletters | Campaigns built in Aurora's admin with email blocks in the visual editor, lists of the site's customers, scheduled by Aurora and sent by Brevo (or Mailchimp) | [references/newsletters.md](references/newsletters.md) |
+
+They hang together: newsletters are sent to lists of the site's customers, and a shop's customers are linked to them. Build customers first when the site needs more than one. Each is the site's own code, never a change to Aurora.
+
+## 5. Bring the content across
 
 Write the import as a seeder (or an artisan command for a big site) that can run again without making doubles:
 
@@ -183,7 +196,7 @@ Write the import as a seeder (or an artisan command for a big site) that can run
 - **Old addresses**: a `Redirect` for each address that changes, to its new page.
 - Keep the site's own content in its seeders, never in Aurora (`aurora:install` offers to run them).
 
-## 5. Check it
+## 6. Check it
 
 - Every block has `defaults()` that look finished, and a screenshot (`php artisan aurora:block-previews`, then save each to `resources/block-previews/{type}.webp`).
 - Each page looks as it did on the old site, on the website and in the visual editor's canvas; editing a text on the canvas works.
