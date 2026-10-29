@@ -16,6 +16,14 @@ class DesignPageTemplate extends DesignPage
 {
     protected static string $resource = PageTemplateResource::class;
 
+    /**
+     * A template is never published: nothing it saves waits to go live.
+     */
+    public function hasUnpublishedChanges(): bool
+    {
+        return false;
+    }
+
     public function exitUrl(): ?string
     {
         return SiteSettings::canAccess()

@@ -127,8 +127,11 @@
                     {{ __('page-builder::chrome.preview') }}
                 </x-filament::button>
 
-                {{-- Aurora: publish what's saved, without leaving the editor. --}}
-                {{ $this->publishChangesAction }}
+                {{-- Aurora: publish what's saved, without leaving the editor. Only when there's something
+                     to publish: an action drawn in a view is drawn whether or not it's visible. --}}
+                @if ($this->publishChangesAction->isVisible())
+                    {{ $this->publishChangesAction }}
+                @endif
 
                 <x-filament::button
                     wire:click="save"
