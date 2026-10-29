@@ -9,17 +9,16 @@ use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\RefreshesFromAssistant;
 use Aurora\Filament\Concerns\SavesFromHeader;
+use Aurora\Filament\Resources\Pages\Actions\CreateTemplateFromPageAction;
 use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
 use Aurora\Filament\Resources\Pages\Actions\OpenVisualEditorAction;
 use Aurora\Filament\Resources\Pages\Actions\SearchIndexAction;
 use Aurora\Filament\Resources\Pages\PageResource;
-use Aurora\Filament\Resources\PageTemplates\PageTemplateResource;
 use Aurora\Models\Page;
 use Aurora\Support\ContentLocale;
 use Aurora\Support\CurrentSite;
 use Aurora\Support\EditLocks;
 use Aurora\Support\PageRedirects;
-use Aurora\Support\PageTemplates;
 use Aurora\Support\WorkingCopies;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -27,7 +26,6 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Callout;
@@ -382,28 +380,7 @@ class EditPage extends EditRecord
                 $this->discardChangesAction()->label(__('Discard unpublished changes')),
                 DuplicatePageAction::make(),
                 // A page template made from this page as it is now, for new pages to start from.
-                Action::make('saveAsPageTemplate')
-                    ->label(__('Save as page template'))
-                    ->icon('phosphor-files')
-                    ->visible(fn (): bool => Page::storesTemplates() && auth()->user()->can('manage-templates Page'))
-                    ->modalHeading(__('Save as page template'))
-                    ->modalDescription(__('New pages can start from it: this page’s layout and blocks, ready to fill in. Changing either later doesn’t change the other.'))
-                    ->modalIcon('phosphor-files')
-                    ->modalWidth('lg')
-                    ->fillForm(fn (): array => ['name' => $this->record->title])
-                    ->schema([
-                        TextInput::make('name')->label(__('Name'))->required()->maxLength(80),
-                        TextInput::make('description')->label(__('Description'))->helperText(__('Shown with the template when starting a new page.'))->maxLength(160),
-                    ])
-                    ->modalSubmitActionLabel(__('Save as template'))
-                    ->action(function (array $data): void {
-                        $template = PageTemplates::fromPage($this->record, $data['name'], $data['description'] ?? null);
-                        Notification::make()
-                            ->title(__('Saved “:name” as a page template', ['name' => $template->title]))
-                            ->actions([Action::make('design')->label(__('Design it'))->url(PageTemplateResource::getUrl('design', ['record' => $template]))])
-                            ->success()
-                            ->send();
-                    }),
+                CreateTemplateFromPageAction::make(),
                 // Search: what it knows about the page, and a box to try searches with.
                 SearchIndexAction::make(),
                 // Search: the page's text worked out anew and sent to the index.

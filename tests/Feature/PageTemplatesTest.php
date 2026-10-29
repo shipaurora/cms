@@ -141,7 +141,7 @@ class PageTemplatesTest extends TestCase
         $this->assertSame(1, PageTemplate::query()->count());
     }
 
-    public function test_a_page_is_saved_as_a_template(): void
+    public function test_a_template_is_created_from_a_page_in_its_menu_or_the_page_list(): void
     {
         $this->actingAs($this->userWithRole('Super Admin'));
         $page = Page::factory()->create([
@@ -150,12 +150,23 @@ class PageTemplatesTest extends TestCase
         ]);
 
         Livewire::test(EditPage::class, ['record' => $page->getRouteKey()])
-            ->callAction('saveAsPageTemplate', ['name' => 'Team page', 'description' => 'People, by department.']);
+            ->callAction('createTemplateFromPage', ['name' => 'Team page', 'description' => 'People, by department.']);
 
         $template = PageTemplate::query()->sole();
         $this->assertSame('Team page', $template->title);
         $this->assertSame('Meet the team', $template->blocks[0]['data']['text']);
         $this->assertNotSame('a', $template->blocks[0]['id']);
         $this->assertSame('Meet the team', $page->fresh()->blocks[0]['data']['text']);
+
+        // The same from the page's row in the page list.
+        Livewire::test(ListPages::class)
+            ->callAction(TestAction::make('createTemplateFromPage')->table($page), ['name' => 'Another team page']);
+
+        $this->assertSame(['Team page', 'Another team page'], PageTemplate::query()->orderBy('created_at')->get()->pluck('title')->all());
+
+        // Not for those who don't manage templates.
+        Livewire::actingAs($this->userWithRole('Editor'))
+            ->test(ListPages::class)
+            ->assertActionHidden(TestAction::make('createTemplateFromPage')->table($page));
     }
 }

@@ -4,6 +4,7 @@ namespace Aurora\Filament\Resources\Pages\Tables;
 
 use Aurora\Enums\PageStatus;
 use Aurora\Filament\Forms\Components\PageTemplatePicker;
+use Aurora\Filament\Resources\Pages\Actions\CreateTemplateFromPageAction;
 use Aurora\Filament\Resources\Pages\Actions\DuplicatePageAction;
 use Aurora\Filament\Resources\Pages\PageResource;
 use Aurora\Models\Page;
@@ -191,6 +192,7 @@ class PagesTable
                         ])
                         ->action(fn (array $data, Page $record, $livewire) => $livewire->redirect(PageResource::getUrl('create', array_filter(['title' => $data['title'], 'parent' => $record->getKey(), 'template' => $data['template'] ?? null])), navigate: true)),
                     DuplicatePageAction::make(),
+                    CreateTemplateFromPageAction::make(),
                     DeleteAction::make()->modalDescription(fn (Page $record): ?string => $record->is_homepage ? PageResource::withoutHomepage($record) : null),
                     RestoreAction::make(),
                 ]),

@@ -2178,7 +2178,7 @@
     "Visitors would go round in a circle: :addresses. Send this address somewhere that ends.": "Visitors would go round in a circle: :addresses. Send this address somewhere that ends.",
     "Page templates": "Page templates",
     "Pages new pages can start from: their layout and blocks, ready to fill in.": "Pages new pages can start from: their layout and blocks, ready to fill in.",
-    "No page templates yet. Make one here, or save a page as a template from its page.": "No page templates yet. Make one here, or save a page as a template from its page.",
+    "No page templates yet. Make one here, or from a page with “Create template from this page” in its menu.": "No page templates yet. Make one here, or from a page with “Create template from this page” in its menu.",
     ":count page made from it|:count pages made from it": ":count page made from it|:count pages made from it",
     "New page template": "New page template",
     "Design it in the visual editor next. New pages can start from it.": "Design it in the visual editor next. New pages can start from it.",
@@ -2193,14 +2193,15 @@
     "Delete page template": "Delete page template",
     "Pages new pages can start from: their layout and blocks, ready to fill in. Each is designed in the visual editor.": "Pages new pages can start from: their layout and blocks, ready to fill in. Each is designed in the visual editor.",
     "page template": "page template",
-    "Save as page template": "Save as page template",
     "New pages can start from it: this page’s layout and blocks, ready to fill in. Changing either later doesn’t change the other.": "New pages can start from it: this page’s layout and blocks, ready to fill in. Changing either later doesn’t change the other.",
-    "Save as template": "Save as template",
-    "Saved “:name” as a page template": "Saved “:name” as a page template",
     "Design it": "Design it",
     ":name (copy)": ":name (copy)",
     "Blank": "Blank",
     "An empty page, with the default layout.": "An empty page, with the default layout.",
     "Manage page templates": "Manage page templates",
-    "Add, design and delete the templates new pages can start from.": "Add, design and delete the templates new pages can start from."
+    "Add, design and delete the templates new pages can start from.": "Add, design and delete the templates new pages can start from.",
+    "Create template from this page": "Create template from this page",
+    "Create a template from “:title”": "Create a template from “:title”",
+    "Create template": "Create template",
+    "Created the page template “:name”": "Created the page template “:name”"
 }

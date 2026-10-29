@@ -58,7 +58,7 @@ trait ManagesPageTemplates
         $made = Page::query()->toBase()->selectRaw('template_id, count(*) as aggregate')->whereNotNull('template_id')->whereNull('deleted_at')->groupBy('template_id')->pluck('aggregate', 'template_id');
 
         return [
-            Text::make(__('No page templates yet. Make one here, or save a page as a template from its page.'))
+            Text::make(__('No page templates yet. Make one here, or from a page with “Create template from this page” in its menu.'))
                 ->color('gray')
                 ->visible($templates->isEmpty()),
             Group::make($templates->map(fn (PageTemplate $template): Flex => Flex::make([
