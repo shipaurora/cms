@@ -23,7 +23,7 @@ List, from the old site's templates and its data:
 - **Files**: images and documents, with their alt text and credits, and the image sizes the templates ask for (presets, thumbnails, resize parameters).
 - **Keys and accounts**: the services the old site uses with a key, token or password (storage such as AWS S3 or Hetzner's object storage, mail, Font Awesome Pro's npm token, maps, a captcha, analytics, a newsletter or payment provider), from its `.env`, `config/`, `.npmrc` and deploy settings.
 - **Icons**: the icon set the templates use (Font Awesome, another icon font, a sprite, inline SVGs), its version and whether it's Pro, and the icons editors chose in the content.
-- **Addresses**: every URL that has visitors or links pointing at it, and the languages.
+- **Addresses**: every URL that has visitors or links pointing at it, how they nest (`/services/web/design`), and the languages.
 - **A shop, customers, newsletters**: products and orders, a customer or member register, newsletter sign-ups and campaigns. Aurora has none of them: see section 4 before going on.
 
 ## 2. Decide what each one becomes
@@ -232,9 +232,17 @@ Write the import as a seeder (or an artisan command for a big site) that can run
 
 - **Files first**: `AssetLibrary::fromFile($path, ['id' => $uuid, 'title' => …, 'alt' => …, 'folder' => 'Team'])`, with an id made from the old file's path (`Str::uuid()` is new every run; a UUID v5 of the path is the same each time). Keep a map from old path to asset id for the records and pages that use them.
 - **Records**: `Employee::query()->updateOrCreate(['email' => …], [...])`, the photo set to its asset id.
-- **Pages**: `Page` records whose `blocks` are made with `BlockTreeBuilder::flatten()` from a nested tree of the new blocks, with each translation in `block_translations` (see "Importing content" in `aurora-development`). Blocks hold the ids of records and assets, never copies of their text.
+- **Pages**: `Page` records whose `blocks` are made with `BlockTreeBuilder::flatten()` from a nested tree of the new blocks, with each translation in `block_translations` (see "Importing content" in `aurora-development`). Blocks hold the ids of records and assets, never copies of their text. Each page at the address it had (below).
 - **Menus**: `Menu` and `MenuItem` records in the locations the layout draws, linking pages (`linkable`) rather than typed addresses, so they follow a renamed page.
 - **Old addresses**: a `Redirect` for each address that changes, to its new page.
+
+**Keep the addresses.** Every page keeps the address it had, nesting included, so links and search results keep working; a `Redirect` is for the few that can't. A page's address is its parents' slugs and its own (`/services/web/design`); a slug can't hold a `/`. So:
+
+- **Parents first.** Import the pages top-down: the parent, then its children with `parent_id` set to it, and so on (walk the old site's tree, or sort its addresses by depth). A page imported before its parent, or without `parent_id`, ends up at `/design` instead of `/services/web/design`.
+- **A parent the old site didn't have.** If `/services/web/design` existed but `/services` wasn't a page, the address still needs a `services` page above it. Ask the user: an overview page (its children listed) is usually what visitors expect; a draft page keeps the old behaviour, its own address answering 404 while its children are live (a page's status doesn't depend on its parent's).
+- **One slug, one page, per site and language.** Aurora finds a page by its address's last part, so two pages can't share a slug even under different parents (`/services/design` and `/work/design`). Give one another slug (`work-design`) and a `Redirect` from its old address, which wins over the page found by the same last part. List these clashes before importing.
+- **The old addresses' quirks:** a trailing slash or a `.html` (`/about.html`) becomes the plain address (`/about`) with a `Redirect` from the old form where it had links; capitals become lowercase. Each language's address uses that language's slug (`setTranslation('slug', $locale, …)`), under its prefix (`/en/…`).
+- **Check** after the import: each old address (from the old `sitemap.xml`, or the crawl of section 7) answers 200 at the same address, or redirects once to the right page; `Page::paths()` lists every new address in one go, to compare.
 - Keep the site's own content in its seeders, never in Aurora (`aurora:install` offers to run them).
 
 ## 6. Check it
