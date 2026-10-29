@@ -90,7 +90,7 @@ class AdminPanelProvider extends PanelProvider
                 ? Blade::render('<x-filament-panels::tenant-menu teleport />')
                 : '');
 
-        return $panel
+        $panel
             ->default()
             ->id('admin')
             ->path('admin')
@@ -306,5 +306,8 @@ class AdminPanelProvider extends PanelProvider
             // Settings → Security: no passkey, no admin (until one is added).
             ->authMiddleware([RequirePasskey::class])
             ->spa();
+
+        // The website's and packages' own plugins (AdminPanel::plugins()), after Aurora's.
+        return AdminPanel::registerPlugins($panel);
     }
 }

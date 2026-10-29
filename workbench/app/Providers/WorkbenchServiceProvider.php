@@ -44,6 +44,7 @@ use Workbench\App\Blocks\StepsBlock;
 use Workbench\App\Blocks\TabsBlock;
 use Workbench\App\Blocks\TeamMemberBlock;
 use Workbench\App\Blocks\TestimonialBlock;
+use Workbench\App\Filament\TagsPlugin;
 use Workbench\App\Filament\Widgets\FormsOverview;
 
 /**
@@ -54,12 +55,13 @@ use Workbench\App\Filament\Widgets\FormsOverview;
 class WorkbenchServiceProvider extends ServiceProvider
 {
     /**
-     * Its own dashboard widget, in register(): the admin panel takes the list while the app's
-     * providers boot.
+     * Its own dashboard widget and a package's plugin, in register(): the admin panel takes
+     * the lists while the app's providers boot.
      */
     public function register(): void
     {
         AdminPanel::widgets([FormsOverview::class]);
+        AdminPanel::plugins([fn (): TagsPlugin => TagsPlugin::make()]);
     }
 
     public function boot(): void

@@ -4,8 +4,10 @@ namespace Aurora\Support;
 
 use Aurora\Blocks\Blocks;
 use Closure;
+use Filament\Contracts\Plugin;
 use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Page;
+use Filament\Panel;
 use Filament\Resources\Pages\Page as ResourcePage;
 use Filament\Resources\Resource as FilamentResource;
 use Filament\Widgets\Widget;
@@ -14,13 +16,15 @@ use Symfony\Component\Finder\Finder;
 
 /**
  * The website's own screens in Aurora's admin: resources for its models (events, albums),
- * pages, dashboard widgets (its own or a package's), and the navigation groups they sit in, registered in a service provider's
- * register() method. Not boot(): the admin panel is built while the app's providers boot,
- * before the app's own boot() runs, and keeps the lists it finds then.
+ * pages, dashboard widgets (its own or a package's), Filament plugins, and the navigation
+ * groups they sit in, registered in a service provider's register() method. Not boot(): the
+ * admin panel is built while the app's providers boot, before the app's own boot() runs, and
+ * keeps the lists it finds then.
  *
  *     AdminPanel::discover(app_path('Filament/Resources'), 'App\Filament\Resources');
  *     AdminPanel::navigationGroup('Events', fn (): string => __('Events'));
  *     AdminPanel::widgets([UpcomingEvents::class]);
+ *     AdminPanel::plugins([fn (): Plugin => FilamentShopPlugin::make()->currency('NOK')]);
  *
  * The admin is per site (/admin/{site}/…): a website's resources show every site's records
  * unless they're registered perSite, for a model that belongs to a site (a site relation).
@@ -46,6 +50,11 @@ class AdminPanel
      * @var array<int, class-string<Widget>>
      */
     protected static array $widgets = [];
+
+    /**
+     * @var array<int, array{plugin: Plugin|Closure(): Plugin, perSite: bool}>
+     */
+    protected static array $plugins = [];
 
     /**
      * @var array<string, array{label: string|Closure|null, icon: ?string, after: string}>
@@ -89,6 +98,42 @@ class AdminPanel
     public static function widgets(array $widgets): void
     {
         static::$widgets = array_values(array_unique([...static::$widgets, ...$widgets]));
+    }
+
+    /**
+     * Filament plugins for the admin panel, added after Aurora's own: a package's screens, or
+     * the website's. Give a closure to configure one when the panel is built rather than now.
+     * The resources a plugin brings show every site's records, as resources() does, unless
+     * it's registered perSite, for plugins whose models belong to a site (a site relation).
+     *
+     * @param  array<int, Plugin|Closure(): Plugin>  $plugins
+     */
+    public static function plugins(array $plugins, bool $perSite = false): void
+    {
+        foreach ($plugins as $plugin) {
+            static::$plugins[] = ['plugin' => $plugin, 'perSite' => $perSite];
+        }
+    }
+
+    /**
+     * Adds the registered plugins to the panel. Filament registers a plugin's resources as
+     * it's added, so the ones each brings are known right after.
+     */
+    public static function registerPlugins(Panel $panel): Panel
+    {
+        foreach (static::$plugins as ['plugin' => $plugin, 'perSite' => $perSite]) {
+            $before = $panel->getResources();
+
+            $panel->plugin($plugin instanceof Closure ? $plugin() : $plugin);
+
+            if (! $perSite) {
+                foreach (array_diff($panel->getResources(), $before) as $resource) {
+                    $resource::scopeToTenant(false);
+                }
+            }
+        }
+
+        return $panel;
     }
 
     /**
