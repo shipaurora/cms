@@ -5,6 +5,7 @@ namespace Aurora\Mcp\Servers;
 use Aurora\Mcp\Prompts\ComposePage;
 use Aurora\Mcp\Resources\SiteGuide;
 use Aurora\Mcp\Tools;
+use Aurora\Support\McpTools;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Version;
@@ -78,6 +79,14 @@ class CmsServer extends Server
     }
 
     protected array $tools = self::TOOLS;
+
+    /**
+     * Aurora's tools and the website's own (McpTools::register()).
+     */
+    protected function boot(): void
+    {
+        $this->tools = McpTools::all();
+    }
 
     protected array $resources = [
         SiteGuide::class,

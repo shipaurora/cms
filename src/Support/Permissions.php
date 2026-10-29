@@ -2,11 +2,14 @@
 
 namespace Aurora\Support;
 
+use Aurora\Models\Permission;
+use Aurora\Models\Role;
 use Aurora\Models\User;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Every permission the application checks, grouped and explained the way the role
- * editor shows them.
+ * editor shows them: Aurora's, then the website's own (register()).
  *
  * Names follow the roles & permissions plugin's convention ("{ability} {Model}") so its
  * permission generator and this list never disagree. Super Admins bypass all of them.
@@ -14,9 +17,76 @@ use Aurora\Models\User;
 class Permissions
 {
     /**
+     * @var array<string, array{icon: string, description: string, permissions: array<string, array{0: string, 1: string}>, grantTo: array<int, string>}>
+     */
+    protected static array $registered = [];
+
+    /**
+     * A group of the website's own permissions (its events, its shop …), in Users & roles beside
+     * Aurora's, for the website's policies to check (`$user->can('update Event')`). Named
+     * "{ability} {Model}" as Aurora's are. $grantTo: the built-in roles that get them when they
+     * first exist (aurora:install, aurora:sync-permissions); after that, Users & roles decides.
+     * Registered from a service provider; registering a group again replaces it.
+     *
+     * @param  array<string, array{0: string, 1: string}>  $permissions  name => [label, what it lets people do]
+     * @param  array<int, string>  $grantTo
+     */
+    public static function register(string $group, array $permissions, string $icon = 'phosphor-puzzle-piece', string $description = '', array $grantTo = []): void
+    {
+        static::$registered[$group] = ['icon' => $icon, 'description' => $description, 'permissions' => $permissions, 'grantTo' => $grantTo];
+    }
+
+    /**
+     * Take a group away again (a test).
+     */
+    public static function forget(string $group): void
+    {
+        unset(static::$registered[$group]);
+    }
+
+    /**
+     * Every permission in the database: the website's new ones are created, and given to the
+     * built-in roles they're granted to as they're created, never again, so a role an
+     * administrator changed stays as they left it. After a website adds permissions to a site
+     * that's running (aurora:sync-permissions), and before roles are edited.
+     */
+    public static function sync(): void
+    {
+        $existing = Permission::query()->where('guard_name', 'web')->pluck('name')->all();
+        $new = array_values(array_diff(static::all(), $existing));
+
+        foreach ($new as $name) {
+            Permission::findOrCreate($name, 'web');
+        }
+
+        foreach (static::$registered as $group) {
+            foreach ($group['grantTo'] as $role) {
+                $granted = array_values(array_intersect(array_keys($group['permissions']), $new));
+
+                if ($granted !== [] && ($model = Role::query()->where('name', $role)->where('guard_name', 'web')->first()) !== null) {
+                    $model->givePermissionTo($granted);
+                }
+            }
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /**
      * @return array<string, array{icon: string, description: string, permissions: array<string, array{0: string, 1: string}>}>
      */
     public static function catalogue(): array
+    {
+        return [
+            ...static::builtIn(),
+            ...array_map(fn (array $group): array => array_diff_key($group, ['grantTo' => true]), static::$registered),
+        ];
+    }
+
+    /**
+     * @return array<string, array{icon: string, description: string, permissions: array<string, array{0: string, 1: string}>}>
+     */
+    protected static function builtIn(): array
     {
         return [
             'Pages' => [
@@ -130,7 +200,7 @@ class Permissions
      */
     public static function roles(): array
     {
-        return [
+        $roles = [
             User::SUPER_ADMIN => [
                 'description' => 'Everything, always. Including roles, users and settings.',
                 'permissions' => [],
@@ -152,5 +222,16 @@ class Permissions
                 'permissions' => ['view-any Page', 'view-any Menu'],
             ],
         ];
+
+        // The website's own permissions, for the roles they're granted to.
+        foreach (static::$registered as $group) {
+            foreach ($group['grantTo'] as $role) {
+                if (isset($roles[$role])) {
+                    $roles[$role]['permissions'] = [...$roles[$role]['permissions'], ...array_keys($group['permissions'])];
+                }
+            }
+        }
+
+        return $roles;
     }
 }

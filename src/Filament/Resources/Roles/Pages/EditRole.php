@@ -8,6 +8,7 @@ use Aurora\Filament\Concerns\ConfirmsLeaving;
 use Aurora\Filament\Concerns\FollowsActiveLocale;
 use Aurora\Filament\Concerns\SavesFromHeader;
 use Aurora\Filament\Resources\Roles\RoleResource;
+use Aurora\Support\Permissions;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Arr;
@@ -51,6 +52,8 @@ class EditRole extends EditRecord
 
     protected function afterSave(): void
     {
+        // The website's permissions added since the roles were set up exist before they're given.
+        Permissions::sync();
         $this->record->syncPermissions($this->permissions ?? []);
     }
 

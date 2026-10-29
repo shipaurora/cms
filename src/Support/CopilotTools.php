@@ -3,7 +3,6 @@
 namespace Aurora\Support;
 
 use Aurora\Enums\AiChannel;
-use Aurora\Mcp\Servers\CmsServer;
 use Laravel\Ai\Tools\McpServerTool;
 use Laravel\Ai\Tools\Request as ToolRequest;
 use Laravel\Mcp\Request;
@@ -39,7 +38,7 @@ class CopilotTools
     {
         $request = new Request([]);
 
-        return collect(CmsServer::TOOLS)
+        return collect(McpTools::all())
             ->map(fn (string $class): Tool => app($class))
             ->filter(fn (Tool $tool): bool => ! method_exists($tool, 'shouldRegister') || $tool->shouldRegister($request))
             ->map(fn (Tool $tool): McpServerTool => new class($tool) extends McpServerTool

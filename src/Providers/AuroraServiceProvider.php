@@ -13,6 +13,7 @@ use Aurora\Console\Commands\MakeBlock;
 use Aurora\Console\Commands\MakeLayout;
 use Aurora\Console\Commands\MakeUser;
 use Aurora\Console\Commands\Reindex;
+use Aurora\Console\Commands\SyncPermissions;
 use Aurora\Console\Commands\SyncTranslations;
 use Aurora\Enums\AssetType;
 use Aurora\Events\ContentEvent;
@@ -178,7 +179,7 @@ class AuroraServiceProvider extends ServiceProvider
             // install) and the password page.
             $this->publishes([__DIR__.'/../../resources/views/layouts' => Layouts::path()], 'aurora-layouts');
             $this->publishes(collect(['page-password', 'page-sign-in', 'site-closed'])->mapWithKeys(fn (string $view): array => [__DIR__."/../../resources/views/{$view}.blade.php" => resource_path("views/vendor/aurora/{$view}.blade.php")])->all(), 'aurora-views');
-            $this->commands([InstallCms::class, MakeUser::class, MakeLayout::class, Reindex::class, MakeBlock::class, BlockPreviews::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class, ImportWordPress::class]);
+            $this->commands([InstallCms::class, MakeUser::class, MakeLayout::class, Reindex::class, MakeBlock::class, BlockPreviews::class, ImportTranslations::class, ExportTranslations::class, SyncTranslations::class, SyncPermissions::class, ImportWordPress::class]);
         }
 
         // Livewire components used by tag (<livewire:…>); the app's own namespace is found by itself.
