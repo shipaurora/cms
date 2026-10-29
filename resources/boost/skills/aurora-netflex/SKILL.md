@@ -31,7 +31,7 @@ Netflex keeps half of the site in the API and half in the repository; list both,
 | Netflex | Where | Becomes in Aurora |
 | --- | --- | --- |
 | Pages and their tree | API `builder/pages/content` (every page with its content), the `template` and `parent_id` of each | Pages, with the same parents and order (`sorting`) and slugs, so the addresses stay |
-| A page template | `foundation/templates` (`type: page`, its `alias` and `controller`); view `resources/views/templates/{alias}.blade.php`, around a layout in `resources/views/layouts` | An Aurora layout (`make:aurora-layout`) for each frame that differs |
+| A page template (Netflex's word for a frame pages share; in Aurora that's a layout, and an Aurora page template is something else: a page new pages start from) | `foundation/templates` (`type: page`, its `alias` and `controller`); view `resources/views/templates/{alias}.blade.php`, around a layout in `resources/views/layouts` | An Aurora layout (`make:aurora-layout`) for each frame that differs |
 | A builder component (template `type: builder`) | `resources/views/components/{alias}.blade.php`, sometimes a class in `app/View/Components` | A block (`aurora:make-block`), its fields from the component's editor buttons (section 2) |
 | Page-level areas outside the blocks (a "hide breadcrumbs" checkbox, a hero image) | `content('area')` / `<x-editor-button>` in a template or layout | Fields of the layout (`Layouts::schema()`), or a block at the top of those pages |
 | A template controller with `$routes` (a list at `/`, a detail page at `/{entry}`) | `app/Http/Controllers/*`, `protected $routes = [...]` | Website routes in `routes/web.php` under the page's address, the list as a block on that page |

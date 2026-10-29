@@ -36,7 +36,7 @@ List what the site has, with counts: `php please` is Statamic's CLI, and its fil
 | A Bard field's sets, a Replicator's sets | the field's `sets:` in the blueprint | One block per set, its fields as the block's `schema()` (the set's text fields as `editables()`) |
 | Bard text between sets | — | A rich text block (`Editable::richText()`) |
 | Grid, Group | — | A repeater, or a group of fields, in the block |
-| Templates and layouts (Antlers or Blade) | `resources/views/*.antlers.html` | Aurora layouts (`make:aurora-layout`) and block views, in Blade |
+| Templates and layouts (Antlers or Blade; not Aurora's page templates, which are pages new pages start from) | `resources/views/*.antlers.html` | Aurora layouts (`make:aurora-layout`) and block views, in Blade |
 | Partials | `resources/views/partials/` | Blade components used by the layouts and blocks |
 | Globals | `content/globals/` | Tabs on Settings › Website, one per global set (`SettingsTabs::register(…, page: 'website')`), read with `Setting::get()` |
 | Navigation | `content/navigation/*.yaml`, `content/trees/navigation/` | Menus in locations (`Menu::location('header')`) |

@@ -30,13 +30,14 @@ List, from the old site's templates and its data:
 
 | On the old site | In Aurora |
 | --- | --- |
-| A page template | A page layout: the published standard layout made the site's own, or `php artisan make:aurora-layout "Landing"` for each other frame. Settings that change one frame (a background image, a dark header) are `Layouts::schema()` fields, not separate layouts. |
+| A page template (the frame pages share; not an Aurora page template) | A page layout: the published standard layout made the site's own, or `php artisan make:aurora-layout "Landing"` for each other frame. Settings that change one frame (a background image, a dark header) are `Layouts::schema()` fields, not separate layouts. |
 | A section editors place on pages | A block (`php artisan aurora:make-block`). Variations of one section are one block with a choice (`ToggleButtons` for layout, `Fields::tone()` for colour), not one block each. |
 | A repeated item inside a section (a card, a stat) | Either a repeater in the section's block (fixed shape, edited as a list) or a container block holding item blocks (`--container`; editors can mix and reorder). |
 | Header, footer, other bits every page shows | Blade components in the layout. Their text and links come from settings, as tabs on Settings › Website, one per section (`SettingsTabs::register(…, page: 'website')`; a service's on Integrations: `aurora-development`, "The website's settings"), their links from menus. |
 | A menu | A menu in a location: `Menu::location('header')` in the layout, a location of the site's own for others. |
 | Records with their own fields | A model of the site's own, with a migration and a Filament resource, and blocks that pick or list them (below). |
 | A page of text | A page record with blocks, created by a seeder or an import command. |
+| Pages of the same shape (news articles, case studies, events) | Pages, and a page template for each shape, so editors start new ones from it: `PageTemplates::fromPage()` of a ported page, emptied of its text. Ask the user which shapes are worth one. |
 | A contact form | A form under Content › Forms, shown by a form block. |
 | An old address | A redirect (`Aurora\Models\Redirect`), or the same slug. |
 | An icon set (Font Awesome, an icon font, a sprite) | The same set, as Blade Icons ("Icons", below): never Aurora's Phosphor or Heroicons instead. |
