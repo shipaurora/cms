@@ -28,7 +28,7 @@ class CopilotTools
     public const CHANGING = [
         'create_page', 'update_page', 'set_page_blocks', 'add_block', 'update_block', 'move_block', 'remove_block',
         'publish_page', 'delete_page', 'restore_revision', 'upload_image_from_url',
-        'add_menu_item', 'update_menu_item', 'remove_menu_item',
+        'add_menu_item', 'update_menu_item', 'remove_menu_item', 'save_record', 'delete_record',
     ];
 
     /**

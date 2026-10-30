@@ -6,8 +6,9 @@ use Aurora\Mcp\Servers\CmsServer;
 use Laravel\Mcp\Server\Tool;
 
 /**
- * The tools AI apps and the in-panel assistant work with: Aurora's, then the website's own,
- * for its models (events, products …). A website's tool extends Aurora\Mcp\Tools\CmsTool, so
+ * The tools AI apps and the in-panel assistant work with: Aurora's, then the website's own.
+ * The website's models are offered without tools of their own (AiModels); these are for the
+ * rest, such as actions. A website's tool extends Aurora\Mcp\Tools\CmsTool, so
  * it acts as the person who connected, checks their permissions through the website's
  * policies, is written to the AI activity log, and answers errors as messages. Registered
  * from a service provider.

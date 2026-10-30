@@ -165,6 +165,10 @@ return [
     'mcp' => [
         'local_user' => env('MCP_USER'),
         'public_url' => env('MCP_PUBLIC_URL'),
+
+        // The website's models AI may work with, through their policies (Aurora\Support\AiModels):
+        // folders, or folder => namespace for one outside app/.
+        'models' => [app_path('Models')],
     ],
 
 ];

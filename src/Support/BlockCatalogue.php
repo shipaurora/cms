@@ -309,6 +309,10 @@ class BlockCatalogue
             }
         }
 
+        if (static::safely(fn () => $field->isRequired())) {
+            $description['required'] = true;
+        }
+
         if (method_exists($field, 'isMultiple') && static::safely(fn () => $field->isMultiple())) {
             $description['multiple'] = true;
         }

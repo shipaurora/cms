@@ -147,7 +147,7 @@ return $schema->components([
 
 **Its permissions and policy.** Each model of the site's own gets permissions of its own and a policy that checks them, so roles control it as finely as Aurora's pages: `Permissions::register('Team', ['view-any Employee' => …, 'create Employee' => …, 'update Employee' => …, 'delete Employee' => …], 'phosphor-users', grantTo: ['Editor'])` and an `EmployeePolicy` with `return $user->can('update Employee');` and the like ("Permissions and policies" in `aurora-development`). Ask the user which built-in roles get them.
 
-**AI tools: ask.** Ask the user whether AI apps and the in-panel assistant should work with the model too (list, read, create, update), and which. If so, tools of the site's own registered with `McpTools::register()`, each authorizing with the model's policy ("AI tools (MCP)" in `aurora-development`). Records editors manage often (events, job openings, products) are the usual yes.
+**AI reaches it through its policy.** A model in `app/Models` is offered to AI apps and the in-panel assistant automatically, to whoever its policy lets see it ("The website's models in AI apps" in `aurora-development`). Ask the user whether that's right for each model: one that shouldn't be (personal data, payments) gets `#[HiddenFromAi]`. Tools of the site's own (`McpTools::register()`) are only for actions the record tools don't cover.
 
 Give the table `->reorderable('sort')` and `->defaultSort('sort')`, so editors put the team in order. Labels go through `__()` with lines in `lang/{locale}.json`.
 
